@@ -340,7 +340,7 @@ dialog p,dialog li{color:#dfe5f7;font-size:14px;line-height:1.5;margin:4px 0}
  <h4>Mode carrière</h4>
  <p>Tu pars à 15–19 ans avec 270 points à répartir. Chaque saison suit le calendrier FFA : départementaux, régionaux, interrégionaux, France Élite, Europe/Monde/JO (selon l'année), meeting de fin de saison. Il faut la moyenne de capacité minimale du niveau pour participer.</p>
  <p>Avant chaque compétition : 3 séances. Salle (musculation, cardio, explosivité, technique, mental) : un d20 par qualité, +1 % (+2 % sous 45 %), parfait +1 de plus. Séance de discipline : l'épreuve se joue sur le plateau ; si les échecs restent tolérés, chaque qualité de l'épreuve gagne +1 %, et chaque lancer parfait donne un point bonus (3 max). Le repos remet la fatigue d'entraînement à zéro (elle ne pénalise que les séances de salle).</p>
- <p>Après une compétition : record personnel +3 points (qualités de l'épreuve, 4 max), victoire 10 points, 2e place 5, 3e place 3 à répartir librement. Au-dessus de 75 %, un point coûte deux points. À chaque fin de saison : croissance jusqu'à 22 ans, déclin dès 29 ans. La carrière est sauvegardée dans le navigateur et exportable.</p>
+ <p>Après une compétition : record personnel +3 points (qualités de l'épreuve, 4 max), podium selon le niveau de la compétition (1re / 2e / 3e place) : départementaux 6 / 3 / 1, régionaux et interrégionaux 10 / 5 / 2, France Élite et Europe 14 / 7 / 3, Monde et Jeux olympiques 20 / 10 / 5 points à répartir librement. Au-dessus de 75 %, un point coûte deux points. À chaque fin de saison : croissance jusqu'à 22 ans, déclin dès 29 ans. La carrière est sauvegardée dans le navigateur et exportable.</p>
  <h4>Écarts de résultats</h4>
  <p>Le résultat ne dépend pas que des dés : le niveau réel de l'athlète (la moyenne exacte de ses pourcentages sur l'épreuve) pèse aussi. À jets de dés équivalents, un athlète à 80 % fait mieux qu'un athlète à 70 %. En course, les cases restant à parcourir avant la dernière relance comptent : arriver à la case d'arrivée avec moins de cases à franchir donne un meilleur temps. Chaque temps et chaque distance est atteignable, avec un plafond propre à chaque niveau.</p>
  <p>Chaque épreuve a aussi un plafond selon le niveau de l'athlète dans la discipline (la moyenne de ses qualités sur l'épreuve) : même avec que des réussites critiques, on ne court pas plus vite, on ne saute pas plus haut et on ne lance pas plus loin que ce niveau le permet. Ce plafond monte graduellement : environ 83 % du meilleur niveau connu en multiple à 70 % de moyenne, 97 % à 90 %. Les records du monde des spécialistes ne sont jamais accessibles en décathlon ou en heptathlon.</p>
@@ -965,6 +965,9 @@ function buildCareerComp(K,lvId){
  C.all[0].pr={};['hj','pv'].forEach(id=>{if(K.pb[id]&&K.pb[id].perf!=null)C.all[0].pr[id]=K.pb[id].perf;});
  return C;
 }
+/* points de podium selon le niveau : [3e, 2e, 1re] */
+const POD={dep:[1,3,6],reg:[2,5,10],inter:[2,5,10],fra:[3,7,14],eur:[3,7,14],mon:[5,10,20],jo:[5,10,20]};
+function podPts(lv,rank){const t=POD[lv]||POD.reg;return rank>=1&&rank<=3?t[3-rank]:0;}
 /* après une compétition : classement, records personnels, médailles, répartition des points */
 function settleCompetition(K,C,step){
  const p=C.all.find(x=>x.human);
@@ -977,7 +980,7 @@ function settleCompetition(K,C,step){
   if(!old||r.pts>old.pts)K.pb[ev.id]={pts:r.pts,perf:r.perf,year:K.year};
  });
  pbs.forEach(ev=>K.pools.push({n:3,sk:trainSk(ev).slice(),why:`Record personnel : ${ev.s} ${fmtPerf(ev,K.pb[ev.id].perf)}`}));
- const pod=rank===1?10:rank===2?5:rank===3?3:0;
+ const pod=podPts(step.lv,rank);
  if(pod){K.pools.push({n:pod,sk:null,why:`${['','Victoire','2e place','3e place'][rank]} : ${step.n}`});K.medals[rank-1]++;}
  K.comps++;K.bestTotal=Math.max(K.bestTotal,p.total);
  K.hist.push({year:K.year,age:K.age,name:step.n,lv:step.lv,rank,of:list.length,total:p.total,pbs:pbs.length,tl:LEVELS.find(l=>l.id===step.lv).s});
