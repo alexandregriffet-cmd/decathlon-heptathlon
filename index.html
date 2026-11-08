@@ -332,7 +332,7 @@ dialog p,dialog li{color:#dfe5f7;font-size:14px;line-height:1.5;margin:4px 0}
  <h4>Bonus et malus entre les jets</h4>
  <p>Pendant l'épreuve, seule une réussite critique (jet = seuil) donne +1 au jet suivant, et seul un échec critique (20) donne −1 au jet suivant. Le jet d'après n'est plus concerné.</p>
  <h4>Les courses</h4>
- <p>Après la rage de vaincre, un jet de départ (parfait +2 cases, réussi +1, échec critique : faux départ, le second est éliminatoire). Puis un jet fait avancer : échec critique 1 case, échec 2, réussite 3, parfaite 4. Plus tu arrives vite, plus le temps est bon (10 cases au 100 m, 11 au 110 m haies, 20 au 200 m, 40 au 400 m, 80 au 800 m, 150 au 1 500 m). Jusqu'au 400 m, les cases ont la même taille et le même nombre dans tous les couloirs : les départs sont décalés et tout le monde arrive sur la même ligne. Au 800 m et au 1 500 m, tout le monde court à la corde, dans les couloirs 1 et 2. Dans une série (8 athlètes au maximum), chacun lance le dé à tour de rôle ; les temps de toutes les séries sont ensuite classés ensemble.</p>
+ <p>Après la rage de vaincre, un jet de départ (parfait +2 cases, réussi +1, échec critique : faux départ, le second est éliminatoire). Puis un jet fait avancer : échec critique 1 case, échec 2, réussite 3, parfaite 4. Plus tu arrives vite, plus le temps est bon : le nombre de jets compte, mais aussi les cases qu'il te reste au moment de franchir la ligne, la qualité de tes jets (marge sous le seuil) et un petit aléa de course, pour départager les arrivées serrées (10 cases au 100 m, 11 au 110 m haies, 20 au 200 m, 40 au 400 m, 80 au 800 m, 150 au 1 500 m). Jusqu'au 400 m, les cases ont la même taille et le même nombre dans tous les couloirs : les départs sont décalés et tout le monde arrive sur la même ligne. Au 800 m et au 1 500 m, tout le monde court à la corde, dans les couloirs 1 et 2. Dans une série (8 athlètes au maximum), chacun lance le dé à tour de rôle ; les temps de toutes les séries sont ensuite classés ensemble.</p>
  <h4>Sauts et lancers</h4>
  <p>Chaque essai compte 3 jets : 1) rage de vaincre, 2) prise d'élan, 3) saut ou lancer. Le dernier jet donne la distance ; un 20 dessus = essai nul (pied mordu, engin hors secteur). Tout le monde joue son essai 1, puis tout le monde son essai 2, puis son essai 3. À la hauteur et à la perche, le dernier jet décide si la barre est passée, et plus la barre est haute, plus son seuil baisse ; trois essais par hauteur, tu peux passer une hauteur, trois échecs consécutifs et c'est terminé. Les adversaires jouent sous tes yeux, à la vitesse que tu choisis.</p>
  <h4>Les points</h4>
@@ -459,7 +459,7 @@ function mkOut(T,roll){if(roll===20)return'crit';if(roll===T)return'perfect';ret
 const ADV={crit:1,fail:2,ok:3,perfect:4};
 const OV={crit:0,fail:.22,ok:.68,perfect:1};
 /* paramètres de calibrage du barème */
-const CAL={PM:920,g:1,race:1.06,fa:.31,fb:.62,bar:1,long:1.08,bs:35,bo:-.03};
+const CAL={PM:920,g:1,race:1.08,fa:.31,fb:.62,bar:1,long:1.08,bs:35,bo:-.03,nuance:.09,noise:.014};
 const ptsFromQ=(Q,ev)=>Math.min(1300,CAL.PM*((ev&&ev.pmx)||1)*Math.pow(Math.max(0,Q),CAL.g));
 EV.HEP.forEach(e=>e.pmx=1.1);
 
@@ -534,7 +534,7 @@ async function rageRoll(p,m,io){
 
 /* ---------- course sur plateau ---------- */
 async function doRace(ev,p,cur,io){
- const m=modsOf(p,cur);let cum=0,pen=0,chain=0;
+ const m=modsOf(p,cur);let cum=0,pen=0,chain=0;const qs=[];
  await io.phase({kind:'race',ev});
  const rg=await rageRoll(p,m,io),rage=rg.bonus;
  for(let g=0;g<4;g++){
@@ -545,6 +545,7 @@ async function doRace(ev,p,cur,io){
    await io.note('Second faux départ : disqualifié de l’épreuve.');
    return{dq:true,perf:null,pts:0};
   }
+  qs.push(finalQ(r,T));
   chain=CHAIN[r.out];
   cum=r.out==='perfect'?2:r.out==='ok'?1:0;
   if(cum)await io.advance(cum,cum,r.out,true);
@@ -556,13 +557,19 @@ async function doRace(ev,p,cur,io){
   const fatT=ev.fat?Math.floor((cum/ev.D)*ev.fat*(1-endCap/20)+.0001):0;
   const cap=capOf(p,ev.sk),T=clampT(cap+m.total-fatT+rage+chain);
   const r=await R(p,io,{kind:'run',label:'Course',sk:ev.sk,cap,T,mods:m,fatT,cum,D:ev.D,rage,bonus:chain});
+  qs.push(finalQ(r,T));
   chain=CHAIN[r.out];
   const a=ADV[r.out];before=cum;cum+=a;rolls++;last=a;
   await io.advance(Math.min(cum,ev.D),a,r.out);
  }
  const Nf=(rolls-1)+(ev.D-before)/last;
  const aeff=ev.D/Math.max(.5,Nf);
- const Q=clamp((aeff-1.9)/1.3,0,1.05)*CAL.race*(ev.D>=40?CAL.long:1);
+ /* nuances : qualité moyenne des jets (marge sous le seuil) et petite part d'aléa (départ, appuis, vent) pour départager les arrivées serrées */
+ const avgQ=qs.reduce((s,x)=>s+x,0)/Math.max(1,qs.length);
+ const Q0=clamp((aeff-1.9)/1.3,0,1.05)+CAL.nuance*(avgQ-.6)+CAL.noise*gauss();
+ /* plafond progressif : les meilleurs ne se retrouvent plus tous au même temps maximal */
+ const Qs=Q0>.88?.88+.17*Math.tanh((Q0-.88)/.17):Math.max(0,Q0);
+ const Q=Qs*CAL.race*(ev.D>=40?CAL.long:1);
  const pts0=ptsFromQ(Q,ev),perf=perfOf(ev,pts0);
  return{perf,pts:ptsOf(ev,perf),Q,rolls,aeff,bonusOut:rg.out,dq:false};
 }
