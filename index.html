@@ -334,7 +334,7 @@ dialog p,dialog li{color:#dfe5f7;font-size:14px;line-height:1.5;margin:4px 0}
  <h4>Les courses</h4>
  <p>Après la rage de vaincre, un jet de départ (parfait +2 cases, réussi +1, échec critique : faux départ, le second est éliminatoire). Puis un jet fait avancer : échec critique 1 case, échec 2, réussite 3, parfaite 4. Plus tu arrives vite, plus le temps est bon : le nombre de jets compte, mais aussi les cases qu'il te reste au moment de franchir la ligne, la qualité de tes jets (marge sous le seuil) et un petit aléa de course, pour départager les arrivées serrées (10 cases au 100 m, 11 au 110 m haies, 20 au 200 m, 40 au 400 m, 80 au 800 m, 150 au 1 500 m). Jusqu'au 400 m, les cases ont la même taille et le même nombre dans tous les couloirs : les départs sont décalés et tout le monde arrive sur la même ligne. Au 800 m et au 1 500 m, tout le monde court à la corde, dans les couloirs 1 et 2. Dans une série (8 athlètes au maximum), chacun lance le dé à tour de rôle ; les temps de toutes les séries sont ensuite classés ensemble.</p>
  <h4>Sauts et lancers</h4>
- <p>Chaque essai compte 3 jets : 1) rage de vaincre, 2) prise d'élan, 3) saut ou lancer. Le dernier jet donne la distance ; un 20 dessus = essai nul (pied mordu, engin hors secteur). Tout le monde joue son essai 1, puis tout le monde son essai 2, puis son essai 3. À la hauteur et à la perche, le dernier jet décide si la barre est passée, et plus la barre est haute, plus son seuil baisse ; trois essais par hauteur, tu peux passer une hauteur, trois échecs consécutifs et c'est terminé. Les adversaires jouent sous tes yeux, à la vitesse que tu choisis.</p>
+ <p>Chaque essai compte 3 jets : 1) rage de vaincre, 2) prise d'élan, 3) saut ou lancer. Le dernier jet donne la distance ; un 20 dessus = essai nul (pied mordu, engin hors secteur). Tout le monde joue son essai 1, puis tout le monde son essai 2, puis son essai 3. À la hauteur et à la perche, le dernier jet décide si la barre est passée, et chaque athlète a une barre facile selon son niveau (par exemple 1,72 m à 14/20 au saut en hauteur) et le seuil perd 1 point par barre au-dessus ; trois essais par hauteur, tu peux passer une hauteur, trois échecs consécutifs et c'est terminé. Les adversaires jouent sous tes yeux, à la vitesse que tu choisis.</p>
  <h4>Les points</h4>
  <p>La performance est recalculée avec les formules officielles pour pouvoir te comparer aux vrais athlètes, dont le record du monde (Kevin Mayer, 9 126 points ; Jackie Joyner-Kersee, 7 291 points).</p>
  <h4>Mode carrière</h4>
@@ -618,18 +618,23 @@ function evAllSk(ev){return[...new Set((ev.run?ev.run.sk:[]).concat(ev.stages.fl
 })();
 /* pas entre deux barres (cm) : même grille que barList */
 const barStep=(ev,h)=>ev.id==='pv'?(h<460?20:(h<560?10:5)):(h<190?3:2);
-/* record personnel de référence : record de carrière s'il existe, sinon niveau estimé d'après les capacités */
-function prOf(p,ev){
- if(p.pr&&p.pr[ev.id]!=null)return p.pr[ev.id];
- return perfOf(ev,softMin(ptsFromQ(clamp(levelQ(p,evAllSk(ev))+CAL.bo,0,1.1)*CAL.bar,ev),ptsCeil(p,ev)))||0;
+/* barre « facile » (franchie presque à coup sûr) selon le niveau /20 de l'athlète sur l'épreuve ; −1 de capacité par barre au-dessus */
+const EASY_BAR={
+ hjD:[[0,85],[6,112],[8,126],[10,141],[12,154],[14,166],[16,177],[18,186],[20,193]],
+ hjH:[[0,80],[6,100],[8,115],[10,128],[12,140],[14,152],[16,162],[18,172],[20,180]],
+ pv:[[0,200],[6,250],[8,280],[10,315],[12,350],[14,380],[16,410],[18,430],[20,450]]
+};
+function easyBar(p,ev){
+ const N=EASY_BAR[ev.id==='pv'?'pv':(p.cat==='HEP'||p.sex==='F'?'hjH':'hjD')];
+ const c=clamp(meanPct(p,evAllSk(ev))/5,0,20);
+ for(let i=1;i<N.length;i++)if(c<=N[i][0]||i===N.length-1){const[x0,y0]=N[i-1],[x1,y1]=N[i];return y0+(y1-y0)*clamp((c-x0)/(x1-x0),0,1);}
 }
-/* −1 de capacité par barre au-dessus du record personnel (pas de bonus en dessous) */
 function barDelta(p,ev,bar){
- let h=prOf(p,ev),n=0;
- while(h<bar&&n<40){h+=barStep(ev,h);n++;}
+ let h=easyBar(p,ev),n=0;
+ while(h<bar&&n<60){h+=barStep(ev,h);n++;}
  /* au-delà du maximum possible à ce niveau, chaque barre coûte un point de plus : très haut niveau = très haut niveau partout */
  let h2=perfOf(ev,ptsCeil(p,ev))||0,e=0;while(h2<bar&&e<40){h2+=barStep(ev,h2);e++;}
- return n+2*e;
+ return n+3*e+e*e;
 }
 function finalQ(r,T){
  if(r.out==='perfect')return 1;
@@ -2027,7 +2032,7 @@ function setStatus(C,p,o){
   ch.push(`<span class="chip ${m.cond>0?'p':m.cond<0?'m':''}">${esc(m.condName)} ${m.cond?sgn(m.cond):'±0'}</span>`);
  if(o.rage)ch.push(`<span class="chip ${o.rage>0?'p':'m'}">Rage de vaincre ${sgn(o.rage)}</span>`);
  if(o.bonus)ch.push(`<span class="chip ${o.bonus>0?'p':'m'}">Jet précédent ${sgn(o.bonus)}</span>`);
- if(o.barPen)ch.push(`<span class="chip m">Barre au-dessus du record ${sgn(-o.barPen)}</span>`);
+ if(o.barPen)ch.push(`<span class="chip m">Au-dessus de ta barre facile ${sgn(-o.barPen)}</span>`);
  if(o.fatT)ch.push(`<span class="chip m">Souffle −${o.fatT}</span>`);
  if(o.pen)ch.push(`<span class="chip m">Relance ${o.pen}</span>`);
  const T=o.T,pc=(T-1)*5,pf=(19-T)*5;
