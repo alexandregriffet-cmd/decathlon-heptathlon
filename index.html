@@ -459,7 +459,7 @@ function mkOut(T,roll){if(roll===20)return'crit';if(roll===T)return'perfect';ret
 const ADV={crit:1,fail:2,ok:3,perfect:4};
 const OV={crit:0,fail:.22,ok:.68,perfect:1};
 /* paramètres de calibrage du barème */
-const CAL={PM:920,g:1,race:1.06,fa:.31,fb:.62,bar:1,long:1.08,bs:35,bo:-.08};
+const CAL={PM:920,g:1,race:1.06,fa:.31,fb:.62,bar:1,long:1.08,bs:35,bo:-.03};
 const ptsFromQ=(Q,ev)=>Math.min(1300,CAL.PM*((ev&&ev.pmx)||1)*Math.pow(Math.max(0,Q),CAL.g));
 EV.HEP.forEach(e=>e.pmx=1.1);
 
@@ -581,10 +581,18 @@ function evAllSk(ev){return[...new Set((ev.run?ev.run.sk:[]).concat(ev.stages.fl
   else{ev.el={n:'Prise d’élan',sk:ev.stages[0].sk};ev.fin={n:fin,sk:mg(ev.stages.slice(1))};}
  });
 })();
+/* pas entre deux barres (cm) : même grille que barList */
+const barStep=(ev,h)=>ev.id==='pv'?(h<460?20:(h<560?10:5)):(h<190?3:2);
+/* record personnel de référence : record de carrière s'il existe, sinon niveau estimé d'après les capacités */
+function prOf(p,ev){
+ if(p.pr&&p.pr[ev.id]!=null)return p.pr[ev.id];
+ return perfOf(ev,ptsFromQ(clamp(.0533*capOf(p,evAllSk(ev))-.06+CAL.bo,0,1.1)*CAL.bar,ev))||0;
+}
+/* −1 de capacité par barre au-dessus du record personnel (pas de bonus en dessous) */
 function barDelta(p,ev,bar){
- const cap=capOf(p,evAllSk(ev));
- const E=ptsFromQ(clamp(.0533*cap-.06+CAL.bo,0,1.1)*CAL.bar,ev);
- return Math.round((ptsOf(ev,bar)-E)/CAL.bs);
+ let h=prOf(p,ev),n=0;
+ while(h<bar&&n<40){h+=barStep(ev,h);n++;}
+ return n;
 }
 function finalQ(r,T){
  if(r.out==='perfect')return 1;
@@ -605,7 +613,7 @@ async function doAttempt(ev,p,cur,io,bar){
  /* jet 3 : saut / lancer */
  const pen=(ev.mech==='bar'&&bar)?barDelta(p,ev,bar):0;
  const capF=capOf(p,ev.fin.sk),TF=clampT(capF+m.total+rage+chain-pen);
- const r2=await R(p,io,{kind:'stage',label:ev.fin.n,sk:ev.fin.sk,cap:capF,T:TF,mods:m,si:1,ns:2,rage,bonus:chain,pen:-pen,barPen:pen});
+ const r2=await R(p,io,{kind:'stage',label:ev.fin.n,sk:ev.fin.sk,cap:capF,T:TF,mods:m,si:1,ns:2,rage,bonus:chain,pen:0,barPen:pen});
  outs.push(r2.out);last=r2;lastT=TF;
  if(ev.mech==='bar'){
   const ok=r2.out==='ok'||r2.out==='perfect';
@@ -917,6 +925,7 @@ function silentHooks(tally,isTrain){
 function buildCareerComp(K,lvId){
  const C=buildCompetition(lvId,K.cat,[{first:K.first,last:K.last,nat:K.nat,color:K.color,pct:{...K.pct},age:K.age,sex:K.cat==='DEC'?'M':'F'}]);
  C.attempts=K.att;C.all[0].fat=K.tf*2.5;
+ C.all[0].pr={};['hj','pv'].forEach(id=>{if(K.pb[id]&&K.pb[id].perf!=null)C.all[0].pr[id]=K.pb[id].perf;});
  return C;
 }
 /* après une compétition : classement, records personnels, médailles, répartition des points */
@@ -1978,7 +1987,7 @@ function setStatus(C,p,o){
   ch.push(`<span class="chip ${m.cond>0?'p':m.cond<0?'m':''}">${esc(m.condName)} ${m.cond?sgn(m.cond):'±0'}</span>`);
  if(o.rage)ch.push(`<span class="chip ${o.rage>0?'p':'m'}">Rage de vaincre ${sgn(o.rage)}</span>`);
  if(o.bonus)ch.push(`<span class="chip ${o.bonus>0?'p':'m'}">Jet précédent ${sgn(o.bonus)}</span>`);
- if(o.barPen)ch.push(`<span class="chip m">Hauteur de la barre ${sgn(-o.barPen)}</span>`);
+ if(o.barPen)ch.push(`<span class="chip m">Barre au-dessus du record ${sgn(-o.barPen)}</span>`);
  if(o.fatT)ch.push(`<span class="chip m">Souffle −${o.fatT}</span>`);
  if(o.pen)ch.push(`<span class="chip m">Relance ${o.pen}</span>`);
  const T=o.T,pc=(T-1)*5,pf=(19-T)*5;
