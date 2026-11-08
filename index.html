@@ -342,7 +342,8 @@ dialog p,dialog li{color:#dfe5f7;font-size:14px;line-height:1.5;margin:4px 0}
  <p>Avant chaque compétition : 3 séances. Salle (musculation, cardio, explosivité, technique, mental) : un d20 par qualité, +1 % (+2 % sous 45 %), parfait +1 de plus. Séance de discipline : l'épreuve se joue sur le plateau ; si les échecs restent tolérés, chaque qualité de l'épreuve gagne +1 %, et chaque lancer parfait donne un point bonus (3 max). Le repos remet la fatigue d'entraînement à zéro (elle ne pénalise que les séances de salle).</p>
  <p>Après une compétition : record personnel +3 points (qualités de l'épreuve, 4 max), victoire 10 points, 2e place 5, 3e place 3 à répartir librement. Au-dessus de 75 %, un point coûte deux points. À chaque fin de saison : croissance jusqu'à 22 ans, déclin dès 29 ans. La carrière est sauvegardée dans le navigateur et exportable.</p>
  <h4>Écarts de résultats</h4>
- <p>Le résultat ne dépend pas que des dés : le niveau réel de l'athlète (la moyenne exacte de ses pourcentages sur l'épreuve) pèse aussi. À jets de dés équivalents, un athlète à 80 % fait mieux qu'un athlète à 70 %. En course, les cases restant à parcourir avant la dernière relance comptent : arriver à la case d'arrivée avec moins de cases à franchir donne un meilleur temps. Chaque temps et chaque distance est atteignable, sans plafond commun.</p>
+ <p>Le résultat ne dépend pas que des dés : le niveau réel de l'athlète (la moyenne exacte de ses pourcentages sur l'épreuve) pèse aussi. À jets de dés équivalents, un athlète à 80 % fait mieux qu'un athlète à 70 %. En course, les cases restant à parcourir avant la dernière relance comptent : arriver à la case d'arrivée avec moins de cases à franchir donne un meilleur temps. Chaque temps et chaque distance est atteignable, avec un plafond propre à chaque niveau.</p>
+ <p>Chaque épreuve a aussi un plafond selon le niveau de l'athlète dans la discipline (la moyenne de ses qualités sur l'épreuve) : même avec que des réussites critiques, on ne court pas plus vite, on ne saute pas plus haut et on ne lance pas plus loin que ce niveau le permet. Ce plafond monte graduellement : environ 83 % du meilleur niveau connu en multiple à 70 % de moyenne, 97 % à 90 %. Les records du monde des spécialistes ne sont jamais accessibles en décathlon ou en heptathlon.</p>
  <p style="margin-top:14px"><button class="btn" onclick="document.getElementById('rules').close()">Fermer</button></p>
 </dialog>
 <dialog id="fiche"><div class="fbody"></div></dialog>
@@ -470,8 +471,23 @@ function levelQ(p,skills){
 }
 /* plancher doux : pas de résultats identiques « au plancher » pour les moins bons */
 const softFloor=(q,f)=>q>=f?q:Math.max(.004,f*Math.exp((q-f)/f));
+/* plafonds : meilleure performance connue d'un spécialiste du multiple (jamais les records du monde des épreuves individuelles) */
+const CEIL_PERF={
+ DEC:{'100':10.2,lj:820,sp:17.0,hj:215,'400':44.9,'110h':13.3,dt:54,pv:555,jt:74,'1500':250},
+ HEP:{'100h':12.55,hj:195,sp:16.3,'200':22.3,lj:730,jt:50,'800':123}
+};
+/* part du plafond accessible selon le niveau moyen (en %) sur les qualités de l'épreuve : graduel, le très haut niveau demande ~90 % partout */
+const CEIL_NODES=[[0,.15],[30,.45],[50,.66],[70,.83],[90,.97],[100,1]];
+function ceilFrac(m){
+ for(let i=1;i<CEIL_NODES.length;i++)if(m<=CEIL_NODES[i][0]||i===CEIL_NODES.length-1){const[x0,y0]=CEIL_NODES[i-1],[x1,y1]=CEIL_NODES[i];return clamp(y0+(y1-y0)*(m-x0)/(x1-x0),.05,1);}
+}
+const meanPct=(p,sk)=>sk.reduce((s,k)=>s+effPct(p,k),0)/sk.length;
+/* points maximum atteignables par cet athlète dans l'épreuve, même avec que des réussites critiques */
+const ptsCeil=(p,ev)=>ev.ceilPts*ceilFrac(meanPct(p,ev.sk&&ev.mech==='race'?ev.sk:evAllSk(ev)));
+const softMin=(x,c,n=10)=>x<=0?x:Math.pow(Math.pow(x,-n)+Math.pow(c,-n),-1/n);
 const ptsFromQ=(Q,ev)=>Math.min(1300,CAL.PM*((ev&&ev.pmx)||1)*Math.pow(Math.max(0,Q),CAL.g));
 EV.HEP.forEach(e=>e.pmx=1.1);
+['DEC','HEP'].forEach(c=>EV[c].forEach(e=>e.ceilPts=ptsOf(e,CEIL_PERF[c][e.id])));
 
 const botIO={
  async roll(o){const roll=rnd(20);return{roll,out:mkOut(o.T,roll)};},
@@ -582,7 +598,7 @@ async function doRace(ev,p,cur,io){
  /* plafond progressif : les meilleurs ne se retrouvent plus tous au même temps maximal */
  const Qs=Q0>.92?.92+.2*Math.tanh((Q0-.92)/.2):Math.max(0,Q0);
  const Q=Qs*CAL.race*(ev.D>=40?CAL.long:1);
- const pts0=ptsFromQ(Q,ev),perf=perfOf(ev,pts0);
+ const pts0=softMin(ptsFromQ(Q,ev),ptsCeil(p,ev)),perf=perfOf(ev,pts0);
  return{perf,pts:ptsOf(ev,perf),Q,rolls,aeff,bonusOut:rg.out,dq:false};
 }
 
@@ -605,13 +621,15 @@ const barStep=(ev,h)=>ev.id==='pv'?(h<460?20:(h<560?10:5)):(h<190?3:2);
 /* record personnel de référence : record de carrière s'il existe, sinon niveau estimé d'après les capacités */
 function prOf(p,ev){
  if(p.pr&&p.pr[ev.id]!=null)return p.pr[ev.id];
- return perfOf(ev,ptsFromQ(clamp(levelQ(p,evAllSk(ev))+CAL.bo,0,1.1)*CAL.bar,ev))||0;
+ return perfOf(ev,softMin(ptsFromQ(clamp(levelQ(p,evAllSk(ev))+CAL.bo,0,1.1)*CAL.bar,ev),ptsCeil(p,ev)))||0;
 }
 /* −1 de capacité par barre au-dessus du record personnel (pas de bonus en dessous) */
 function barDelta(p,ev,bar){
  let h=prOf(p,ev),n=0;
  while(h<bar&&n<40){h+=barStep(ev,h);n++;}
- return n;
+ /* au-delà du maximum possible à ce niveau, chaque barre coûte un point de plus : très haut niveau = très haut niveau partout */
+ let h2=perfOf(ev,ptsCeil(p,ev))||0,e=0;while(h2<bar&&e<40){h2+=barStep(ev,h2);e++;}
+ return n+2*e;
 }
 function finalQ(r,T){
  if(r.out==='perfect')return 1;
@@ -643,7 +661,7 @@ async function doAttempt(ev,p,cur,io,bar){
   return{nul:true,perf:null,pts:0,Q:0,outs};
  }
  const Qd=(finalQ(last,lastT)-CAL.fa)/CAL.fb,Q=clamp(softFloor((1-CAL.lvw)*Qd+CAL.lvw*levelQ(p,evAllSk(ev)),.1),.004,1.1);
- const pts0=ptsFromQ(Q,ev),perf=perfOf(ev,pts0);
+ const pts0=softMin(ptsFromQ(Q,ev),ptsCeil(p,ev)),perf=perfOf(ev,pts0);
  return{nul:false,perf,pts:ptsOf(ev,perf),Q,outs,bonusOut:rg.out};
 }
 
@@ -2307,7 +2325,7 @@ function ficheHTML(C,p){
   const sk=ev.sk||evAllSk(ev),cap=capOf(p,sk),pc=(cap-1)*5,r=p.res[i];
   const skc=sk.map(k=>`<span class="chip">${SX[k].i} ${effPct(p,k)}</span>`).join('');
   const res=r?(r.dq?'<span class="nul">nul / disqualifié</span>':`<b>${fmtPerf(ev,r.perf)}</b> · ${nf(r.pts)} pts · ${evRank(C,i,p)}e`):'<span style="color:var(--mute)">à venir</span>';
-  return `<tr><td>${ev.i} ${ev.s}</td><td><b>${cap}</b>/18<div class="fb sm"><i style="width:${cap/18*100}%;background:${col}"></i></div></td><td class="fch">${skc}</td><td>${pc} %</td><td>${res}</td></tr>`;
+  return `<tr><td>${ev.i} ${ev.s}</td><td><b>${cap}</b>/18<div class="fb sm"><i style="width:${cap/18*100}%;background:${col}"></i></div></td><td class="fch">${skc}</td><td>${pc} %</td><td>${fmtPerf(ev,perfOf(ev,ptsCeil(p,ev)))}</td><td>${res}</td></tr>`;
  }).join('');
  return `<div class="fh"><div class="fav" style="--c:${col}">${esc((p.first||'?')[0])}${esc((p.last||'?')[0])}</div>
   <div><h2>${p.flag||flagOf(p.nat)} ${esc(fullName(p))}</h2>
@@ -2316,8 +2334,8 @@ function ficheHTML(C,p){
   <span class="chip p">Point fort : ${best.s.i} ${best.s.n} ${best.v} %</span><span class="chip m">Point faible : ${worst.s.i} ${worst.s.n} ${worst.v} %</span>
   ${done?`<span class="chip">${nf(p.total)} pts · ${rank}e après ${done} épreuve${done>1?'s':''}</span>`:'<span class="chip">Pas encore d’épreuve</span>'}</div>
   <h4>Qualités</h4><div class="fkl">${skillRows}</div>
-  <h4>Épreuves</h4><div class="fscr"><table class="ft"><tr><th>Épreuve</th><th>Capacité</th><th>Qualités utilisées</th><th>Réussite d20</th><th>Résultat</th></tr>${evRows}</table></div>
-  <p class="fnote">Capacité = moyenne des qualités de l’épreuve ÷ 5, arrondie au-dessus (18 max). Réussite d20 = chance de réussir un jet (hors bonus et malus du jour).</p>
+  <h4>Épreuves</h4><div class="fscr"><table class="ft"><tr><th>Épreuve</th><th>Capacité</th><th>Qualités utilisées</th><th>Réussite d20</th><th>Maximum à ce niveau</th><th>Résultat</th></tr>${evRows}</table></div>
+  <p class="fnote">Capacité = moyenne des qualités de l’épreuve ÷ 5, arrondie au-dessus (18 max). Réussite d20 = chance de réussir un jet (hors bonus et malus du jour). Maximum à ce niveau = meilleure performance possible avec la moyenne de ses qualités sur l’épreuve, même avec uniquement des réussites critiques : le record du monde d’une épreuve n’est jamais accessible en multiple.</p>
   <p style="margin-top:12px"><button class="btn" onclick="document.getElementById('fiche').close()">Fermer</button></p>`;
 }
 document.addEventListener('click',e=>{
