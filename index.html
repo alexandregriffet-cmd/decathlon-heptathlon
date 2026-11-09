@@ -503,7 +503,7 @@ function ceilFrac(m){
 }
 const meanPct=(p,sk)=>sk.reduce((s,k)=>s+effPct(p,k),0)/sk.length;
 /* points maximum atteignables par cet athlète dans l'épreuve, même avec que des réussites critiques */
-const ptsCeil=(p,ev)=>ev.ceilPts*ceilFrac(meanPct(p,ev.sk&&ev.mech==='race'?ev.sk:evAllSk(ev)));
+const ptsCeil=(p,ev)=>(p.cm||1)*ev.ceilPts*ceilFrac(meanPct(p,ev.sk&&ev.mech==='race'?ev.sk:evAllSk(ev)));
 const softMin=(x,c,n=10)=>x<=0?x:Math.pow(Math.pow(x,-n)+Math.pow(c,-n),-1/n);
 const ptsFromQ=(Q,ev)=>Math.min(1300,CAL.PM*((ev&&ev.pmx)||1)*Math.pow(Math.max(0,Q),CAL.g));
 EV.HEP.forEach(e=>e.pmx=1.1);
@@ -720,7 +720,9 @@ function buildCompetition(levelId,cat,humans){
  while(all.length<Math.max(level.parts,humans.length))all.push(makeBot(level,cat,all.length,used));
  all.forEach(initRuntime);
  const li=LEVELS.indexOf(level);
- return{level,li,cat,evs:EV[cat],dayBreak:DB[cat],all,cur:null,abort:false,attempts:3};
+ const C={level,li,cat,evs:EV[cat],dayBreak:DB[cat],all,cur:null,abort:false,attempts:3};
+ if(typeof injectPros==='function')injectPros(C);
+ return C;
 }
 const orderByTotal=(C)=>[...C.all].map(p=>({p,k:p.total+Math.random()*.01})).sort((a,b)=>a.k-b.k).map(x=>x.p);
 
@@ -1049,6 +1051,88 @@ function poolAuto(K,pool){
   if(!c.length){pool.n=0;break;}
   poolAdd(K,pool,c[0]);
  }
+}
+
+/* ================= ATHLÈTES RÉELS : légendes et athlètes actuels ================= */
+/* [prénom, nom, pays, drapeau, points au record personnel (barème World Athletics, liste à jour en 2026)] */
+const REAL_LEG={
+DEC:[
+['Kevin','Mayer','France','🇫🇷',9126],['Ashton','Eaton','États-Unis','🇺🇸',9045],['Roman','Šebrle','République tchèque','🇨🇿',9026],
+['Damian','Warner','Canada','🇨🇦',9018],['Tomáš','Dvořák','République tchèque','🇨🇿',8994],['Leo','Neugebauer','Allemagne','🇩🇪',8961],
+['Pierce','LePage','Canada','🇨🇦',8909],['Sander','Skotheim','Norvège','🇳🇴',8909],['Dan','O’Brien','États-Unis','🇺🇸',8891],
+['Kyle','Garland','États-Unis','🇺🇸',8869],['Garrett','Scantling','États-Unis','🇺🇸',8867],['Bryan','Clay','États-Unis','🇺🇸',8832],
+['Erki','Nool','Estonie','🇪🇪',8815],['Daley','Thompson','Royaume-Uni','🇬🇧',8811],['Markus','Rooth','Norvège','🇳🇴',8796],
+['Trey','Hardee','États-Unis','🇺🇸',8790],['Tom','Pappas','États-Unis','🇺🇸',8784],['Ayden','Owens-Delerme','Porto Rico','🇵🇷',8784],
+['Simon','Ehammer','Suisse','🇨🇭',8778],['Johannes','Erm','Estonie','🇪🇪',8764],['Lindon','Victor','Grenade','🇬🇩',8756],
+['Eduard','Hämäläinen','Biélorussie','🇧🇾',8735],['Jürgen','Hingsen','Allemagne','🇩🇪',8730],['Dmitriy','Karpov','Kazakhstan','🇰🇿',8725],
+['Frank','Busemann','Allemagne','🇩🇪',8706]],
+HEP:[
+['Jackie','Joyner-Kersee','États-Unis','🇺🇸',7291],['Carolina','Klüft','Suède','🇸🇪',7032],['Anna','Hall','États-Unis','🇺🇸',7032],
+['Nafissatou','Thiam','Belgique','🇧🇪',7013],['Larisa','Nikitina','URSS','🚩',7007],['Sabine','Braun','Allemagne','🇩🇪',6985],
+['Katarina','Johnson-Thompson','Royaume-Uni','🇬🇧',6981],['Jessica','Ennis-Hill','Royaume-Uni','🇬🇧',6955],['Sabine','Paetz','RDA','🇩🇪',6946],
+['Ghada','Shouaa','Syrie','🇸🇾',6942],['Ramona','Neubert','RDA','🇩🇪',6935],['Eunice','Barber','France','🇫🇷',6889],
+['Anouk','Vetter','Pays-Bas','🇳🇱',6867],['Natalya','Shubenkova','URSS','🚩',6859],['Anke','Behmer','RDA','🇩🇪',6858],
+['Irina','Belova','Russie','🇷🇺',6845],['Carolin','Schäfer','Allemagne','🇩🇪',6836],['Lyudmila','Blonska','Ukraine','🇺🇦',6832],
+['Denise','Lewis','Royaume-Uni','🇬🇧',6831],['Annik','Kälin','Suisse','🇨🇭',6819],['Laura','Ikauniece','Lettonie','🇱🇻',6815],
+['Brianne','Theisen-Eaton','Canada','🇨🇦',6808],['Jane','Frederick','États-Unis','🇺🇸',6803],['Nataliya','Dobrynska','Ukraine','🇺🇦',6778],
+['Yelena','Prokhorova','Russie','🇷🇺',6765]]
+};
+/* athlètes en activité (niveau actuel : mélange de leur record et de leur meilleure marque 2026), dernier champ : 1 = européen */
+const REAL_ACT={
+DEC:[
+['Simon','Ehammer','Suisse','🇨🇭',8778,1],['Leo','Neugebauer','Allemagne','🇩🇪',8846,1],['Sander','Skotheim','Norvège','🇳🇴',8770,1],
+['Hakim','McMorris','États-Unis','🇺🇸',8599,0],['Niklas','Kaul','Allemagne','🇩🇪',8632,1],['Garrett','Scantling','États-Unis','🇺🇸',8697,0],
+['Damian','Warner','Canada','🇨🇦',8758,0],['Makenson','Gletty','France','🇫🇷',8458,1],['Kyle','Garland','États-Unis','🇺🇸',8650,0],
+['Sven','Roosen','Pays-Bas','🇳🇱',8428,1],['Karel','Tilga','Estonie','🇪🇪',8547,1],['Devon','Williams','États-Unis','🇺🇸',8402,0],
+['Tomáš','Järvinen','République tchèque','🇨🇿',8400,1],['Harrison','Williams','États-Unis','🇺🇸',8380,0],['Jeff','Tesselaar','Pays-Bas','🇳🇱',8378,1],
+['Heath','Baldwin','États-Unis','🇺🇸',8357,0],['Amadeus','Gräber','Allemagne','🇩🇪',8345,1],['Rasmus','Roosleht','Estonie','🇪🇪',8336,1],
+['Yuma','Maruyama','Japon','🇯🇵',8321,0],['Dario','Dester','Italie','🇮🇹',8318,1],['Maksim','Andraloits','Biélorussie','🇧🇾',8310,0],
+['Marcel','Meyer','Allemagne','🇩🇪',8261,1],['Antoine','Ferranti','France','🇫🇷',8240,1],['Markus','Rooth','Norvège','🇳🇴',8503,1],
+['Moritz','Bartko','Allemagne','🇩🇪',8180,1],['Andrin','Huber','Suisse','🇨🇭',8137,1],['Pierce','LePage','Canada','🇨🇦',8513,0]],
+HEP:[
+['Annik','Kälin','Suisse','🇨🇭',6819,1],['Kate','O’Connor','Irlande','🇮🇪',6751,1],['Emma','Oosterwegel','Pays-Bas','🇳🇱',6713,1],
+['Sofie','Dokter','Pays-Bas','🇳🇱',6664,1],['Anna','Hall','États-Unis','🇺🇸',7032,0],['Nafissatou','Thiam','Belgique','🇧🇪',7013,1],
+['Katarina','Johnson-Thompson','Royaume-Uni','🇬🇧',6981,1],['Anouk','Vetter','Pays-Bas','🇳🇱',6867,1],['Noor','Vidts','Belgique','🇧🇪',6707,1],
+['Annie','Kunz','États-Unis','🇺🇸',6703,0],['Kendell','Williams','États-Unis','🇺🇸',6683,0],['Adrianna','Sułek','Pologne','🇵🇱',6672,1],
+['Xénia','Krizsán','Hongrie','🇭🇺',6651,1],['Auriana','Lazraq-Khlass','France','🇫🇷',6635,1],['Verena','Preiner','Autriche','🇦🇹',6591,1],
+['Taliyah','Brooks','États-Unis','🇺🇸',6581,0],['Saga','Vanninen','Finlande','🇫🇮',6563,1],['Sophie','Weißenberg','Allemagne','🇩🇪',6496,1]]
+};
+/* total moyen observé d'un athlète à X % partout (simulations, niveau Jeux olympiques) : sert à retrouver le niveau d'un total réel */
+const PRO_CURVE={
+DEC:[[30,2964],[50,5338],[60,5973],[70,7103],[80,7980],[90,8531],[95,8626],[100,8799]],
+HEP:[[30,2294],[50,3949],[60,4688],[70,5513],[80,6070],[90,6577],[95,6621],[100,6658]]
+};
+/* niveau (pourcentage) et facteur de plafond d'un athlète réel : il réalise en moyenne ~96,5 % de son record */
+function proProfile(cat,pts){
+ const T=pts*.965,N=PRO_CURVE[cat],last=N[N.length-1];
+ if(T>=last[1])return{pct:100,cm:T/last[1]};
+ for(let i=1;i<N.length;i++)if(T<=N[i][1]){const[x0,y0]=N[i-1],[x1,y1]=N[i];return{pct:Math.round(x0+(x1-x0)*(T-y0)/(y1-y0)),cm:1};}
+ return{pct:30,cm:1};
+}
+function makePro(cat,id,r){
+ const pr=proProfile(cat,r[4]);
+ return{id,human:false,first:r[0],last:r[1],nat:r[2],flag:r[3],sex:cat==='DEC'?'M':'F',cat,pct:Object.fromEntries(STATS.map(s=>[s.k,pr.pct])),color:'#d8a93c',age:28,pro:true,rec:r[4],cm:pr.cm};
+}
+/* championnats d'Europe, du monde, Jeux olympiques : de vrais noms parmi les athlètes virtuels */
+function injectPros(C){
+ const id=C.level.id;if(!['eur','mon','jo'].includes(id))return;
+ const maxN={eur:12,mon:14,jo:16}[id];
+ const taken=new Set(C.all.map(p=>(p.first+' '+p.last).toLowerCase()));
+ const pool=REAL_ACT[C.cat].filter(r=>(id!=='eur'||r[5])&&Math.random()<.85&&!taken.has((r[0]+' '+r[1]).toLowerCase()));
+ const bots=C.all.filter(p=>!p.human),lim=Math.min(maxN,Math.max(0,bots.length-4));
+ pool.map(r=>({r,k:r[4]+gauss()*140})).sort((a,b)=>b.k-a.k).slice(0,lim).forEach((x,i)=>{
+  const keep=bots[i],pro=makePro(C.cat,keep.id,x.r);
+  Object.keys(keep).forEach(k=>delete keep[k]);Object.assign(keep,pro);initRuntime(keep);
+ });
+}
+/* compétition des légendes : les 25 meilleurs de l'histoire */
+function buildLegendsComp(cat,humans){
+ const C=buildCompetition('jo',cat,humans);
+ const hs=C.all.filter(p=>p.human);
+ const leg=REAL_LEG[cat].map((r,i)=>{const p=makePro(cat,hs.length+i,r);initRuntime(p);return p;});
+ C.all=[...hs,...leg];
+ C.level={...C.level,id:'leg',n:'Compétition des légendes',s:'Légendes',parts:C.all.length};
+ return C;
 }
 
 /* ================= INTERFACE : utilitaires, dé 3D, scènes ================= */
@@ -1909,6 +1993,8 @@ const ST={
 
 /* ================= INTERFACE : création, compétition, classements ================= */
 const setup={cfg:{level:'dep',cat:'DEC',attempts:3,auto:false,fast:false,free:false,age:16},players:[],uid:0,mode:'free'};
+const LEG_LV={id:'leg',n:'Compétition des légendes',s:'Légendes',parts:25,avg:90,min:0,intl:1,bars:6};
+const levelOf=id=>id==='legends'?LEG_LV:LEVELS.find(l=>l.id===id);
 const TOTAL_PCT=STATS.length*START_PCT;
 const sumPct=a=>STATS.reduce((s,x)=>s+a.pct[x.k],0);
 function ageOf(dob){
@@ -1933,14 +2019,14 @@ function renderSetup(){
  $('#modeFree').classList.toggle('on',!career);$('#modeCareer').classList.toggle('on',career);
  if(career&&setup.players.length>1)setup.players.length=1;
  const okLv=l=>cfg.free||career||setup.players.every(a=>qualified(a,cfg.cat,l));
- if(!okLv(LEVELS.find(l=>l.id===cfg.level))){
+ if(cfg.level!=='legends'&&!okLv(LEVELS.find(l=>l.id===cfg.level))){
   const best=[...LEVELS].reverse().find(okLv);cfg.level=best?best.id:'dep';
  }
- const lv=LEVELS.find(l=>l.id===cfg.level);
- $('#cfgLevel').innerHTML=LEVELS.map(l=>`<option value="${l.id}" ${l.id===cfg.level?'selected':''} ${okLv(l)?'':'disabled'}>${l.n} · min ${l.min}/20${okLv(l)?'':' · non qualifié'}</option>`).join('');
+ const lv=levelOf(cfg.level),legM=cfg.level==='legends';
+ $('#cfgLevel').innerHTML=(career?'':`<option value="legends" ${legM?'selected':''}>⭐ Compétition des légendes · les 25 meilleurs de l’histoire</option>`)+LEVELS.map(l=>`<option value="${l.id}" ${l.id===cfg.level?'selected':''} ${okLv(l)?'':'disabled'}>${l.n} · min ${l.min}/20${okLv(l)?'':' · non qualifié'}</option>`).join('');
  $('#cfgFree').checked=cfg.free;$('#cfgCat').value=cfg.cat;$('#cfgAtt').value=String(cfg.attempts);$('#cfgAuto').checked=cfg.auto;$('#cfgFast').checked=cfg.fast;
  const nh=setup.players.length;
- $('#cfgInfo').textContent=career?`Carrière ${CATN[cfg.cat]} : tu débutes à ${cfg.age} ans avec 30 % partout à répartir (270 points), puis tu enchaînes les saisons du calendrier FFA.`:`${CATN[cfg.cat]} · ${lv.n} : ${Math.max(lv.parts,nh)} participants, dont ${nh} joueur${nh>1?'s':''} et ${Math.max(lv.parts,nh)-nh} athlètes virtuels.`;
+ $('#cfgInfo').textContent=career?`Carrière ${CATN[cfg.cat]} : tu débutes à ${cfg.age} ans avec 30 % partout à répartir (270 points), puis tu enchaînes les saisons du calendrier FFA.`:(legM?`${CATN[cfg.cat]} · ${lv.n} : tu affrontes les 25 meilleurs ${cfg.cat==='DEC'?'décathloniens':'heptathloniennes'} de l’histoire (records personnels réels), avec ${nh} joueur${nh>1?'s':''}.`:`${CATN[cfg.cat]} · ${lv.n} : ${Math.max(lv.parts,nh)} participants, dont ${nh} joueur${nh>1?'s':''} et ${Math.max(lv.parts,nh)-nh} athlètes virtuels.`);
  $('#cfgAge').value=String(cfg.age);
  $('#athletes').innerHTML=setup.players.map(a=>{
   const left=TOTAL_PCT-sumPct(a);
@@ -1962,7 +2048,7 @@ function renderSetup(){
   </div>`;
  }).join('');
  const bad=setup.players.find(a=>!a.locked&&TOTAL_PCT-sumPct(a)!==0);
- const unq=(cfg.free||career)?null:setup.players.find(a=>!qualified(a,cfg.cat,lv));
+ const unq=(cfg.free||career||legM)?null:setup.players.find(a=>!qualified(a,cfg.cat,lv));
  $('#startBtn').disabled=!setup.players.length||!!bad||!!unq;
  $('#startMsg').textContent=!setup.players.length?'Ajoute au moins un athlète.':bad?`Il reste des pourcentages à répartir : ${(bad.first||'Athlète')} ${bad.last}`:unq?`${unq.first||'Athlète'} n'a pas la moyenne minimale de ${lv.min}/20 pour ce niveau (actuellement ${fmt1c(avgCap(unq,cfg.cat))}/20). Redistribue tes pourcentages.`:'';
  $('#addHuman').disabled=setup.players.length>=6;
@@ -2014,7 +2100,7 @@ let G=null;
 function launch(){
  const cfg=setup.cfg;
  const humans=setup.players.map(a=>({first:(a.first||'').trim()||'Athlète',last:(a.last||'').trim()||String(a.uid),nat:a.nat,flag:flagOf(a.nat),color:a.color,pct:{...a.pct},age:a.age!=null?a.age:ageOf(a.dob),sex:cfg.cat==='DEC'?'M':'F'}));
- const C=buildCompetition(cfg.level,cfg.cat,humans);
+ const C=cfg.level==='legends'?buildLegendsComp(cfg.cat,humans):buildCompetition(cfg.level,cfg.cat,humans);
  C.attempts=cfg.attempts;
  if(typeof injectComm==='function')injectComm(C);
  startGame(C,{auto:cfg.auto,fast:cfg.fast});
@@ -2130,7 +2216,7 @@ function renderHeat(g,C){
 
 /* ---------- tableaux ---------- */
 const medal=i=>i===0?'🥇':i===1?'🥈':i===2?'🥉':String(i+1);
-const nameCell=p=>`${p.comm?'<span title="Personnage de la communauté">🌍</span> ':''}${p.human?`<span class="dot" style="--c:${p.color}"></span>`:''}${p.flag||flagOf(p.nat)} <a class="pn" data-pid="${p.id}" title="Voir la fiche technique">${esc(fullName(p))}</a>`;
+const nameCell=p=>`${p.pro?'<span title="Athlète réel">⭐</span> ':''}${p.comm?'<span title="Personnage de la communauté">🌍</span> ':''}${p.human?`<span class="dot" style="--c:${p.color}"></span>`:''}${p.flag||flagOf(p.nat)} <a class="pn" data-pid="${p.id}" title="Voir la fiche technique">${esc(fullName(p))}</a>`;
 function evRank(C,r,p){
  const l=C.all.filter(x=>x.res[r]).sort((a,b)=>b.res[r].pts-a.res[r].pts);
  return l.indexOf(p)+1;
@@ -2360,7 +2446,7 @@ function ficheHTML(C,p){
  }).join('');
  return `<div class="fh"><div class="fav" style="--c:${col}">${esc((p.first||'?')[0])}${esc((p.last||'?')[0])}</div>
   <div><h2>${p.flag||flagOf(p.nat)} ${esc(fullName(p))}</h2>
-  <div class="fsub">${p.human?'Joueur · ':'Athlète virtuel · '}${p.age?p.age+' ans · ':''}${CATN[C.cat]} · ${esc(C.level.s)}</div></div></div>
+  <div class="fsub">${p.human?'Joueur · ':p.pro?'Athlète réel · record '+nf(p.rec)+' pts · ':'Athlète virtuel · '}${p.age&&!p.pro?p.age+' ans · ':''}${CATN[C.cat]} · ${esc(C.level.s)}</div></div></div>
   <div class="fchips"><span class="chip">Niveau moyen ${avg} %</span><span class="chip">Moyenne des capacités ${avgCap(p,C.cat).toFixed(1)}/18</span>
   <span class="chip p">Point fort : ${best.s.i} ${best.s.n} ${best.v} %</span><span class="chip m">Point faible : ${worst.s.i} ${worst.s.n} ${worst.v} %</span>
   ${done?`<span class="chip">${nf(p.total)} pts · ${rank}e après ${done} épreuve${done>1?'s':''}</span>`:'<span class="chip">Pas encore d’épreuve</span>'}</div>
@@ -2795,7 +2881,7 @@ async function loadComm(){
  COMM.loading=false;renderCommBox();
 }
 const commPicked=()=>COMM.list.filter(c=>COMM.sel.has(c.id)&&COMM.cat===setup.cfg.cat);
-function commSlots(){const lv=LEVELS.find(l=>l.id===setup.cfg.level),nh=setup.players.length;return Math.max(0,Math.max(lv.parts,nh)-nh);}
+function commSlots(){if(setup.cfg.level==='legends')return 0;const lv=LEVELS.find(l=>l.id===setup.cfg.level),nh=setup.players.length;return Math.max(0,Math.max(lv.parts,nh)-nh);}
 function renderCommBox(){
  if(!COMM)return;
  const box=$('#commBox');if(!box)return;
