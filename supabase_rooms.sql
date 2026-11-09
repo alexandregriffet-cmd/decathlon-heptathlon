@@ -98,3 +98,5 @@ grant execute on function public.room_open() to anon, authenticated;
 grant execute on function public.room_join(text) to anon, authenticated;
 grant execute on function public.room_send(text, int, text, text, jsonb) to anon, authenticated;
 grant execute on function public.room_poll(text, bigint) to anon, authenticated;
+
+notify pgrst, 'reload schema';
