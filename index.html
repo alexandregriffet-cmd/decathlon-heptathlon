@@ -503,7 +503,9 @@ function ceilFrac(m){
 }
 const meanPct=(p,sk)=>sk.reduce((s,k)=>s+effPct(p,k),0)/sk.length;
 /* points maximum atteignables par cet athlète dans l'épreuve, même avec que des réussites critiques */
-const ptsCeil=(p,ev)=>(p.cm||1)*ev.ceilPts*ceilFrac(meanPct(p,ev.sk&&ev.mech==='race'?ev.sk:evAllSk(ev)));
+const ptsCeil=(p,ev)=>Math.max((p.cm||1)*ev.ceilPts*ceilFrac(meanPct(p,ev.sk&&ev.mech==='race'?ev.sk:evAllSk(ev))),p.evT&&p.evT[ev.id]?1.1*p.evT[ev.id]:0);
+/* athlète réel : niveau visé dans l'épreuve d'après ses résultats réels */
+const evTq=(p,ev,k)=>p.evT&&p.evT[ev.id]!=null?Math.min(1.3,p.evT[ev.id]/(CAL.PM*(ev.pmx||1))/k):null;
 const softMin=(x,c,n=10)=>x<=0?x:Math.pow(Math.pow(x,-n)+Math.pow(c,-n),-1/n);
 const ptsFromQ=(Q,ev)=>Math.min(1300,CAL.PM*((ev&&ev.pmx)||1)*Math.pow(Math.max(0,Q),CAL.g));
 EV.HEP.forEach(e=>e.pmx=1.1);
@@ -614,9 +616,10 @@ async function doRace(ev,p,cur,io){
  const avgQ=qs.reduce((s,x)=>s+x,0)/Math.max(1,qs.length);
  const Qd=(aeff-1.9)/1.3,Qr=Math.min(1.05,Qd)+CAL.nuance*(avgQ-.6)+CAL.noise*gauss();
  /* le niveau réel de l'athlète pèse aussi : à dés équivalents, 80 % de moyenne bat 70 % */
- const Q0=softFloor((1-CAL.lvw)*Qr+CAL.lvw*levelQ(p,ev.sk),.12);
+ const tq=evTq(p,ev,CAL.race*(ev.D>=40?CAL.long:1)),lw=tq!=null?.7:CAL.lvw;
+ const Q0=softFloor((1-lw)*Qr+lw*(tq!=null?tq:levelQ(p,ev.sk)),.12);
  /* plafond progressif : les meilleurs ne se retrouvent plus tous au même temps maximal */
- const Qs=Q0>.92?.92+.2*Math.tanh((Q0-.92)/.2):Math.max(0,Q0);
+ const Qs=tq!=null?Math.max(0,Q0):(Q0>.92?.92+.2*Math.tanh((Q0-.92)/.2):Math.max(0,Q0));
  const Q=Qs*CAL.race*(ev.D>=40?CAL.long:1);
  const pts0=softMin(ptsFromQ(Q,ev),ptsCeil(p,ev)),perf=perfOf(ev,pts0);
  return{perf,pts:ptsOf(ev,perf),Q,rolls,aeff,bonusOut:rg.out,dq:false};
@@ -645,6 +648,7 @@ const EASY_BAR={
  pv:[[0,200],[6,250],[8,280],[10,315],[12,350],[14,380],[16,410],[18,430],[20,450]]
 };
 function easyBar(p,ev){
+ if(p.evT&&p.evT[ev.id]){let h=perfOf(ev,p.evT[ev.id])||0;for(let i=0;i<3;i++)h-=barStep(ev,h);return h;}
  const N=EASY_BAR[ev.id==='pv'?'pv':(p.cat==='HEP'||p.sex==='F'?'hjH':'hjD')];
  const c=clamp(meanPct(p,evAllSk(ev))/5,0,20);
  for(let i=1;i<N.length;i++)if(c<=N[i][0]||i===N.length-1){const[x0,y0]=N[i-1],[x1,y1]=N[i];return y0+(y1-y0)*clamp((c-x0)/(x1-x0),0,1);}
@@ -654,7 +658,8 @@ function barDelta(p,ev,bar){
  while(h<bar&&n<60){h+=barStep(ev,h);n++;}
  /* au-delà du maximum possible à ce niveau, chaque barre coûte un point de plus : très haut niveau = très haut niveau partout */
  let h2=perfOf(ev,ptsCeil(p,ev))||0,e=0;while(h2<bar&&e<40){h2+=barStep(ev,h2);e++;}
- return n+3*e+e*e;
+ let x=0;if(p.evT&&p.evT[ev.id]){let h3=perfOf(ev,p.evT[ev.id])||0;while(h3<bar&&x<40){h3+=barStep(ev,h3);x++;}}
+ return n+3*e+e*e+5*x;
 }
 function finalQ(r,T){
  if(r.out==='perfect')return 1;
@@ -685,7 +690,7 @@ async function doAttempt(ev,p,cur,io,bar){
   await io.note(ev.mech==='jump'?'Pied mordu : essai nul !':'Engin hors secteur : essai nul !');
   return{nul:true,perf:null,pts:0,Q:0,outs};
  }
- const Qd=(finalQ(last,lastT)-CAL.fa)/CAL.fb,Q=clamp(softFloor((1-CAL.lvw)*Qd+CAL.lvw*levelQ(p,evAllSk(ev)),.1),.004,1.1);
+ const Qd=(finalQ(last,lastT)-CAL.fa)/CAL.fb,tq=evTq(p,ev,1),lw=tq!=null?.7:CAL.lvw,Q=clamp(softFloor((1-lw)*Qd+lw*(tq!=null?tq:levelQ(p,evAllSk(ev))),.1),.004,1.3);
  const pts0=softMin(ptsFromQ(Q,ev),ptsCeil(p,ev)),perf=perfOf(ev,pts0);
  return{nul:false,perf,pts:ptsOf(ev,perf),Q,outs,bonusOut:rg.out};
 }
@@ -1086,7 +1091,7 @@ DEC:[
 ['Sven','Roosen','Pays-Bas','🇳🇱',8428,1],['Karel','Tilga','Estonie','🇪🇪',8547,1],['Devon','Williams','États-Unis','🇺🇸',8402,0],
 ['Tomáš','Järvinen','République tchèque','🇨🇿',8400,1],['Harrison','Williams','États-Unis','🇺🇸',8380,0],['Jeff','Tesselaar','Pays-Bas','🇳🇱',8378,1],
 ['Heath','Baldwin','États-Unis','🇺🇸',8357,0],['Amadeus','Gräber','Allemagne','🇩🇪',8345,1],['Rasmus','Roosleht','Estonie','🇪🇪',8336,1],
-['Yuma','Maruyama','Japon','🇯🇵',8321,0],['Dario','Dester','Italie','🇮🇹',8318,1],['Maksim','Andraloits','Biélorussie','🇧🇾',8310,0],
+['Risto','Lillemets','Estonie','🇪🇪',8063,1],['Vilem','Strasky','République tchèque','🇨🇿',8013,1],['José Fernando','Ferreira','Brésil','🇧🇷',7966,0],['Nino','Portmann','Suisse','🇨🇭',7888,1],['Dai','Keita','Belgique','🇧🇪',7878,1],['Emil','Uhlin','Suède','🇸🇪',7809,1],['Finley','Gaio','Suisse','🇨🇭',7755,1],['Jip','de Greef','Pays-Bas','🇳🇱',7749,1],['Edgaras','Benkunskas','Lituanie','🇱🇹',7689,1],['Lewis','Church','Royaume-Uni','🇬🇧',7666,1],['Leon','Krummenacher','Suisse','🇨🇭',7603,1],['Alberto','Nonino','Italie','🇮🇹',7495,1],['Yuma','Maruyama','Japon','🇯🇵',8321,0],['Dario','Dester','Italie','🇮🇹',8318,1],['Maksim','Andraloits','Biélorussie','🇧🇾',8310,0],
 ['Marcel','Meyer','Allemagne','🇩🇪',8261,1],['Antoine','Ferranti','France','🇫🇷',8240,1],['Markus','Rooth','Norvège','🇳🇴',8503,1],
 ['Moritz','Bartko','Allemagne','🇩🇪',8180,1],['Andrin','Huber','Suisse','🇨🇭',8137,1],['Pierce','LePage','Canada','🇨🇦',8513,0]],
 HEP:[
@@ -1109,19 +1114,69 @@ function proProfile(cat,pts){
  for(let i=1;i<N.length;i++)if(T<=N[i][1]){const[x0,y0]=N[i-1],[x1,y1]=N[i];return{pct:Math.round(x0+(x1-x0)*(T-y0)/(y1-y0)),cm:1};}
  return{pct:30,cm:1};
 }
-function makePro(cat,id,r){
- const pr=proProfile(cat,r[4]);
- return{id,human:false,first:r[0],last:r[1],nat:r[2],flag:r[3],sex:cat==='DEC'?'M':'F',cat,pct:Object.fromEntries(STATS.map(s=>[s.k,pr.pct])),color:'#d8a93c',age:28,pro:true,rec:r[4],cm:pr.cm};
+function makePro(cat,id,r,real){
+ const pr=proProfile(cat,r[4]),key=r[0]+' '+r[1],o={id,human:false,first:r[0],last:r[1],nat:r[2],flag:r[3],sex:cat==='DEC'?'M':'F',cat,pct:Object.fromEntries(STATS.map(s=>[s.k,pr.pct])),color:'#d8a93c',age:28,pro:true,rec:r[4],cm:pr.cm};
+ if(real&&REAL_EVT[key]&&REAL_EVT[key].length===EV[cat].length){const ep=evtProfile(cat,REAL_EVT[key],r[4]);o.evT=ep.evT;o.pct=ep.pct;o.real=true;}
+ return o;
+}
+
+/* marques réelles 2026 (Götzis, championnats d'Europe de Birmingham, Ratingen) : 100 m, longueur, poids, hauteur, 400 m, 110 m haies, disque, perche, javelot, 1500 m
+   heptathlon : 100 m haies, hauteur, poids, 200 m, longueur, javelot, 800 m. Le niveau d'ensemble vient de REAL_ACT, le profil (points forts et faibles) de ces marques. */
+const REAL_EVT={
+'Leo Neugebauer':[10.76,7.97,16.71,2.06,47.99,14.57,50.77,5.00,58.46,'4:39.33'],
+'Simon Ehammer':[10.41,8.51,15.15,2.03,47.33,13.48,41.09,5.20,54.38,'4:43.22'],
+'Niklas Kaul':[11.23,7.22,15.26,2.02,47.99,14.73,48.88,4.90,73.54,'4:20.70'],
+'Damian Warner':[10.28,7.73,15.14,2.00,47.77,13.89,46.74,4.60,54.93,'4:35.09'],
+'Sven Roosen':[10.52,7.12,14.69,1.88,47.52,14.08,48.07,4.70,65.07,'4:23.31'],
+'Karel Tilga':[10.95,7.39,15.58,1.97,49.47,14.59,50.44,4.70,65.69,'4:26.17'],
+'Tomáš Järvinen':[10.61,7.48,12.88,2.09,47.69,14.18,43.76,4.90,62.20,'4:35.82'],
+'Heath Baldwin':[10.86,7.39,15.37,2.00,48.21,13.95,41.10,4.40,72.60,'4:34.60'],
+'Amadeus Gräber':[10.62,7.28,13.61,2.00,48.58,14.70,44.03,5.20,65.55,'4:36.61'],
+'Harrison Williams':[10.54,7.44,14.44,1.94,46.82,14.37,47.72,4.80,50.99,'4:26.82'],
+'Jeff Tesselaar':[10.75,7.67,15.11,1.96,47.06,14.65,45.26,4.70,53.80,'4:16.13'],
+'Pierce LePage':[10.54,7.29,15.61,1.97,49.61,14.69,47.76,4.80,54.00,'4:49.05'],
+'Risto Lillemets':[10.87,6.99,15.81,1.85,49.06,14.64,46.71,4.70,61.18,'4:33.25'],
+'José Fernando Ferreira':[10.72,7.13,14.24,1.85,48.17,14.10,41.28,4.50,67.98,'4:51.22'],
+'Finley Gaio':[10.76,7.49,13.97,1.88,48.71,14.39,44.18,4.30,45.40,'4:34.95'],
+'Lewis Church':[11.31,6.82,14.71,1.97,50.70,14.46,37.82,4.50,59.19,'4:29.30'],
+'Rasmus Roosleht':[10.91,6.95,15.88,1.93,47.84,14.72,45.19,4.80,64.58,'4:36.34'],
+'Sander Skotheim':[10.95,7.80,14.45,2.05,48.31,14.50,43.23,5.00,59.43,'4:25.99'],
+'Makenson Gletty':[10.80,7.20,15.65,2.02,48.13,14.18,41.60,4.60,60.07,'4:26.11'],
+'Andrin Huber':[10.98,7.06,14.62,1.96,48.11,14.29,43.39,4.60,60.11,'4:20.61'],
+'Antoine Ferranti':[11.37,7.39,13.09,2.05,48.22,14.72,39.24,5.00,60.23,'4:15.81'],
+'Dario Dester':[10.84,7.12,14.48,1.99,47.96,14.79,43.81,4.50,59.52,'4:33.49'],
+'Vilem Strasky':[10.88,7.54,14.10,1.93,48.45,14.47,42.60,4.50,58.25,'4:34.63'],
+'Nino Portmann':[10.69,7.43,14.00,1.87,48.06,14.45,41.13,4.40,56.26,'4:36.82'],
+'Dai Keita':[10.90,7.33,12.77,1.96,47.97,14.84,39.04,5.00,53.36,'4:35.49'],
+'Emil Uhlin':[11.27,6.72,13.12,2.05,49.11,15.03,42.49,5.00,52.22,'4:23.75'],
+'Jip de Greef':[11.12,7.02,13.40,1.96,49.76,14.76,47.42,4.80,47.77,'4:35.24'],
+'Edgaras Benkunskas':[11.27,6.90,14.85,1.93,50.29,15.04,46.56,4.50,59.13,'4:45.25'],
+'Leon Krummenacher':[11.36,6.50,13.47,1.87,50.30,14.87,43.34,5.00,56.63,'4:29.89'],
+'Alberto Nonino':[11.16,6.91,11.53,1.93,48.33,15.15,38.71,4.90,49.92,'4:32.11'],
+'Annik Kälin':[12.91,1.74,13.67,23.33,6.81,45.25,'2:11.72'],
+'Kate O’Connor':[13.30,1.86,13.96,23.79,6.55,50.16,'2:11.74']
+};
+const mmss=v=>typeof v==='string'?(+v.split(':')[0])*60+parseFloat(v.split(':')[1]):v;
+/* profil réel : points visés par épreuve (niveau d'ensemble conservé) et pourcentage de chaque qualité déduit de ces points */
+function evtProfile(cat,marks,pts){
+ const evs=EV[cat],raw=evs.map((e,i)=>{let v=mmss(marks[i]);if(e.u==='cm')v=Math.round(v*100);return ptsOf(e,v);});
+ const sum=raw.reduce((a,b)=>a+b,0),f=Math.max(.9,Math.min(1.12,pts*.965/sum));
+ const evT={},N=PRO_CURVE[cat];
+ const pctOf=t=>{const T=t*evs.length;for(let i=1;i<N.length;i++)if(T<=N[i][1]){const[x0,y0]=N[i-1],[x1,y1]=N[i];return x0+(x1-x0)*(T-y0)/(y1-y0);}return 100;};
+ const pe={};evs.forEach((e,i)=>{evT[e.id]=raw[i]*f;pe[e.id]=Math.max(20,Math.min(100,pctOf(raw[i]*f)));});
+ const pct={};
+ STATS.forEach(s=>{const l=evs.filter(e=>(e.mech==='race'&&e.sk?e.sk:evAllSk(e)).includes(s.k)),all=Object.values(pe);pct[s.k]=Math.round(l.length?l.reduce((a,e)=>a+pe[e.id],0)/l.length:all.reduce((a,b)=>a+b,0)/all.length);});
+ return{evT,pct};
 }
 /* championnats d'Europe, du monde, Jeux olympiques : de vrais noms parmi les athlètes virtuels */
 function injectPros(C){
  const id=C.level.id;if(!['eur','mon','jo'].includes(id))return;
- const maxN={eur:12,mon:14,jo:16}[id];
+ const maxN={eur:20,mon:18,jo:18}[id];
  const taken=new Set(C.all.map(p=>(p.first+' '+p.last).toLowerCase()));
  const pool=REAL_ACT[C.cat].filter(r=>(id!=='eur'||r[5])&&Math.random()<.85&&!taken.has((r[0]+' '+r[1]).toLowerCase()));
  const bots=C.all.filter(p=>!p.human),lim=Math.min(maxN,Math.max(0,bots.length-4));
  pool.map(r=>({r,k:r[4]+gauss()*140})).sort((a,b)=>b.k-a.k).slice(0,lim).forEach((x,i)=>{
-  const keep=bots[i],pro=makePro(C.cat,keep.id,x.r);
+  const keep=bots[i],pro=makePro(C.cat,keep.id,x.r,true);
   Object.keys(keep).forEach(k=>delete keep[k]);Object.assign(keep,pro);initRuntime(keep);
  });
 }
@@ -1744,6 +1799,61 @@ const ST={
  },
 
  /* ---------- pions ---------- */
+ /* ---------- drapeaux (compétitions internationales) ---------- */
+ flagMode(){try{const L=G&&G.C&&G.C.level;return !!(L&&(L.intl>=1||L.id==='leg'));}catch(e){return false;}},
+ resetPawns(){Object.values(this.pawns).forEach(g=>this.pawnG.remove(g));this.pawns={};this.best={};if(this.markG){[...this.markG.children].forEach(c=>this.markG.remove(c));}this.marks={};},
+ drawFlag(x,X,Y,W,H,nat){
+  const H3=(c)=>{const h=H/c.length;c.forEach((k,i)=>{x.fillStyle=k;x.fillRect(X,Y+i*h,W,Math.ceil(h));});};
+  const V3=(c)=>{const w=W/c.length;c.forEach((k,i)=>{x.fillStyle=k;x.fillRect(X+i*w,Y,Math.ceil(w),H);});};
+  const R=(c,a,b,w,h)=>{x.fillStyle=c;x.fillRect(X+a*W,Y+b*H,w*W,h*H);};
+  const cross=(bg,fg,edge,cx)=>{x.fillStyle=bg;x.fillRect(X,Y,W,H);if(edge){R(edge,0,.4,1,.2+.0);R(edge,cx-.1,0,.2,1);}R(fg,0,.43,1,.14);R(fg,cx-.07,0,.14,1);};
+  const circle=(c,cx,cy,r)=>{x.fillStyle=c;x.beginPath();x.arc(X+cx*W,Y+cy*H,r*H,0,7);x.fill();};
+  const tri=(c,pts)=>{x.fillStyle=c;x.beginPath();pts.forEach((q,i)=>i?x.lineTo(X+q[0]*W,Y+q[1]*H):x.moveTo(X+q[0]*W,Y+q[1]*H));x.closePath();x.fill();};
+  const star=(c,cx,cy,r)=>{x.fillStyle=c;x.beginPath();for(let i=0;i<10;i++){const a=-Math.PI/2+i*Math.PI/5,rr=i%2?r*.4:r;x.lineTo(X+cx*W+Math.cos(a)*rr*H,Y+cy*H+Math.sin(a)*rr*H);}x.closePath();x.fill();};
+  switch(nat){
+   case 'France':V3(['#0055a4','#ffffff','#ef4135']);break;
+   case 'Italie':V3(['#009246','#ffffff','#ce2b37']);break;
+   case 'Belgique':V3(['#111111','#fdda24','#ef3340']);break;
+   case 'Irlande':V3(['#169b62','#ffffff','#ff883e']);break;
+   case 'Allemagne':case 'RDA':H3(['#111111','#dd0000','#ffce00']);break;
+   case 'Pays-Bas':H3(['#ae1c28','#ffffff','#21468b']);break;
+   case 'Estonie':H3(['#0072ce','#111111','#ffffff']);break;
+   case 'Hongrie':H3(['#ce2939','#ffffff','#477050']);break;
+   case 'Lituanie':H3(['#fdb913','#006a44','#c1272d']);break;
+   case 'Autriche':H3(['#ed2939','#ffffff','#ed2939']);break;
+   case 'Lettonie':H3(['#9e3039','#9e3039','#ffffff','#9e3039','#9e3039']);break;
+   case 'Russie':H3(['#ffffff','#0039a6','#d52b1e']);break;
+   case 'Ukraine':H3(['#0057b7','#ffd700']);break;
+   case 'Pologne':H3(['#ffffff','#dc143c']);break;
+   case 'Espagne':H3(['#aa151b','#f1bf00','#f1bf00','#aa151b']);break;
+   case 'Biélorussie':H3(['#cf101a','#cf101a','#00a550']);break;
+   case 'Syrie':H3(['#ce1126','#ffffff','#111111']);R('#007a3d',.3,.4,.1,.2);R('#007a3d',.6,.4,.1,.2);break;
+   case 'URSS':x.fillStyle='#cc0000';x.fillRect(X,Y,W,H);star('#ffd700',.2,.25,.2);break;
+   case 'Suisse':x.fillStyle='#da291c';x.fillRect(X,Y,W,H);R('#ffffff',.42,.2,.16,.6);R('#ffffff',.25,.42,.5,.16);break;
+   case 'Norvège':cross('#ba0c2f','#00205b','#ffffff',.36);R('#ffffff',0,.4,1,.2);R('#ffffff',.3,0,.12,1);R('#00205b',0,.44,1,.12);R('#00205b',.33,0,.06,1);break;
+   case 'Suède':cross('#006aa7','#fecc00',null,.36);break;
+   case 'Finlande':cross('#ffffff','#003580',null,.36);break;
+   case 'Japon':x.fillStyle='#ffffff';x.fillRect(X,Y,W,H);circle('#bc002d',.5,.5,.3);break;
+   case 'Kazakhstan':x.fillStyle='#00afca';x.fillRect(X,Y,W,H);circle('#fec50c',.5,.5,.22);break;
+   case 'République tchèque':R('#ffffff',0,0,1,.5);R('#d7141a',0,.5,1,.5);tri('#11457e',[[0,0],[.5,.5],[0,1]]);break;
+   case 'Canada':x.fillStyle='#ffffff';x.fillRect(X,Y,W,H);R('#d52b1e',0,0,.25,1);R('#d52b1e',.75,0,.25,1);tri('#d52b1e',[[.5,.15],[.58,.4],[.7,.35],[.62,.58],[.7,.7],[.52,.68],[.5,.86],[.48,.68],[.3,.7],[.38,.58],[.3,.35],[.42,.4]]);break;
+   case 'États-Unis':{for(let i=0;i<13;i++){x.fillStyle=i%2?'#ffffff':'#b22234';x.fillRect(X,Y+i*H/13,W,Math.ceil(H/13));}R('#3c3b6e',0,0,.42,7/13);for(let a=0;a<3;a++)for(let b=0;b<4;b++)circle('#ffffff',.07+b*.09+(a%2)*.04,.07+a*.14+0,.025);break;}
+   case 'Royaume-Uni':x.fillStyle='#012169';x.fillRect(X,Y,W,H);x.strokeStyle='#ffffff';x.lineWidth=H*.22;x.beginPath();x.moveTo(X,Y);x.lineTo(X+W,Y+H);x.moveTo(X+W,Y);x.lineTo(X,Y+H);x.stroke();x.strokeStyle='#c8102e';x.lineWidth=H*.08;x.stroke();R('#ffffff',0,.35,1,.3);R('#ffffff',.4,0,.2,1);R('#c8102e',0,.42,1,.16);R('#c8102e',.44,0,.12,1);break;
+   case 'Porto Rico':for(let i=0;i<5;i++){x.fillStyle=i%2?'#ffffff':'#ed0c2d';x.fillRect(X,Y+i*H/5,W,Math.ceil(H/5));}tri('#0050f0',[[0,0],[.45,.5],[0,1]]);star('#ffffff',.14,.5,.14);break;
+   case 'Grenade':x.fillStyle='#ce1126';x.fillRect(X,Y,W,H);tri('#fcd116',[[.1,.1],[.9,.1],[.5,.5]]);tri('#fcd116',[[.1,.9],[.9,.9],[.5,.5]]);tri('#007a5e',[[.1,.1],[.1,.9],[.5,.5]]);tri('#007a5e',[[.9,.1],[.9,.9],[.5,.5]]);circle('#ce1126',.5,.5,.13);star('#fcd116',.5,.5,.1);break;
+   case 'Brésil':x.fillStyle='#009c3b';x.fillRect(X,Y,W,H);tri('#ffdf00',[[.5,.1],[.92,.5],[.5,.9],[.08,.5]]);circle('#002776',.5,.5,.22);break;
+   case 'Cuba':for(let i=0;i<5;i++){x.fillStyle=i%2?'#ffffff':'#002a8f';x.fillRect(X,Y+i*H/5,W,Math.ceil(H/5));}tri('#cf142b',[[0,0],[.45,.5],[0,1]]);break;
+   default:return false;
+  }
+  return true;
+ },
+ flagSprite(nat,num,col){
+  const T=this.T,cv=document.createElement('canvas');cv.width=256;cv.height=96;const x=cv.getContext('2d');
+  x.fillStyle='rgba(10,19,48,.82)';x.beginPath();x.roundRect?x.roundRect(6,6,244,84,20):x.rect(6,6,244,84);x.fill();x.lineWidth=4;x.strokeStyle=col||'#fff';x.stroke();
+  this.drawFlag(x,16,18,138,60,nat);x.strokeStyle='#fff';x.lineWidth=2;x.strokeRect(16,18,138,60);
+  if(num!=null){x.font='bold 46px Oswald, Arial';x.textAlign='center';x.textBaseline='middle';x.fillStyle='#fff';x.fillText(String(num),204,50);}
+  const sp=new T.Sprite(new T.SpriteMaterial({map:new T.CanvasTexture(cv),transparent:true,depthTest:false}));sp.scale.set(1.55*2.66,1.55*.998,1);sp.renderOrder=10;return sp;
+ },
  sprite(text,w,color){
   const T=this.T,cv=document.createElement('canvas');cv.width=256;cv.height=96;
   const sp=new T.Sprite(new T.SpriteMaterial({map:new T.CanvasTexture(cv),transparent:true,depthTest:false}));
@@ -1759,7 +1869,8 @@ const ST={
  pawn(p){
   if(this.pawns[p.id])return this.pawns[p.id];
   const T=this.T,g=new T.Group(),col=p.human?p.color:this.BOTC[p.id%this.BOTC.length];
-  const mat=new T.MeshPhongMaterial({color:new T.Color(col),shininess:95,specular:0x777777});
+  let mat=new T.MeshPhongMaterial({color:new T.Color(col),shininess:95,specular:0x777777}),flagOK=false;
+  if(p.nat&&this.flagMode()){const cv=document.createElement('canvas');cv.width=512;cv.height=256;const cx=cv.getContext('2d');if(this.drawFlag(cx,0,0,256,256,p.nat)&&this.drawFlag(cx,256,0,256,256,p.nat)){mat=new T.MeshPhongMaterial({map:new T.CanvasTexture(cv),shininess:60,specular:0x555555});flagOK=true;}}
   const prof=[[0.001,0],[.95,0],[.98,.1],[.84,.24],[.56,.44],[.42,.95],[.6,1.08],[.6,1.22],[.38,1.34],[.3,1.5]].map(a=>new T.Vector2(a[0],a[1]));
   const body=new T.Mesh(new T.LatheGeometry(prof,30),mat);g.add(body);
   const head=new T.Mesh(new T.SphereGeometry(.54,26,18),mat);head.position.y=1.98;g.add(head);
@@ -1767,7 +1878,7 @@ const ST={
   const nose=new T.Mesh(new T.ConeGeometry(.17,.42,10),new T.MeshPhongMaterial({color:0xffffff}));nose.rotation.x=Math.PI/2;nose.position.set(0,1.98,.62);g.add(nose);
   const sh=new T.Mesh(new T.CircleGeometry(1.15,20),new T.MeshBasicMaterial({color:0x000000,transparent:true,opacity:.14}));sh.rotation.x=-Math.PI/2;sh.position.y=.03;g.add(sh);
   if(p.human){const r=new T.Mesh(new T.TorusGeometry(1.08,.12,8,28),new T.MeshBasicMaterial({color:0xffd34d}));r.rotation.x=Math.PI/2;r.position.y=.2;g.add(r);}
-  const lab=this.sprite(p.human?initials(p):String(p.id+1),1.55,col);lab.position.y=3.5;g.add(lab);g.userData.lab=lab;
+  const lab=(flagOK&&!p.human)?this.flagSprite(p.nat,p.id+1,col):this.sprite(p.human?initials(p):String(p.id+1),1.55,col);lab.position.y=3.5;g.add(lab);g.userData.lab=lab;
   [body,head,ring,nose].forEach(m=>m.castShadow=true);
   g.scale.setScalar(1.12);g.visible=false;this.pawnG.add(g);
   g.userData.v={x:0,y:0,a:Math.PI/2,h:0,s:0};this.pawns[p.id]=g;return g;
@@ -1969,7 +2080,8 @@ const ST={
   if(this.marks[id]){this.markG.remove(this.marks[id]);}
   const g=new T.Group(),col=p.human?p.color:this.BOTC[p.id%this.BOTC.length];
   const pole=new T.Mesh(new T.CylinderGeometry(.06,.06,2,6),new T.MeshLambertMaterial({color:0xe5e7eb}));pole.position.y=1;g.add(pole);
-  const fl=new T.Mesh(new T.PlaneGeometry(1.1,.7),new T.MeshBasicMaterial({color:new T.Color(col),side:T.DoubleSide}));fl.position.set(.55,1.65,0);g.add(fl);
+  let fmat=new T.MeshBasicMaterial({color:new T.Color(col),side:T.DoubleSide});if(p.nat&&this.flagMode()){const cv=document.createElement('canvas');cv.width=192;cv.height=128;if(this.drawFlag(cv.getContext('2d'),0,0,192,128,p.nat))fmat=new T.MeshBasicMaterial({map:new T.CanvasTexture(cv),side:T.DoubleSide});}
+  const fl=new T.Mesh(new T.PlaneGeometry(1.1,.7),fmat);fl.position.set(.55,1.65,0);g.add(fl);
   if(p.human){const lb=this.sprite(label,1.5,col);lb.position.set(0,3.1,0);g.add(lb);}
   g.position.set(x,0,-y);this.markG.add(g);this.marks[id]=g;
  },
@@ -2110,6 +2222,7 @@ function startGame(C,o){
  if(G)G.abort=true;
  G={C,abort:false,auto:!!o.auto,turbo:false,fast:!!o.fast,S:null,heat:[],prog:{},lvl:o.fast?.15:(+$('#botSpeed').value),spNow:1,onFinish:o.onFinish||null,train:!!o.train,onRoll:o.onRoll||null};
  $('#autoChk').checked=G.auto;
+ if(ST&&ST.resetPawns)ST.resetPawns();
  const g=G;
  runCompetition(C,makeHooks(g)).catch(err=>{if(!g.abort&&err&&err.message!=='abort')console.error(err);});
 }
