@@ -1496,14 +1496,20 @@ const ST={
  pos(k,s){return this.posR(this.laneR(k),s);},
 
  /* ---------- salle (piste de 200 m, 6 couloirs, bleue) ou stade ---------- */
- setVenue(ind){
-  ind=!!ind;if(!this.ok||this.indoor===ind)return;
-  this.indoor=ind;
+ tierOf(lv){
+  if(!lv)return 4;if(lv.id==='legends')return 5;
+  const id=lv.base||lv.id,T={dep:0,reg:1,inter:2,fra:3,eur:4,mon:5,jo:6};
+  return T[id]!=null?T[id]:4;
+ },
+ setVenue(ind,lv){
+  ind=!!ind;const tier=this.tierOf(lv);
+  if(!this.ok||(this.indoor===ind&&this.tier===tier))return;
+  this.tier=tier;this.indoor=ind;
   if(!this.LO)this.LO=this.L;
   this.L=ind?{...this.LO,sp:{cy:-9,k:.8}}:this.LO;
   if(ind){this.R1=10.05;this.HL=12.1;this.NL=6;this.LAP=20;this.LW=1.7;}else{this.R1=20.8;this.HL=24.5;this.NL=8;this.LAP=40;this.LW=2.4;}
   this.geo();
-  (this.stObjs||[]).forEach(o=>{this.s.remove(o);o.traverse&&o.traverse(m=>{if(m.geometry)m.geometry.dispose();});});
+  (this.stObjs||[]).forEach(o=>{this.s.remove(o);o.traverse&&o.traverse(m=>{if(m.geometry)m.geometry.dispose();if(m.material){const ms=[].concat(m.material);ms.forEach(q=>{if(q.map)q.map.dispose();q.dispose&&q.dispose();});}});});
   const n0=this.s.children.length;this.buildStands();this.stObjs=this.s.children.slice(n0);
   this.s.background=new this.T.Color(ind?0x0b1022:0x0a1330);
   Object.values(this.pawns).forEach(g=>this.pawnG.remove(g));this.pawns={};
@@ -1587,12 +1593,13 @@ const ST={
   const seat=['#22337a','#59627f','#8a2335','#22337a'];
   for(let b=0;b<4;b++){x.fillStyle=seat[b];x.fillRect(b*256,0,256,256);}
   const shirts=['#b4233f','#c98a1a','#3b6fc4','#cfd3dc','#2f9b5b','#7d6bc4','#c95a6e','#3c93b8','#c9b53a','#1a2030','#c9692a'],skins=['#f1c9a0','#d9a679','#a8744f','#7b4d33','#f6d9b9'];
+  const tier=this.tier==null?4:this.tier,dens=[.09,.2,.38,.62,.82,.93,1][tier],df=[0,0,.6,.75,.9,1,1.12][tier];
   const rows=10,rh=256/rows;
   for(let r=0;r<rows;r++){
    const y=r*rh;
    const sh=x.createLinearGradient(0,y,0,y+rh);sh.addColorStop(0,'rgba(0,0,0,0)');sh.addColorStop(1,'rgba(0,0,0,.38)');x.fillStyle=sh;x.fillRect(0,y,1024,rh);
    for(let px=r%2?6:-4;px<1024;px+=22){
-    if(Math.random()<.07)continue;
+    if(Math.random()>dens)continue;
     const jx=px+Math.random()*3,up=Math.random()<.06?-5:0;
     x.fillStyle=shirts[(Math.random()*shirts.length)|0];x.fillRect(jx,y+rh*.38+up,15,rh*.58);
     x.beginPath();x.arc(jx+7.5,y+rh*.3+up,5,0,7);x.fillStyle=skins[(Math.random()*skins.length)|0];x.fill();
@@ -1603,11 +1610,13 @@ const ST={
   const tex=new T.CanvasTexture(cv);tex.wrapS=tex.wrapT=T.RepeatWrapping;tex.anisotropy=8;
   /* ouverture dans les tribunes pour le couloir de départ du 100 m / 110 m haies */
   const nx0=this.R1-3.5,nx1=Ro+11,notch=(a,b)=>{const mx=(a[0]+b[0])/2,my=(a[1]+b[1])/2;return mx>nx0&&mx<nx1&&my<-this.HL-3;};
-  const ring=(ra,ha,rb,hb,uDiv,vS)=>{
+  const HLn=this.HL,vfLow=(a,b)=>{const mx=(a[0]+b[0])/2,my=(a[1]+b[1])/2;return tier>=3||(tier===2?my>-HLn-3:tier===1?Math.abs(my)<HLn+4:(mx>0&&Math.abs(my)<HLn+2));};
+  const vfUp=(a,b)=>{const my=(a[1]+b[1])/2;return tier>=3||Math.abs(my)<HLn;};
+  const ring=(ra,ha,rb,hb,uDiv,vS,vis)=>{
    const A=this.contour(ra,28),B=this.contour(rb,28),pos=[],uv=[];let len=0;const N=A.length;
    for(let i=0;i<N;i++){
     const j=(i+1)%N,a=A[i],b=A[j],l=Math.hypot(b[0]-a[0],b[1]-a[1]);
-    if(notch(a,b)){len+=l;continue;}
+    if(notch(a,b)||(vis&&!vis(a,b))){len+=l;continue;}
     const P=[A[i],A[j],B[j],B[i]],H=[ha,ha,hb,hb],U=[len/uDiv,(len+l)/uDiv,(len+l)/uDiv,len/uDiv],V=[0,0,vS,vS];
     for(const k of [0,1,2,0,2,3]){pos.push(P[k][0],H[k],-P[k][1]);uv.push(U[k],V[k]);}
     len+=l;
@@ -1616,11 +1625,16 @@ const ST={
   };
   const crowd=new T.MeshLambertMaterial({map:tex,emissive:0x303a70,emissiveMap:tex,emissiveIntensity:.22,side:T.DoubleSide});
   const conc=new T.MeshLambertMaterial({color:0x5d6578,side:T.DoubleSide}),dark=new T.MeshLambertMaterial({color:0x2c3248,side:T.DoubleSide});
-  this.s.add(new T.Mesh(ring(Rb,.5,Rb+6.1,4.6,22,1),crowd));
-  this.s.add(new T.Mesh(ring(Rb+6.1,4.6,Rb+8.1,4.9,22,1),conc));
-  this.s.add(new T.Mesh(ring(Rb+8.1,4.9,Rb+19.6,14.5,22,1.7),crowd));
-  this.s.add(new T.Mesh(ring(Rb+19.6,14.5,Rb+19.6,19.5,22,1),dark));
-  const roof=new T.Mesh(ring(Rb+20,19.5,Rb+13.6,18.5,22,1),new T.MeshLambertMaterial({color:0x8f98ad,side:T.DoubleSide}));this.s.add(roof);
+  const Ru=Rb+8.1+11.5*df,Hu=4.9+9.6*df,flagTex=tier>=4?this.flagStrip():null;
+  this.s.add(new T.Mesh(ring(Rb,.5,Rb+6.1,4.6,22,1,vfLow),crowd));
+  this.s.add(new T.Mesh(ring(Rb+6.1,4.6,Rb+8.1,4.9,22,1,vfLow),conc));
+  if(tier>=2){
+   this.s.add(new T.Mesh(ring(Rb+8.1,4.9,Ru,Hu,22,1.7,vfUp),crowd));
+   this.s.add(new T.Mesh(ring(Ru,Hu,Ru,Hu+5,22,1,vfUp),tier>=5&&flagTex?new T.MeshBasicMaterial({map:flagTex,side:T.DoubleSide}):dark));
+   if(tier>=3)this.s.add(new T.Mesh(ring(Ru+.4,Hu+5,Rb+8.1+(Ru-Rb-8.1)*.48,Hu+4,22,1),new T.MeshLambertMaterial({color:tier>=6?0x9a8f62:0x8f98ad,side:T.DoubleSide})));
+  }
+  /* drapeaux internationaux : guirlande autour de la tribune (championnats d'Europe, du monde, Jeux olympiques, meetings stars) */
+  if(flagTex&&tier>=4)this.s.add(new T.Mesh(ring(Rb+8.1,4.9,Rb+8.1,7.4,49.6,1),new T.MeshBasicMaterial({map:flagTex,side:T.DoubleSide})));
   /* garde-corps */
   this.s.add(new T.Mesh(ring(Rb,.5,Rb,1.5,22,1),new T.MeshLambertMaterial({color:0x1f2740,side:T.DoubleSide})));
   /* panneaux publicitaires LED autour de la piste */
@@ -1638,14 +1652,14 @@ const ST={
    len+=l;
   }
   const wg=new T.BufferGeometry();wg.setAttribute('position',new T.Float32BufferAttribute(pos,3));wg.setAttribute('uv',new T.Float32BufferAttribute(uv,2));
-  this.s.add(new T.Mesh(wg,new T.MeshBasicMaterial({map:at,side:T.DoubleSide})));
+  if(tier>=1)this.s.add(new T.Mesh(wg,new T.MeshBasicMaterial({map:at,side:T.DoubleSide})));
   /* écrans géants aux deux extrémités */
   this.scrs=[];
   [[1,-1],[-1,1]].forEach(([sg,rot],n)=>{
    const c=document.createElement('canvas');c.width=512;c.height=224;
    const t=new T.CanvasTexture(c);const m=new T.Mesh(new T.PlaneGeometry(30,13.1),new T.MeshBasicMaterial({map:t}));
-   m.position.set(0,17,-sg*(this.HL+Rb+19.2));if(n===1)m.rotation.y=Math.PI;this.s.add(m);
-   const fr=new T.Mesh(new T.BoxGeometry(31.2,14.3,.6),new T.MeshLambertMaterial({color:0x1b2036}));fr.position.copy(m.position);fr.position.z+=(n===1?.45:-.45);this.s.add(fr);
+   m.position.set(0,Hu+2.5,-sg*(this.HL+Ru-.4));if(n===1)m.rotation.y=Math.PI;if(tier>=3)this.s.add(m);
+   const fr=new T.Mesh(new T.BoxGeometry(31.2,14.3,.6),new T.MeshLambertMaterial({color:0x1b2036}));fr.position.copy(m.position);fr.position.z+=(n===1?.45:-.45);if(tier>=3)this.s.add(fr);
    this.scrs.push({c,t});
   });
   this.updScreen(null,null);
@@ -1656,7 +1670,7 @@ const ST={
   const lc=document.createElement('canvas');lc.width=128;lc.height=64;const lx=lc.getContext('2d');lx.fillStyle='#2a3144';lx.fillRect(0,0,128,64);
   for(let a=0;a<4;a++)for(let b=0;b<8;b++){lx.fillStyle='#fffbe8';lx.beginPath();lx.arc(10+b*15,10+a*15,5.5,0,7);lx.fill();}
   const ltex=new T.CanvasTexture(lc);
-  (this.indoor?[]:[[-74,-84,54],[74,-84,54],[-74,84,54],[74,84,54],[-76,0,48],[76,0,48]]).forEach(([px,py,h])=>{
+  (this.indoor?[]:[[74,-84,54],[74,84,54],[-74,-84,54],[-74,84,54],[-76,0,48],[76,0,48],[-40,-96,58],[40,96,58]].slice(0,[2,4,4,6,6,6,8][tier])).forEach(([px,py,h])=>{
    const pole=new T.Mesh(new T.CylinderGeometry(.6,1.1,h,8),new T.MeshLambertMaterial({color:0x8b95a8}));pole.position.set(px,h/2,-py);this.s.add(pole);
    const lamp=new T.Mesh(new T.PlaneGeometry(11,5.5),new T.MeshBasicMaterial({map:ltex,side:T.DoubleSide}));lamp.position.set(px,h+3,-py);lamp.lookAt(0,10,0);this.s.add(lamp);
    const sp=new T.Sprite(new T.SpriteMaterial({map:glow,blending:T.AdditiveBlending,transparent:true,depthWrite:false,fog:false}));
@@ -1671,6 +1685,26 @@ const ST={
   const beam=new T.Mesh(new T.BoxGeometry(wd,1.5,.5),[0,1,2,3,4,5].map(k=>new T.MeshLambertMaterial(k===4||k===5?{map:ft}:{color:0x1b2036})));
   beam.position.set(cx,5.6,-this.HL);this.s.add(this.cast(beam));
   [Ri-.9,Ro+1.4].forEach(px=>{const p=new T.Mesh(new T.BoxGeometry(.45,5.6,.45),new T.MeshLambertMaterial({color:0x2a3350}));p.position.set(px,2.8,-this.HL);this.s.add(this.cast(p));});
+ },
+ flagStrip(){
+  const nats=['France','États-Unis','Allemagne','Royaume-Uni','Espagne','Italie','Canada','Japon','Pays-Bas','Belgique','Suède','Norvège','Finlande','Pologne','Suisse','Brésil'];
+  const c=document.createElement('canvas');c.width=2048;c.height=128;const x=c.getContext('2d');
+  x.fillStyle='#0d1430';x.fillRect(0,0,2048,128);
+  nats.forEach((n,i)=>{this.drawFlag(x,i*128+8,16,112,80,n);x.strokeStyle='rgba(255,255,255,.6)';x.lineWidth=2;x.strokeRect(i*128+8,16,112,80);x.fillStyle='#d8dcea';x.fillRect(i*128+4,8,3,112);});
+  const t=new this.T.CanvasTexture(c);t.wrapS=this.T.RepeatWrapping;t.anisotropy=4;return t;
+ },
+ /* anneaux olympiques au centre de la pelouse (Jeux olympiques) */
+ drawRings(ctx){
+  const r=6.6,gap=14.6,cols=['#0085C7','#F4C300','#111111','#009F3D','#DF0024'];
+  const C=[[-gap,-r*.5],[-gap/2,r*.5],[0,-r*.5],[gap/2,r*.5],[gap,-r*.5]];
+  ctx.save();ctx.rotate(Math.PI/2);ctx.lineCap='butt';
+  const arc=(i,a0,a1,w)=>{ctx.beginPath();ctx.arc(C[i][0],C[i][1],r,a0,a1);ctx.strokeStyle=cols[i];ctx.lineWidth=w;ctx.stroke();};
+  ctx.globalAlpha=.92;for(let i=0;i<5;i++)arc(i,0,7,1.25);
+  /* entrelacement : chaque anneau passe alternativement dessus et dessous le voisin */
+  for(let i=0;i<4;i++){const a=C[i],b=C[i+1],d=Math.hypot(b[0]-a[0],b[1]-a[1]),h=Math.acos(Math.min(1,d/(2*r))),ang=Math.atan2(b[1]-a[1],b[0]-a[0]);
+   const j=(i%2?i+1:i),t=(i%2?ang+Math.PI-h:ang+h),o=C[j];
+   ctx.beginPath();ctx.arc(o[0],o[1],r,(i%2?Math.atan2(a[1]-b[1],a[0]-b[0])-h:ang+h)-.3,(i%2?Math.atan2(a[1]-b[1],a[0]-b[0])-h:ang+h)+.3);ctx.strokeStyle=cols[j];ctx.lineWidth=1.25;ctx.stroke();}
+  ctx.restore();
  },
  updScreen(ev,C){
   if(!this.scrs)return;
@@ -1728,8 +1762,9 @@ const ST={
   this.chuteFill(ctx,ev);
   /* pelouse intérieure */
   ctx.save();this.stad(ctx,R1);ctx.clip();stripes(...(this.indoor?['#2b4a80','#274376']:['#237a43','#1f6e3c']));
-  this.txt(ctx,'DÉCA · HEPTA',0,-1,8.4,'rgba(255,255,255,.10)',Math.PI/2,null,true);
-  if(C)this.txt(ctx,C.level.s.toUpperCase(),0,-14,3,'rgba(255,255,255,.12)',Math.PI/2,null,true);
+  if(this.tier===6&&!this.indoor)this.drawRings(ctx);
+  else{this.txt(ctx,'DÉCA · HEPTA',0,-1,8.4,'rgba(255,255,255,.10)',Math.PI/2,null,true);
+  if(C)this.txt(ctx,C.level.s.toUpperCase(),0,-14,3,'rgba(255,255,255,.12)',Math.PI/2,null,true);}
   ctx.restore();
   /* cases : une alternance légère */
   for(let k=0;k<this.NL;k++){const E=this.laneLen(k)-S;for(let i=-(this.chute?0:i0);i<E;i++){
@@ -2417,7 +2452,7 @@ function startGame(C,o){
  if(G)G.abort=true;
  G={C,abort:false,auto:!!o.auto,turbo:false,fast:!!o.fast,S:null,heat:[],prog:{},lvl:o.fast?.15:(+$('#botSpeed').value),spNow:1,onFinish:o.onFinish||null,train:!!o.train,onRoll:o.onRoll||null,room:o.room?ROOM:null};
  $('#autoChk').checked=G.auto;
- if(ST&&ST.setVenue)ST.setVenue(!!C.indoor);
+ if(ST&&ST.setVenue)ST.setVenue(!!C.indoor,C.level);
  if(ST&&ST.resetPawns)ST.resetPawns();
  const g=G;
  runCompetition(C,makeHooks(g)).catch(err=>{if(!g.abort&&err&&err.message!=='abort')console.error(err);});
