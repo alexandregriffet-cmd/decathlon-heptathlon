@@ -285,7 +285,7 @@ tr.rec td{background:#ffc83d1f;padding:8px 10px}tr.rec small{color:var(--mute)}
  <div class="card cfg">
   <label class="lf">Compétition<select id="cfgLevel"></select></label>
   <label class="cf">Âge de départ<select id="cfgAge"><option>15</option><option>16</option><option>17</option><option>18</option><option>19</option></select></label>
-  <label>Discipline<select id="cfgCat"><option value="DEC">Décathlon (hommes)</option><option value="HEP">Heptathlon (femmes)</option></select></label>
+  <label>Discipline<select id="cfgCat"><option value="DEC">Décathlon (hommes)</option><option value="HEP">Heptathlon (femmes)</option><option value="HEPI">Heptathlon en salle (hommes)</option><option value="PENI">Pentathlon en salle (femmes)</option></select></label>
   <label>Essais aux sauts et lancers<select id="cfgAtt"><option value="3">3 essais</option><option value="1">1 essai</option></select></label>
   <label class="chk"><input type="checkbox" id="cfgAuto"> Dés lancés automatiquement</label>
   <label class="chk lf"><input type="checkbox" id="cfgFree"> Mode libre (ignorer les minimums de qualification)</label>
@@ -340,7 +340,8 @@ tr.rec td{background:#ffc83d1f;padding:8px 10px}tr.rec small{color:var(--mute)}
 <dialog id="rules">
  <h2>Règles du jeu</h2>
  <h4>La qualification</h4>
- <p>Pour entrer dans une compétition, la moyenne de tes capacités sur toutes les épreuves doit atteindre un minimum : départementaux 6/20, régionaux 8/20, interrégionaux 10/20, France Élite 13/20, Europe, Monde et Jeux 15/20 (décathlon comme heptathlon). Sans le minimum, le niveau reste verrouillé.</p>
+ <p><b>En salle</b> : l’heptathlon en salle (hommes : 60 m, longueur, poids, hauteur, 60 m haies, perche, 1 000 m) et le pentathlon en salle (femmes : 60 m haies, hauteur, poids, longueur, 800 m) se jouent en mode libre, avec les mêmes niveaux jusqu’aux championnats du monde en salle. En carrière, la saison en salle suit chaque été : régionaux en salle, France Élite en salle, puis Europe ou Monde en salle, avec tes records de salle à part.</p>
+<p>Pour entrer dans une compétition, la moyenne de tes capacités sur toutes les épreuves doit atteindre un minimum : départementaux 6/20, régionaux 8/20, interrégionaux 10/20, France Élite 13/20, Europe, Monde et Jeux 15/20 (décathlon comme heptathlon). Sans le minimum, le niveau reste verrouillé.</p>
  <h4>Les qualités</h4>
  <p>9 qualités en pourcentage : vitesse, force, puissance, détente, endurance, dextérité, technique, mental, tactique. Tout le monde démarre à 30 % partout et déplace ses pourcentages comme il veut (maximum 90 %).</p>
  <h4>La capacité sur 20</h4>
@@ -414,11 +415,30 @@ const EV={
   {id:'800',n:'800 m',s:'800 m',i:'⏱️',mech:'race',k:'track',A:0.11193,B:254,C:1.88,D:80,m:800,sk:['end','vit','tac','men','tec'],skS:['tec','men','tac'],fs:false,fat:3,f:3.5}
  ]
 };
-const DB={DEC:5,HEP:4};
-const CATN={DEC:'Décathlon',HEP:'Heptathlon'};
+/* ---------- épreuves en salle : heptathlon (hommes) et pentathlon (femmes) ---------- */
+const cpEv=(cat,id,o)=>({...EV[cat].find(e=>e.id===id),...(o||{}),indoor:true});
+EV.HEPI=[
+ {id:'60',n:'60 m',s:'60 m',i:'⚡',mech:'race',k:'track',A:58.015,B:11.5,C:1.81,D:6,m:60,sk:['pui','vit','tec','men'],skS:['pui','tec','men'],fs:true,fat:0,f:1,indoor:true},
+ cpEv('DEC','lj',{wind:false}),cpEv('DEC','sp',{max:24}),cpEv('DEC','hj'),
+ {id:'60h',n:'60 m haies',s:'60 m haies',i:'🚧',mech:'race',k:'track',A:20.5173,B:15.5,C:1.92,D:6,m:60,hurdles:true,hF:1.372,hS:.914,nh:5,sk:['vit','pui','dex','tec','men'],skS:['pui','tec','men'],fs:true,fat:0,f:2,indoor:true},
+ cpEv('DEC','pv'),
+ {id:'1000',n:'1 000 m',s:'1 000 m',i:'⏱️',mech:'race',k:'track',A:0.08713,B:305.5,C:1.85,D:100,m:1000,sk:['end','tac','men','vit'],skS:['tec','men','tac'],fs:false,fat:4,f:4,indoor:true}
+];
+EV.PENI=[
+ {id:'60h',n:'60 m haies',s:'60 m haies',i:'🚧',mech:'race',k:'track',A:20.0479,B:17,C:1.835,D:6,m:60,hurdles:true,hF:1.3,hS:.85,nh:5,sk:['vit','pui','dex','tec','men'],skS:['pui','tec','men'],fs:true,fat:0,f:2,indoor:true},
+ cpEv('HEP','hj'),cpEv('HEP','sp'),cpEv('HEP','lj',{wind:false}),cpEv('HEP','800')
+];
+EV.HEPI.forEach(e=>{if(e.pmx==null)e.pmx=1.04;});EV.PENI.forEach(e=>{e.pmx=1.1;});
+const DB={DEC:5,HEP:4,HEPI:4,PENI:5};
+const CATN={DEC:'Décathlon',HEP:'Heptathlon',HEPI:'Heptathlon en salle',PENI:'Pentathlon en salle'};
+const sexOf=c=>(c==='HEP'||c==='PENI')?'F':'M';
+const IND={DEC:'HEPI',HEP:'PENI'},OUTC={HEPI:'DEC',PENI:'HEP',DEC:'DEC',HEP:'HEP'};
+const isInd=c=>c==='HEPI'||c==='PENI';
 const RECS={
  DEC:[{name:'Kevin Mayer',perf:[10.55,780,16.00,205,48.42,13.75,50.54,545,71.90,276.11]},{name:'Ashton Eaton',perf:[10.23,788,14.52,201,45.00,13.69,43.34,520,63.63,257.52]}],
- HEP:[{name:'Jackie Joyner-Kersee',perf:[12.69,186,15.80,22.56,727,45.66,128.51]}]
+ HEP:[{name:'Jackie Joyner-Kersee',perf:[12.69,186,15.80,22.56,727,45.66,128.51]}],
+ HEPI:[{name:'Ashton Eaton',perf:[6.66,777,14.56,211,7.68,520,152.77]}],
+ PENI:[{name:'Nafissatou Thiam',perf:[8.40,198,15.10,6.40,132.00]}]
 };
 
 /* niveaux de compétition (calendrier FFA) : nb de participants et niveau moyen des adversaires (en %) */
@@ -431,14 +451,18 @@ const LEVELS=[
  {id:'mon',n:'Championnats du monde',s:'Monde',parts:24,avg:62,min:15,intl:1,bars:5},
  {id:'jo',n:'Jeux olympiques',s:'Jeux olympiques',parts:28,avg:64,min:15,intl:1,bars:6}
 ];
+/* niveaux en salle : mêmes adversaires que leurs équivalents en plein air, sans les Jeux olympiques */
+const INDOOR_N={dep:['Championnats départementaux en salle','Départ. salle'],reg:['Championnats régionaux en salle','Régionaux salle'],inter:['Championnats interrégionaux en salle','Interrég. salle'],fra:['Championnats de France Élite en salle','France Élite salle'],eur:['Championnats d’Europe en salle','Europe salle'],mon:['Championnats du monde en salle','Monde salle']};
+const LEVELS_I=Object.keys(INDOOR_N).map(b=>{const L=LEVELS.find(l=>l.id===b);return{...L,id:b+'_i',base:b,indoor:1,n:INDOOR_N[b][0],s:INDOOR_N[b][1],parts:Math.max(8,L.parts-4)};});
 /* meetings stars : niveau Europe pour les barres, adversaires réels */
 const STARS=[
  {id:'deca',n:'Décastar de Talence',s:'Décastar',parts:20,avg:58,min:13,intl:1,bars:4,base:'eur',star:1},
  {id:'gotz',n:'Hypo-Meeting de Götzis',s:'Götzis',parts:20,avg:60,min:13,intl:1,bars:4,base:'eur',star:1}
 ];
-const lvById=id=>LEVELS.find(l=>l.id===id)||STARS.find(l=>l.id===id);
+const lvById=id=>LEVELS.find(l=>l.id===id)||STARS.find(l=>l.id===id)||LEVELS_I.find(l=>l.id===id);
 /* hauteur de départ de la barre (cm) selon le niveau */
 const BAR_START={DEC:{hj:[145,150,160,170,175,180,185],pv:[260,300,340,380,420,440,460]},HEP:{hj:[120,125,135,145,150,155,160]}};
+BAR_START.HEPI=BAR_START.DEC;BAR_START.PENI=BAR_START.HEP;
 /* moyenne des capacités sur les épreuves : niveau minimum pour être qualifié */
 function avgCap(p,cat){const evs=EV[cat];return evs.reduce((s,e)=>s+capOf(p,e.sk||evAllSk(e)),0)/evs.length;}
 function qualified(p,cat,level){return avgCap(p,cat)>=level.min-.001;}
@@ -500,7 +524,9 @@ const softFloor=(q,f)=>q>=f?q:Math.max(.004,f*Math.exp((q-f)/f));
 /* plafonds : meilleure performance connue d'un spécialiste du multiple (jamais les records du monde des épreuves individuelles) */
 const CEIL_PERF={
  DEC:{'100':10.2,lj:820,sp:17.0,hj:215,'400':44.9,'110h':13.3,dt:54,pv:555,jt:74,'1500':250},
- HEP:{'100h':12.55,hj:195,sp:16.3,'200':22.3,lj:730,jt:50,'800':123}
+ HEP:{'100h':12.55,hj:195,sp:16.3,'200':22.3,lj:730,jt:50,'800':123},
+ HEPI:{'60':6.62,lj:795,sp:16.2,hj:213,'60h':7.62,pv:540,'1000':147},
+ PENI:{'60h':7.95,hj:197,sp:16.5,lj:675,'800':123}
 };
 /* part du plafond accessible selon le niveau moyen (en %) sur les qualités de l'épreuve : graduel, le très haut niveau demande ~90 % partout */
 const CEIL_NODES=[[0,.15],[30,.45],[50,.66],[70,.83],[90,.97],[100,1]];
@@ -515,7 +541,7 @@ const evTq=(p,ev,k)=>p.evT&&p.evT[ev.id]!=null?Math.min(1.3,p.evT[ev.id]/(CAL.PM
 const softMin=(x,c,n=10)=>x<=0?x:Math.pow(Math.pow(x,-n)+Math.pow(c,-n),-1/n);
 const ptsFromQ=(Q,ev)=>Math.min(1300,CAL.PM*((ev&&ev.pmx)||1)*Math.pow(Math.max(0,Q),CAL.g));
 EV.HEP.forEach(e=>e.pmx=1.1);
-['DEC','HEP'].forEach(c=>EV[c].forEach(e=>e.ceilPts=ptsOf(e,CEIL_PERF[c][e.id])));
+['DEC','HEP','HEPI','PENI'].forEach(c=>EV[c].forEach(e=>e.ceilPts=ptsOf(e,CEIL_PERF[c][e.id])));
 
 const botIO={
  async roll(o){const roll=rnd(20);return{roll,out:mkOut(o.T,roll)};},
@@ -549,7 +575,8 @@ const CONDS=[
  {w:5,s:'Soirée idéale',txt:()=>'Soirée idéale : température parfaite.',mod:1}
 ];
 function drawCond(ev){
- const ok=CONDS.filter(c=>!c.need||(c.need==='wind'&&ev.wind)||c.need===ev.mech);
+ let ok=CONDS.filter(c=>!c.need||(c.need==='wind'&&ev.wind)||c.need===ev.mech);
+ if(ev.indoor)ok=ok.filter(c=>['Conditions neutres','Public en feu','Pression'].includes(c.s));
  let x=Math.random()*ok.reduce((s,c)=>s+c.w,0),c=ok[0];
  for(const o of ok){x-=o.w;if(x<=0){c=o;break;}}
  return{s:c.s,txt:c.txt(),mod:c.mod,mental:c.mental||null};
@@ -638,7 +665,7 @@ function evAllSk(ev){return[...new Set((ev.run?ev.run.sk:[]).concat(ev.stages.fl
 /* chaque concours = 2 jets après la rage : prise d'élan, puis saut ou lancer */
 (function(){
  const mg=a=>[...new Set(a.flatMap(x=>x.sk))];
- EV.DEC.concat(EV.HEP).forEach(ev=>{
+ EV.DEC.concat(EV.HEP,EV.HEPI,EV.PENI).forEach(ev=>{if(ev.el)return;
   if(ev.mech==='race')return;
   const fin=ev.mech==='throw'?'Lancer':'Saut';
   if(ev.run){ev.el={n:'Prise d’élan',sk:ev.run.sk};ev.fin={n:fin,sk:mg(ev.stages)};}
@@ -655,7 +682,7 @@ const EASY_BAR={
 };
 function easyBar(p,ev){
  if(p.evT&&p.evT[ev.id]){let h=perfOf(ev,p.evT[ev.id])||0;for(let i=0;i<3;i++)h-=barStep(ev,h);return h;}
- const N=EASY_BAR[ev.id==='pv'?'pv':(p.cat==='HEP'||p.sex==='F'?'hjH':'hjD')];
+ const N=EASY_BAR[ev.id==='pv'?'pv':(sexOf(p.cat)==='F'||p.sex==='F'?'hjH':'hjD')];
  const c=clamp(meanPct(p,evAllSk(ev))/5,0,20);
  for(let i=1;i<N.length;i++)if(c<=N[i][0]||i===N.length-1){const[x0,y0]=N[i-1],[x1,y1]=N[i];return y0+(y1-y0)*clamp((c-x0)/(x1-x0),0,1);}
 }
@@ -709,7 +736,7 @@ const NAT_FR=[['France','🇫🇷']];
 const NAT_INT=[['Allemagne','🇩🇪'],['États-Unis','🇺🇸'],['Canada','🇨🇦'],['Estonie','🇪🇪'],['Grenade','🇬🇩'],['Royaume-Uni','🇬🇧'],['Espagne','🇪🇸'],['Pologne','🇵🇱'],['Pays-Bas','🇳🇱'],['Belgique','🇧🇪'],['Brésil','🇧🇷'],['Japon','🇯🇵'],['Cuba','🇨🇺'],['Ukraine','🇺🇦'],['République tchèque','🇨🇿'],['Suède','🇸🇪'],['Australie','🇦🇺'],['Finlande','🇫🇮']];
 function gauss(){let s=0;for(let i=0;i<6;i++)s+=Math.random();return(s-3)/Math.sqrt(.5);}
 function makeBot(level,cat,id,usedNames){
- const sex=cat==='DEC'?'M':'F';
+ const sex=sexOf(cat);
  let first,last,key,g=0;
  do{first=pick(sex==='M'?FIRST_M:FIRST_F);last=pick(LAST);key=first+last;}while(usedNames.has(key)&&g++<50);
  usedNames.add(key);
@@ -731,7 +758,7 @@ function buildCompetition(levelId,cat,humans){
  while(all.length<Math.max(level.parts,humans.length))all.push(makeBot(level,cat,all.length,used));
  all.forEach(initRuntime);
  const li=level.base?LEVELS.findIndex(l=>l.id===level.base):LEVELS.indexOf(level);
- const C={level,li,cat,evs:EV[cat],dayBreak:DB[cat],all,cur:null,abort:false,attempts:3};
+ const C={level,li,cat,evs:EV[cat],dayBreak:DB[cat],all,cur:null,abort:false,attempts:3,indoor:isInd(cat)};
  if(typeof injectPros==='function')injectPros(C);
  return C;
 }
@@ -900,7 +927,11 @@ function seasonSteps(year){
   {n:'Hypo-Meeting de Götzis',m:'Juin',lv:'gotz'},
   {n:'Championnats de France Élite',m:'Juillet',lv:'fra'},
   {n:L.n+' '+year,m:'Août',lv:il},
-  {n:'Décastar de Talence',m:'Septembre',lv:'deca'}
+  {n:'Décastar de Talence',m:'Septembre',lv:'deca'},
+  /* hiver suivant : saison en salle (heptathlon / pentathlon), sans préparation supplémentaire */
+  {n:'Championnats régionaux en salle',m:'Janvier',lv:'reg_i',ind:1},
+  {n:'Championnats de France Élite en salle',m:'Février',lv:'fra_i',ind:1},
+  {n:(year%2===0?'Championnats d’Europe en salle ':'Championnats du monde en salle ')+(year+1),m:'Mars',lv:year%2===0?'eur_i':'mon_i',ind:1}
  ];
 }
 
@@ -973,7 +1004,7 @@ function applyDisciplineGain(K,ev,t){
 }
 /* une séance de discipline complète pour un athlète : même moteur que la compétition, seul sur le plateau */
 function buildTrainingC(K,ev){
- const C=buildCompetition('dep',K.cat,[{first:K.first,last:K.last,nat:K.nat,color:K.color,pct:{...K.pct},age:K.age,sex:K.cat==='DEC'?'M':'F'}]);
+ const C=buildCompetition('dep',K.cat,[{first:K.first,last:K.last,nat:K.nat,color:K.color,pct:{...K.pct},age:K.age,sex:sexOf(K.cat)}]);
  C.all=[C.all[0]];C.evs=[ev];C.dayBreak=99;C.noForm=true;C.attempts=ev.mech==='bar'?3:2;
  C.level={...C.level,n:'Entraînement · '+ev.n,parts:1};
  const p=C.all[0];p.fat=K.tf*2.5;p.form={1:{d:10,out:'ok',mod:0,T:10,ev:ev.s},2:{d:10,out:'ok',mod:0,T:10,ev:ev.s}};
@@ -999,13 +1030,14 @@ function silentHooks(tally,isTrain){
 
 /* ---------- compétition de carrière ---------- */
 function buildCareerComp(K,lvId){
- const C=buildCompetition(lvId,K.cat,[{first:K.first,last:K.last,nat:K.nat,color:K.color,pct:{...K.pct},age:K.age,sex:K.cat==='DEC'?'M':'F'}]);
+ const lvl=lvById(lvId),cat=lvl&&lvl.indoor?IND[K.cat]:K.cat;
+ const C=buildCompetition(lvId,cat,[{first:K.first,last:K.last,nat:K.nat,color:K.color,pct:{...K.pct},age:K.age,sex:sexOf(K.cat)}]);
  C.attempts=K.att;C.all[0].fat=K.tf*2.5;
  C.all[0].pr={};['hj','pv'].forEach(id=>{if(K.pb[id]&&K.pb[id].perf!=null)C.all[0].pr[id]=K.pb[id].perf;});
  return C;
 }
 /* points de podium selon le niveau : [3e, 2e, 1re] */
-const POD={dep:[1,3,6],reg:[2,5,10],inter:[2,5,10],fra:[3,7,14],eur:[3,7,14],deca:[3,7,14],gotz:[3,7,14],mon:[5,10,20],jo:[5,10,20]};
+const POD={dep:[1,3,6],reg:[2,5,10],inter:[2,5,10],fra:[3,7,14],eur:[3,7,14],reg_i:[1,3,6],fra_i:[2,5,10],eur_i:[3,7,14],mon_i:[3,7,14],deca:[3,7,14],gotz:[3,7,14],mon:[5,10,20],jo:[5,10,20]};
 function podPts(lv,rank){const t=POD[lv]||POD.reg;return rank>=1&&rank<=3?t[3-rank]:0;}
 /* après une compétition : classement, records personnels, médailles, répartition des points */
 function settleCompetition(K,C,step){
@@ -1014,11 +1046,11 @@ function settleCompetition(K,C,step){
  const pbs=[];
  C.evs.forEach((ev,i)=>{
   const r=p.res[i];if(!r||r.dq||!(r.pts>0))return;
-  const old=K.pb[ev.id];
+  const pk=(C.indoor?'i:':'')+ev.id,old=K.pb[pk];
   if(old&&r.pts>old.pts&&pbs.length<4)pbs.push(ev);
-  if(!old||r.pts>old.pts)K.pb[ev.id]={pts:r.pts,perf:r.perf,year:K.year};
+  if(!old||r.pts>old.pts)K.pb[pk]={pts:r.pts,perf:r.perf,year:K.year+(C.indoor?1:0)};
  });
- pbs.forEach(ev=>K.pools.push({n:3,sk:trainSk(ev).slice(),why:`Record personnel : ${ev.s} ${fmtPerf(ev,K.pb[ev.id].perf)}`}));
+ pbs.forEach(ev=>K.pools.push({n:3,sk:trainSk(ev).slice(),why:`Record personnel${C.indoor?' en salle':''} : ${ev.s} ${fmtPerf(ev,K.pb[(C.indoor?'i:':'')+ev.id].perf)}`}));
  const mAll=x=>STATS.reduce((a,t)=>a+x.pct[t.k],0)/STATS.length,fld=C.all.filter(x=>!x.human),fAvg=fld.length?fld.reduce((a,x)=>a+mAll(x),0)/fld.length:0,gap=mAll(p)-fAvg,wk=gap>=25?.25:gap>=15?.5:gap>=8?.75:1;
  let pod=podPts(step.lv,rank);if(pod&&wk<1)pod=Math.max(1,Math.round(pod*wk));
  if(pod){K.pools.push({n:pod,sk:null,why:`${['','Victoire','2e place','3e place'][rank]} : ${step.n}${wk<1?' (adversaires plus faibles que toi)':''}`});K.medals[rank-1]++;}
@@ -1112,7 +1144,9 @@ HEP:[
 /* total moyen observé d'un athlète à X % partout (simulations, niveau Jeux olympiques) : sert à retrouver le niveau d'un total réel */
 const PRO_CURVE={
 DEC:[[30,2964],[50,5338],[60,5973],[70,7103],[80,7980],[90,8531],[95,8626],[100,8799]],
-HEP:[[30,2294],[50,3949],[60,4688],[70,5513],[80,6070],[90,6577],[95,6621],[100,6658]]
+HEP:[[30,2294],[50,3949],[60,4688],[70,5513],[80,6070],[90,6577],[95,6621],[100,6658]],
+HEPI:[[30,2026],[50,3111],[60,3753],[70,5164],[80,5723],[90,6145],[95,6257],[100,6417]],
+PENI:[[30,1610],[50,2562],[60,3404],[70,4042],[80,4452],[90,4845],[95,4880],[100,4921]]
 };
 /* niveau (pourcentage) et facteur de plafond d'un athlète réel : il réalise en moyenne ~96,5 % de son record */
 function proProfile(cat,pts){
@@ -1122,7 +1156,7 @@ function proProfile(cat,pts){
  return{pct:30,cm:1};
 }
 function makePro(cat,id,r,real){
- const pr=proProfile(cat,r[4]),key=r[0]+' '+r[1],o={id,human:false,first:r[0],last:r[1],nat:r[2],flag:r[3],sex:cat==='DEC'?'M':'F',cat,pct:Object.fromEntries(STATS.map(s=>[s.k,pr.pct])),color:'#d8a93c',age:28,pro:true,rec:r[4],cm:pr.cm};
+ const pr=proProfile(cat,r[4]),key=r[0]+' '+r[1],o={id,human:false,first:r[0],last:r[1],nat:r[2],flag:r[3],sex:sexOf(cat),est:isInd(cat),cat,pct:Object.fromEntries(STATS.map(s=>[s.k,pr.pct])),color:'#d8a93c',age:28,pro:true,rec:r[4],cm:pr.cm};
  if(real&&REAL_EVT[key]&&REAL_EVT[key].length===EV[cat].length){const ep=evtProfile(cat,REAL_EVT[key],r[4]);o.evT=ep.evT;o.pct=ep.pct;o.real=true;}
  return o;
 }
@@ -1177,13 +1211,14 @@ function evtProfile(cat,marks,pts){
 }
 /* championnats d'Europe, du monde, Jeux olympiques : de vrais noms parmi les athlètes virtuels */
 function injectPros(C){
- const id=C.level.id;if(!['eur','mon','jo','deca','gotz'].includes(id))return;
- const maxN={eur:20,mon:18,jo:18,deca:14,gotz:14}[id];
+ const ind=!!C.level.indoor,id=ind?C.level.base:C.level.id;if(!['eur','mon','jo','deca','gotz'].includes(id))return;
+ if(ind&&!['eur','mon'].includes(id))return;
+ const maxN={eur:20,mon:18,jo:18,deca:14,gotz:14}[id],oc=OUTC[C.cat],sc=ind?(sexOf(C.cat)==='M'?.73:.72):1;
  const taken=new Set(C.all.map(p=>(p.first+' '+p.last).toLowerCase()));
- const pool=REAL_ACT[C.cat].filter(r=>(id!=='eur'||r[5])&&Math.random()<(C.level.star?.7:.85)&&!taken.has((r[0]+' '+r[1]).toLowerCase()));
+ const pool=REAL_ACT[oc].filter(r=>(id!=='eur'||r[5])&&Math.random()<(C.level.star?.7:.85)&&!taken.has((r[0]+' '+r[1]).toLowerCase()));
  const bots=C.all.filter(p=>!p.human),lim=Math.min(maxN,Math.max(0,bots.length-4));
  pool.map(r=>({r,k:r[4]+gauss()*140})).sort((a,b)=>b.k-a.k).slice(0,lim).forEach((x,i)=>{
-  const keep=bots[i],pro=makePro(C.cat,keep.id,x.r,true);
+  const keep=bots[i],rr=ind?[x.r[0],x.r[1],x.r[2],x.r[3],Math.round(x.r[4]*sc),x.r[5]]:x.r,pro=makePro(C.cat,keep.id,rr,!ind);
   Object.keys(keep).forEach(k=>delete keep[k]);Object.assign(keep,pro);initRuntime(keep);
  });
 }
@@ -1619,7 +1654,7 @@ const ST={
   }
   /* repères 100 m et 110 m haies */
   ctx.strokeStyle='rgba(255,255,255,.9)';ctx.lineWidth=.2;ctx.setLineDash([1,.7]);
-  [[10,'100 m','#ffe27a'],[11,'110 m H','#9be7ff']].forEach(([c,lab,col])=>{
+  (ev.indoor?[[6,'60 m','#ffe27a']]:[[10,'100 m','#ffe27a'],[11,'110 m H','#9be7ff']]).forEach(([c,lab,col])=>{
    const y=H-c*cs;ctx.beginPath();ctx.moveTo(R1,y);ctx.lineTo(Ro,y);ctx.stroke();
    this.txt(ctx,lab,Ro+3.8,y,1.4,col,0);
   });
@@ -1730,8 +1765,8 @@ const ST={
   if(ev.mech==='race'){
    this.mode='race';
    if(ev.hurdles){
-    const first=ev.D===11?1.37:1.3,sp=ev.D===11?.914:.85;
-    for(let k=0;k<this.NL;k++)for(let j=0;j<10;j++){
+    const first=ev.hF||(ev.D===11?1.37:1.3),sp=ev.hS||(ev.D===11?.914:.85);
+    for(let k=0;k<this.NL;k++)for(let j=0;j<(ev.nh||10);j++){
      const q=this.pos(k,-ev.D+first+sp*j),h=new T.Group();
      const post=(dx)=>{const m=new T.Mesh(new T.BoxGeometry(.12,.95,.12),new T.MeshLambertMaterial({color:0xe5e7eb}));m.position.set(dx,.5,0);h.add(m);};
      post(-.95);post(.95);
@@ -2138,12 +2173,17 @@ function renderSetup(){
  $('#modeFree').classList.toggle('on',!career&&cfg.level!=='legends');$('#modeLegends').classList.toggle('on',!career&&cfg.level==='legends');$('#modeCareer').classList.toggle('on',career);
  if(career&&setup.players.length>1)setup.players.length=1;
  const okLv=l=>cfg.free||career||setup.players.every(a=>qualified(a,cfg.cat,l));
+ const indC=isInd(cfg.cat);
+ if(career&&indC)cfg.cat=OUTC[cfg.cat];
+ {const l0=lvById(cfg.level),isI=isInd(cfg.cat);
+  if(isI&&!(l0&&l0.indoor)){const b=l0?(l0.base||l0.id):'dep';cfg.level=LEVELS_I.some(x=>x.id===b+'_i')?b+'_i':(l0?'eur_i':'dep_i');}
+  else if(!isI&&l0&&l0.indoor)cfg.level=l0.base;}
  if(cfg.level!=='legends'&&!okLv(lvById(cfg.level))){
-  const best=[...LEVELS].reverse().find(okLv);cfg.level=best?best.id:'dep';
+  const best=[...(isInd(cfg.cat)?LEVELS_I:LEVELS)].reverse().find(okLv);cfg.level=best?best.id:(isInd(cfg.cat)?'dep_i':'dep');
  }
  const lv=levelOf(cfg.level),legM=cfg.level==='legends';
- $('#cfgLevel').innerHTML=(career?'':`<option value="legends" ${legM?'selected':''}>⭐ Compétition des légendes · les 25 meilleurs de l’histoire</option>`)+[...LEVELS,...STARS].map(l=>`<option value="${l.id}" ${l.id===cfg.level?'selected':''} ${okLv(l)?'':'disabled'}>${l.star?'⭐ ':''}${l.n} · min ${l.min}/20${okLv(l)?'':' · non qualifié'}</option>`).join('');
- $('#cfgFree').checked=cfg.free;$('#cfgCat').value=cfg.cat;$('#cfgAtt').value=String(cfg.attempts);$('#cfgAuto').checked=cfg.auto;$('#cfgFast').checked=cfg.fast;
+ $('#cfgLevel').innerHTML=(career||isInd(cfg.cat)?'':`<option value="legends" ${legM?'selected':''}>⭐ Compétition des légendes · les 25 meilleurs de l’histoire</option>`)+(isInd(cfg.cat)?LEVELS_I:[...LEVELS,...STARS]).map(l=>`<option value="${l.id}" ${l.id===cfg.level?'selected':''} ${okLv(l)?'':'disabled'}>${l.star?'⭐ ':''}${l.n} · min ${l.min}/20${okLv(l)?'':' · non qualifié'}</option>`).join('');
+ $('#cfgFree').checked=cfg.free;$('#cfgCat').value=cfg.cat;[...$('#cfgCat').options].forEach(o=>{if(isInd(o.value))o.disabled=career;});$('#cfgAtt').value=String(cfg.attempts);$('#cfgAuto').checked=cfg.auto;$('#cfgFast').checked=cfg.fast;
  const nh=setup.players.length;
  $('#cfgInfo').textContent=career?`Carrière ${CATN[cfg.cat]} : tu débutes à ${cfg.age} ans avec 30 % partout à répartir (270 points), puis tu enchaînes les saisons du calendrier FFA.`:(legM?`${CATN[cfg.cat]} · ${lv.n} : tu affrontes les 25 meilleurs ${cfg.cat==='DEC'?'décathloniens':'heptathloniennes'} de l’histoire (records personnels réels), avec ${nh} joueur${nh>1?'s':''}.`:`${CATN[cfg.cat]} · ${lv.n} : ${Math.max(lv.parts,nh)} participants, dont ${nh} joueur${nh>1?'s':''} et ${Math.max(lv.parts,nh)-nh} athlètes virtuels.`);
  $('#cfgAge').value=String(cfg.age);
@@ -2211,7 +2251,7 @@ $('#rulesBtn').onclick=()=>$('#rules').showModal();
 $('#homeBtn').onclick=()=>{if(G)G.abort=true;show('setup');renderSetup();};
 $('#startBtn').onclick=()=>{if(setup.mode==='career'&&typeof createCareer==='function')createCareer();else launch();};
 $('#modeFree').onclick=()=>{setup.mode='free';if(setup.cfg.level==='legends')setup.cfg.level='dep';renderSetup();};
-$('#modeLegends').onclick=()=>{setup.mode='free';setup.cfg.level='legends';renderSetup();};
+$('#modeLegends').onclick=()=>{setup.mode='free';if(isInd(setup.cfg.cat))setup.cfg.cat=OUTC[setup.cfg.cat];setup.cfg.level='legends';renderSetup();};
 $('#modeCareer').onclick=()=>{setup.mode='career';renderSetup();};
 $('#cfgAge').onchange=e=>setup.cfg.age=+e.target.value;
 
@@ -2219,7 +2259,7 @@ $('#cfgAge').onchange=e=>setup.cfg.age=+e.target.value;
 let G=null;
 function launch(){
  const cfg=setup.cfg;
- const humans=setup.players.map(a=>({first:(a.first||'').trim()||'Athlète',last:(a.last||'').trim()||String(a.uid),nat:a.nat,flag:flagOf(a.nat),color:a.color,pct:{...a.pct},age:a.age!=null?a.age:ageOf(a.dob),sex:cfg.cat==='DEC'?'M':'F'}));
+ const humans=setup.players.map(a=>({first:(a.first||'').trim()||'Athlète',last:(a.last||'').trim()||String(a.uid),nat:a.nat,flag:flagOf(a.nat),color:a.color,pct:{...a.pct},age:a.age!=null?a.age:ageOf(a.dob),sex:sexOf(cfg.cat)}));
  const C=cfg.level==='legends'?buildLegendsComp(cfg.cat,humans):buildCompetition(cfg.level,cfg.cat,humans);
  C.attempts=cfg.attempts;
  if(typeof injectComm==='function')injectComm(C);
@@ -2524,7 +2564,7 @@ function makeHooks(g){
 function showFinal(C,cont){
  const list=[...C.all].sort((a,b)=>b.total-a.total);
  const rec=RECS[C.cat][0],full=recPts(C.cat,0,C.evs.length);
- const lab=p=>{const t=p.total;const L=C.cat==='DEC'?[[5000,'Débutant'],[6500,'Amateur'],[7500,'Régional'],[8200,'National'],[8700,'International'],[9000,'Élite mondiale']]:[[3800,'Débutante'],[4800,'Amateur'],[5600,'Régionale'],[6200,'Nationale'],[6600,'Internationale'],[6900,'Élite mondiale']];for(const[l,n]of L)if(t<l)return n;return'Légende';};
+ const lab=p=>{const t=p.total;const sc=isInd(C.cat)?(sexOf(C.cat)==='M'?.73:.72):1,L0=sexOf(C.cat)==='M'?[[5000,'Débutant'],[6500,'Amateur'],[7500,'Régional'],[8200,'National'],[8700,'International'],[9000,'Élite mondiale']]:[[3800,'Débutante'],[4800,'Amateur'],[5600,'Régionale'],[6200,'Nationale'],[6600,'Internationale'],[6900,'Élite mondiale']],L=L0.map(([a,b])=>[a*sc,b]);for(const[l,n]of L)if(t<l)return n;return'Légende';};
  const pod=list.slice(0,3).map((p,i)=>`<div class="pod" style="--c:${p.human?p.color:'#8a96b8'}"><div class="rk">${medal(i)}</div><b>${p.flag||flagOf(p.nat)} ${esc(fullName(p))}</b><div class="lv">${lab(p)}</div><div class="tt">${nf(p.total)} pts</div></div>`).join('');
  const humans=list.filter(p=>p.human);
  const det=humans.map(p=>{
@@ -2656,7 +2696,7 @@ function enterCareer(){inCareerGame=false;ST.show(false);show('career');renderCa
 function pushSkip(st,why){K.hist.push({year:K.year,age:K.age,name:st.n,lv:st.lv,tl:lvById(st.lv).s,rank:0,of:0,total:0,pbs:0,skip:why});K.tf=0;}
 function advanceStep(){
  K.step++;K.slots=[null,null,null];K.sessDone=0;
- K.phase=K.step>=seasonSteps(K.year).length?'bilan':'train';
+ {const ss=seasonSteps(K.year);K.phase=K.step>=ss.length?'bilan':(ss[K.step].ind?'comp':'train');}
 }
 
 /* ---------- rendu général ---------- */
@@ -2699,18 +2739,21 @@ function renderSkills(){
 }
 function renderHist(){
  const pbs=EV[K.cat].map(e=>{const p=K.pb[e.id];return `<tr><td>${e.i} ${e.s}</td><td>${p?fmtPerf(e,p.perf):'—'}</td><td>${p?nf(p.pts):'—'}</td><td>${p?p.year:''}</td></tr>`;}).join('');
+ const pbsI=Object.keys(K.pb).some(k=>k.startsWith('i:'))?`<tr><th colspan="4" style="text-align:left">En salle</th></tr>`+EV[IND[K.cat]].map(e=>{const p=K.pb['i:'+e.id];return p?`<tr><td>${e.i} ${e.s}</td><td>${fmtPerf(e,p.perf)}</td><td>${nf(p.pts)}</td><td>${p.year}</td></tr>`:'';}).join(''):'';
  const rows=[...K.hist].reverse().slice(0,60).map(h=>`<tr><td>${h.year}</td><td>${h.age} ans</td><td>${esc(h.name)}</td><td>${h.skip?(h.skip==='NQ'?'non qualifié':h.skip):rankTxt(h.rank,h.of)}</td><td>${h.skip?'—':nf(h.total)}</td><td>${h.pbs||''}</td></tr>`).join('');
-const played=K.hist.filter(h=>!h.skip&&h.total>0),bestH=played.reduce((a,h)=>h.total>a.total?h:a,{total:0});
+const isI=h=>{const l=lvById(h.lv);return !!(l&&l.indoor);};
+const played=K.hist.filter(h=>!h.skip&&h.total>0&&!isI(h)),bestH=played.reduce((a,h)=>h.total>a.total?h:a,{total:0});
+ const playedI=K.hist.filter(h=>!h.skip&&h.total>0&&isI(h)),bestI=playedI.reduce((a,h)=>h.total>a.total?h:a,{total:0}),iName=K.cat==='DEC'?'heptathlon en salle':'pentathlon en salle';
  const recName=K.cat==='DEC'?'décathlon':'heptathlon';
- const recRow=`<tr class="rec"><td colspan="4">🏆 <b>Record en ${recName} : ${bestH.total?nf(bestH.total)+' pts':'—'}</b>${bestH.total?`<br><small>${esc(bestH.name)}, ${bestH.year}</small>`:''}</td></tr>`;
+ const recRow=`<tr class="rec"><td colspan="4">🏆 <b>Record en ${recName} : ${bestH.total?nf(bestH.total)+' pts':'—'}</b>${bestH.total?`<br><small>${esc(bestH.name)}, ${bestH.year}</small>`:''}</td></tr>`+(playedI.length?`<tr class="rec"><td colspan="4">🏆 <b>Record en ${iName} : ${nf(bestI.total)} pts</b><br><small>${esc(bestI.name)}, ${bestI.year+1}</small></td></tr>`:'');
  const pod=K.hist.filter(h=>!h.skip&&h.rank>=1&&h.rank<=3);
  const yrs=(L,r)=>pod.filter(h=>h.lv===L.id&&h.rank===r).map(h=>h.year).sort((x,y)=>x-y).join(', ');
- const cups=[...LEVELS,...STARS].reverse().map(L=>{const m=[0,0,0];pod.filter(h=>h.lv===L.id).forEach(h=>m[h.rank-1]++);const n=m[0]+m[1]+m[2];
+ const cups=[...LEVELS,...STARS,...LEVELS_I].reverse().map(L=>{const m=[0,0,0];pod.filter(h=>h.lv===L.id).forEach(h=>m[h.rank-1]++);const n=m[0]+m[1]+m[2];
   const line=(ic,r)=>m[r-1]?`<div class="trY"><span>${m[r-1]} ${ic}</span><small>${yrs(L,r)}</small></div>`:'';
   return `<div class="trCard ${n?(m[0]?'g':'s'):'off'}"><i>${n?'🏆':'🔒'}</i><b>${L.s}</b>${n?line('🥇',1)+line('🥈',2)+line('🥉',3):'<small>Pas encore de médaille</small>'}</div>`;}).join('');
  $('#cHist').innerHTML=`<div class="vitrine"><h3>Vitrine des trophées</h3><div class="trGrid">${cups}</div></div>
  <div class="histGrid"><div><h3>Parcours</h3><div class="tw"><table><tr><th>Année</th><th>Âge</th><th>Compétition</th><th>Place</th><th>Points</th><th>Records</th></tr>${rows||'<tr><td colspan="6" style="color:var(--mute)">Aucune compétition disputée pour l’instant.</td></tr>'}</table></div></div>
- <div><h3>Records personnels</h3><div class="tw"><table>${recRow}<tr><th>Épreuve</th><th>Perf.</th><th>Pts</th><th>Année</th></tr>${pbs}</table></div></div></div>`;
+ <div><h3>Records personnels</h3><div class="tw"><table>${recRow}<tr><th>Épreuve</th><th>Perf.</th><th>Pts</th><th>Année</th></tr>${pbs}${pbsI}</table></div></div></div>`;
 }
 function renderMain(){
  const m=$('#cMain');
@@ -2757,9 +2800,10 @@ function poolsHTML(){
 }
 
 /* ---------- entraînement ---------- */
+const trainEv=id=>EV[K.cat].find(e=>e.id===id)||EV[IND[K.cat]].find(e=>e.id===id);
 function slotLabel(s){
  if(!s)return'<i style="color:var(--mute)">vide</i>';
- if(s.t==='dis'){const ev=EV[K.cat].find(e=>e.id===s.ev);return `🏟️ Discipline : ${ev.i} ${ev.n}`;}
+ if(s.t==='dis'){const ev=trainEv(s.ev);return `🏟️ Discipline : ${ev.i} ${ev.n}`;}
  const d=SESSX[s.t];return `${d.i} ${d.n}`;
 }
 function addSlot(s){
@@ -2774,7 +2818,7 @@ function trainHTML(){
  if(!full){
   body=`<p class="note" style="margin:0 0 8px">Choisis ${K.slots.filter(x=>!x).length} séance${K.slots.filter(x=>!x).length>1?'s':''} pour préparer : <b>${esc(st.n)}</b> (${st.m}). Chaque séance de salle ajoute de la fatigue (−1 au seuil par séance déjà faite) : termine par du repos si tu veux arriver frais.</p>
   <div class="palette">${SESS.filter(s=>s.id!=='dis').map(s=>`<button class="pal" data-a="slot" data-t="${s.id}"><b>${s.i} ${s.n}</b><small>${s.d}</small>${s.sk.length?`<span class="chips">${s.sk.map(k=>`<span class="chip">${SX[k].i} ${K.pct[k]} %</span>`).join('')}</span><span class="th">d20 ≤ ${gymThreshold(K,s)}</span>`:''}</button>`).join('')}
-  <div class="pal dis"><b>🏟️ Séance de discipline</b><small>${SESSX.dis.d}</small><select id="cDisEv">${EV[K.cat].map(e=>`<option value="${e.id}">${e.i} ${e.n}</option>`).join('')}</select><button class="btn small primary" data-a="slotDis">Ajouter</button></div></div>`;
+  <div class="pal dis"><b>🏟️ Séance de discipline</b><small>${SESSX.dis.d}</small><select id="cDisEv">${EV[K.cat].map(e=>`<option value="${e.id}">${e.i} ${e.n}</option>`).join('')}${EV[IND[K.cat]].filter(e=>!EV[K.cat].some(x=>x.id===e.id)).map(e=>`<option value="${e.id}">${e.i} ${e.n} (salle)</option>`).join('')}</select><button class="btn small primary" data-a="slotDis">Ajouter</button></div></div>`;
  }else if(K.sessDone<3){
   const sl=K.slots[K.sessDone];
   body=`<div class="startRow"><button class="btn primary big" data-a="run">▶ Séance ${K.sessDone+1}/3 : ${slotLabel(sl)}</button></div>`;
@@ -2787,7 +2831,7 @@ function runSlot(){
  const sl=K.slots[K.sessDone];if(!sl)return;
  cNote='';
  if(sl.t==='rep'){restSession(K);K.sessDone++;persist();cNote=`<div class="card cnote"><h3>🏖️ Repos</h3><p>Tu récupères : la fatigue d’entraînement retombe à zéro.</p></div>`;afterSessionNext(true);return;}
- if(sl.t==='dis'){doDiscipline(EV[K.cat].find(e=>e.id===sl.ev));return;}
+ if(sl.t==='dis'){doDiscipline(trainEv(sl.ev));return;}
  gymFlow(SESSX[sl.t]);
 }
 function afterSessionNext(keep){
@@ -2841,7 +2885,7 @@ function doDiscipline(ev){
 function compHTML(){
  const st=seasonSteps(K.year)[K.step],L=lvById(st.lv),q=careerQualified(K,st.lv),avg=careerAvg(K);
  return `<div class="card"><h3>🏁 ${esc(st.n)}</h3>
- <p class="note" style="margin:0 0 10px">${st.m} ${K.year} · ${L.parts} participants · niveau moyen des adversaires ≈ ${L.avg} %${L.bars>=4?' · barres très hautes':''}</p>
+ <p class="note" style="margin:0 0 10px">${st.m} ${K.year+(st.ind?1:0)} · ${L.parts} participants · niveau moyen des adversaires ≈ ${L.avg} %${L.bars>=4?' · barres très hautes':''}</p>
  <div class="cmpBox"><div><small>Minimum de qualification</small><b>${L.min}/20</b></div><div><small>Ta moyenne de capacité</small><b style="color:${q?'var(--ok)':'var(--bad)'}">${fmt1c(avg)}/20</b></div><div><small>Fatigue</small><b>${K.tf?'●'.repeat(K.tf):'○'}</b></div></div>
  ${q?`<div class="startRow"><button class="btn primary big" data-a="comp" data-m="play">🎮 Jouer sur le plateau</button><button class="btn big" data-a="comp" data-m="sim">⚡ Simuler</button><button class="btn" data-a="comp" data-m="skip">Passer</button></div>`:
  `<p class="note" style="color:var(--bad)">Tu n’as pas la moyenne minimale pour participer. Continue de t’entraîner.</p><div class="startRow"><button class="btn primary big" data-a="comp" data-m="nq">Continuer</button></div>`}</div>`;
@@ -2997,23 +3041,23 @@ function cleanChar(r){
   season:+d.season||1,medals:Array.isArray(d.medals)?d.medals.slice(0,3).map(x=>+x||0):[0,0,0],best:+d.bestTotal||0};
 }
 async function loadComm(){
- const cat=setup.cfg.cat;COMM.loading=true;COMM.err='';renderCommBox();
+ const cat=OUTC[setup.cfg.cat];COMM.loading=true;COMM.err='';renderCommBox();
  try{const rows=await sb('list_characters',{p_cat:cat});COMM.list=(rows||[]).map(cleanChar);COMM.cat=cat;COMM.loaded=true;COMM.sel=new Set([...COMM.sel].filter(id=>COMM.list.some(c=>c.id===id)));}
  catch(e){COMM.err=errTxt(e);}
  COMM.loading=false;renderCommBox();
 }
-const commPicked=()=>COMM.list.filter(c=>COMM.sel.has(c.id)&&COMM.cat===setup.cfg.cat);
+const commPicked=()=>COMM.list.filter(c=>COMM.sel.has(c.id)&&COMM.cat===OUTC[setup.cfg.cat]);
 function commSlots(){if(setup.cfg.level==='legends')return 0;const lv=lvById(setup.cfg.level),nh=setup.players.length;return Math.max(0,Math.max(lv.parts,nh)-nh);}
 function renderCommBox(){
  if(!COMM)return;
  const box=$('#commBox');if(!box)return;
  const cfg=setup.cfg,free=setup.mode!=='career';
  box.hidden=!free;if(!free)return;
- if(COMM.cat&&COMM.cat!==cfg.cat){COMM.list=[];COMM.sel=new Set();COMM.loaded=false;COMM.cat=null;}
- setup.players=setup.players.filter(a=>!a.locked||a.cat===cfg.cat);
- const mine=careers.filter(c=>c.cat===cfg.cat);
+ if(COMM.cat&&COMM.cat!==OUTC[cfg.cat]){COMM.list=[];COMM.sel=new Set();COMM.loaded=false;COMM.cat=null;}
+ setup.players=setup.players.filter(a=>!a.locked||a.cat===OUTC[cfg.cat]);
+ const mine=careers.filter(c=>c.cat===OUTC[cfg.cat]);
  const taken=new Set(setup.players.filter(a=>a.locked).map(a=>a.fromCareer));
- const mineHTML=mine.length?`<select id="cmMineSel">${mine.map(c=>`<option value="${c.id}">${esc(c.first)} ${esc(c.last.toUpperCase())} · saison ${c.season} · ${c.age} ans · ${fmt1c(careerAvg(c))}/20</option>`).join('')}</select><button class="btn small" id="cmMine" ${setup.players.length>=6?'disabled':''}>Ajouter comme joueur</button>`:`<span class="note">Aucune carrière ${CATN[cfg.cat]} : crée-en une dans l’onglet « Mode carrière ».</span>`;
+ const mineHTML=mine.length?`<select id="cmMineSel">${mine.map(c=>`<option value="${c.id}">${esc(c.first)} ${esc(c.last.toUpperCase())} · saison ${c.season} · ${c.age} ans · ${fmt1c(careerAvg(c))}/20</option>`).join('')}</select><button class="btn small" id="cmMine" ${setup.players.length>=6?'disabled':''}>Ajouter comme joueur</button>`:`<span class="note">Aucune carrière ${CATN[OUTC[cfg.cat]]} : crée-en une dans l’onglet « Mode carrière ».</span>`;
  let comm;
  if(!onlineOn())comm=`<span class="note">La base en ligne n’est pas encore activée.</span>`;
  else{
