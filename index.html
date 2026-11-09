@@ -431,6 +431,12 @@ const LEVELS=[
  {id:'mon',n:'Championnats du monde',s:'Monde',parts:24,avg:62,min:15,intl:1,bars:5},
  {id:'jo',n:'Jeux olympiques',s:'Jeux olympiques',parts:28,avg:64,min:15,intl:1,bars:6}
 ];
+/* meetings stars : niveau Europe pour les barres, adversaires réels */
+const STARS=[
+ {id:'deca',n:'Décastar de Talence',s:'Décastar',parts:20,avg:58,min:13,intl:1,bars:4,base:'eur',star:1},
+ {id:'gotz',n:'Hypo-Meeting de Götzis',s:'Götzis',parts:20,avg:60,min:13,intl:1,bars:4,base:'eur',star:1}
+];
+const lvById=id=>LEVELS.find(l=>l.id===id)||STARS.find(l=>l.id===id);
 /* hauteur de départ de la barre (cm) selon le niveau */
 const BAR_START={DEC:{hj:[145,150,160,170,175,180,185],pv:[260,300,340,380,420,440,460]},HEP:{hj:[120,125,135,145,150,155,160]}};
 /* moyenne des capacités sur les épreuves : niveau minimum pour être qualifié */
@@ -719,12 +725,12 @@ function initRuntime(p){p.res=[];p.total=0;p.fat=0;p.inj={};p.warned=false;p.for
 
 /* ---------- compétition ---------- */
 function buildCompetition(levelId,cat,humans){
- const level=LEVELS.find(l=>l.id===levelId);
+ const level=lvById(levelId);
  const all=humans.map((h,i)=>({...h,id:i,human:true,cat,pct:{...h.pct}}));
  const used=new Set(all.map(p=>p.first+p.last));
  while(all.length<Math.max(level.parts,humans.length))all.push(makeBot(level,cat,all.length,used));
  all.forEach(initRuntime);
- const li=LEVELS.indexOf(level);
+ const li=level.base?LEVELS.findIndex(l=>l.id===level.base):LEVELS.indexOf(level);
  const C={level,li,cat,evs:EV[cat],dayBreak:DB[cat],all,cur:null,abort:false,attempts:3};
  if(typeof injectPros==='function')injectPros(C);
  return C;
@@ -891,9 +897,10 @@ function seasonSteps(year){
   {n:'Championnats départementaux',m:'Mai',lv:'dep'},
   {n:'Championnats régionaux',m:'Juin',lv:'reg'},
   {n:'Championnats interrégionaux',m:'Juin',lv:'inter'},
+  {n:'Hypo-Meeting de Götzis',m:'Juin',lv:'gotz'},
   {n:'Championnats de France Élite',m:'Juillet',lv:'fra'},
   {n:L.n+' '+year,m:'Août',lv:il},
-  {n:'Meeting international de fin de saison',m:'Septembre',lv:'fra'}
+  {n:'Décastar de Talence',m:'Septembre',lv:'deca'}
  ];
 }
 
@@ -920,12 +927,12 @@ function trainSk(ev){
 function newCareer(h,cat,startAge,att){
  return{v:1,id:'c'+Date.now().toString(36)+Math.floor(Math.random()*1e4),
   first:h.first,last:h.last,nat:h.nat,color:h.color,cat,att:att||3,
-  age:startAge,year:START_YEAR,season:1,step:0,phase:'train',
+  cal2:1,age:startAge,year:START_YEAR,season:1,step:0,phase:'train',
   pct:{...h.pct},tf:0,slots:[null,null,null],sessDone:0,pools:[],
   pb:{},hist:[],medals:[0,0,0],comps:0,bestTotal:0,log:[],created:Date.now(),saved:Date.now()};
 }
 const careerAvg=K=>avgCap(K,K.cat);
-const careerQualified=(K,lvId)=>qualified(K,K.cat,LEVELS.find(l=>l.id===lvId));
+const careerQualified=(K,lvId)=>qualified(K,K.cat,lvById(lvId));
 
 /* ---------- séances de salle : un d20 par qualité contre la capacité moyenne de la séance ---------- */
 function gymThreshold(K,sess){
@@ -998,7 +1005,7 @@ function buildCareerComp(K,lvId){
  return C;
 }
 /* points de podium selon le niveau : [3e, 2e, 1re] */
-const POD={dep:[1,3,6],reg:[2,5,10],inter:[2,5,10],fra:[3,7,14],eur:[3,7,14],mon:[5,10,20],jo:[5,10,20]};
+const POD={dep:[1,3,6],reg:[2,5,10],inter:[2,5,10],fra:[3,7,14],eur:[3,7,14],deca:[3,7,14],gotz:[3,7,14],mon:[5,10,20],jo:[5,10,20]};
 function podPts(lv,rank){const t=POD[lv]||POD.reg;return rank>=1&&rank<=3?t[3-rank]:0;}
 /* après une compétition : classement, records personnels, médailles, répartition des points */
 function settleCompetition(K,C,step){
@@ -1016,7 +1023,7 @@ function settleCompetition(K,C,step){
  let pod=podPts(step.lv,rank);if(pod&&wk<1)pod=Math.max(1,Math.round(pod*wk));
  if(pod){K.pools.push({n:pod,sk:null,why:`${['','Victoire','2e place','3e place'][rank]} : ${step.n}${wk<1?' (adversaires plus faibles que toi)':''}`});K.medals[rank-1]++;}
  K.comps++;K.bestTotal=Math.max(K.bestTotal,p.total);
- K.hist.push({year:K.year,age:K.age,name:step.n,lv:step.lv,rank,of:list.length,total:p.total,pbs:pbs.length,tl:LEVELS.find(l=>l.id===step.lv).s});
+ K.hist.push({year:K.year,age:K.age,name:step.n,lv:step.lv,rank,of:list.length,total:p.total,pbs:pbs.length,tl:lvById(step.lv).s});
  K.tf=0;
  return{rank,total:p.total,pbs,pod,of:list.length};
 }
@@ -1170,10 +1177,10 @@ function evtProfile(cat,marks,pts){
 }
 /* championnats d'Europe, du monde, Jeux olympiques : de vrais noms parmi les athlètes virtuels */
 function injectPros(C){
- const id=C.level.id;if(!['eur','mon','jo'].includes(id))return;
- const maxN={eur:20,mon:18,jo:18}[id];
+ const id=C.level.id;if(!['eur','mon','jo','deca','gotz'].includes(id))return;
+ const maxN={eur:20,mon:18,jo:18,deca:14,gotz:14}[id];
  const taken=new Set(C.all.map(p=>(p.first+' '+p.last).toLowerCase()));
- const pool=REAL_ACT[C.cat].filter(r=>(id!=='eur'||r[5])&&Math.random()<.85&&!taken.has((r[0]+' '+r[1]).toLowerCase()));
+ const pool=REAL_ACT[C.cat].filter(r=>(id!=='eur'||r[5])&&Math.random()<(C.level.star?.7:.85)&&!taken.has((r[0]+' '+r[1]).toLowerCase()));
  const bots=C.all.filter(p=>!p.human),lim=Math.min(maxN,Math.max(0,bots.length-4));
  pool.map(r=>({r,k:r[4]+gauss()*140})).sort((a,b)=>b.k-a.k).slice(0,lim).forEach((x,i)=>{
   const keep=bots[i],pro=makePro(C.cat,keep.id,x.r,true);
@@ -2106,7 +2113,7 @@ const ST={
 /* ================= INTERFACE : création, compétition, classements ================= */
 const setup={cfg:{level:'dep',cat:'DEC',attempts:3,auto:false,fast:false,free:false,age:16},players:[],uid:0,mode:'free'};
 const LEG_LV={id:'leg',n:'Compétition des légendes',s:'Légendes',parts:25,avg:90,min:0,intl:1,bars:6};
-const levelOf=id=>id==='legends'?LEG_LV:LEVELS.find(l=>l.id===id);
+const levelOf=id=>id==='legends'?LEG_LV:lvById(id);
 const TOTAL_PCT=STATS.length*START_PCT;
 const sumPct=a=>STATS.reduce((s,x)=>s+a.pct[x.k],0);
 function ageOf(dob){
@@ -2131,11 +2138,11 @@ function renderSetup(){
  $('#modeFree').classList.toggle('on',!career&&cfg.level!=='legends');$('#modeLegends').classList.toggle('on',!career&&cfg.level==='legends');$('#modeCareer').classList.toggle('on',career);
  if(career&&setup.players.length>1)setup.players.length=1;
  const okLv=l=>cfg.free||career||setup.players.every(a=>qualified(a,cfg.cat,l));
- if(cfg.level!=='legends'&&!okLv(LEVELS.find(l=>l.id===cfg.level))){
+ if(cfg.level!=='legends'&&!okLv(lvById(cfg.level))){
   const best=[...LEVELS].reverse().find(okLv);cfg.level=best?best.id:'dep';
  }
  const lv=levelOf(cfg.level),legM=cfg.level==='legends';
- $('#cfgLevel').innerHTML=(career?'':`<option value="legends" ${legM?'selected':''}>⭐ Compétition des légendes · les 25 meilleurs de l’histoire</option>`)+LEVELS.map(l=>`<option value="${l.id}" ${l.id===cfg.level?'selected':''} ${okLv(l)?'':'disabled'}>${l.n} · min ${l.min}/20${okLv(l)?'':' · non qualifié'}</option>`).join('');
+ $('#cfgLevel').innerHTML=(career?'':`<option value="legends" ${legM?'selected':''}>⭐ Compétition des légendes · les 25 meilleurs de l’histoire</option>`)+[...LEVELS,...STARS].map(l=>`<option value="${l.id}" ${l.id===cfg.level?'selected':''} ${okLv(l)?'':'disabled'}>${l.star?'⭐ ':''}${l.n} · min ${l.min}/20${okLv(l)?'':' · non qualifié'}</option>`).join('');
  $('#cfgFree').checked=cfg.free;$('#cfgCat').value=cfg.cat;$('#cfgAtt').value=String(cfg.attempts);$('#cfgAuto').checked=cfg.auto;$('#cfgFast').checked=cfg.fast;
  const nh=setup.players.length;
  $('#cfgInfo').textContent=career?`Carrière ${CATN[cfg.cat]} : tu débutes à ${cfg.age} ans avec 30 % partout à répartir (270 points), puis tu enchaînes les saisons du calendrier FFA.`:(legM?`${CATN[cfg.cat]} · ${lv.n} : tu affrontes les 25 meilleurs ${cfg.cat==='DEC'?'décathloniens':'heptathloniennes'} de l’histoire (records personnels réels), avec ${nh} joueur${nh>1?'s':''}.`:`${CATN[cfg.cat]} · ${lv.n} : ${Math.max(lv.parts,nh)} participants, dont ${nh} joueur${nh>1?'s':''} et ${Math.max(lv.parts,nh)-nh} athlètes virtuels.`);
@@ -2635,6 +2642,7 @@ function createCareer(){
 }
 function openCareer(c){
  K=c;K.opt=K.opt||{auto:false,fast:false,quick:false};cNote='';
+ if(!K.cal2){K.cal2=1;if(K.step>=3)K.step++;persist();}
  if(K.phase==='comp-run'){
   const steps=seasonSteps(K.year),st=steps[K.step];
   pushSkip(st,'forfait');advanceStep();persist();
@@ -2645,7 +2653,7 @@ function openCareer(c){
 function enterCareer(){inCareerGame=false;ST.show(false);show('career');renderCareer();}
 
 /* ---------- avancement du calendrier ---------- */
-function pushSkip(st,why){K.hist.push({year:K.year,age:K.age,name:st.n,lv:st.lv,tl:LEVELS.find(l=>l.id===st.lv).s,rank:0,of:0,total:0,pbs:0,skip:why});K.tf=0;}
+function pushSkip(st,why){K.hist.push({year:K.year,age:K.age,name:st.n,lv:st.lv,tl:lvById(st.lv).s,rank:0,of:0,total:0,pbs:0,skip:why});K.tf=0;}
 function advanceStep(){
  K.step++;K.slots=[null,null,null];K.sessDone=0;
  K.phase=K.step>=seasonSteps(K.year).length?'bilan':'train';
@@ -2678,7 +2686,7 @@ function renderHead(){
 function renderCal(){
  const steps=seasonSteps(K.year),avg=careerAvg(K);
  $('#cCal').innerHTML=`<h3>Calendrier ${K.year}</h3>`+steps.map((st,i)=>{
-  const L=LEVELS.find(l=>l.id===st.lv),q=avg>=L.min-1e-9&&careerQualified(K,st.lv);
+  const L=lvById(st.lv),q=avg>=L.min-1e-9&&careerQualified(K,st.lv);
   const h=K.hist.filter(x=>x.year===K.year&&x.name===st.n).pop();
   const state=K.phase==='retired'?'':i<K.step?'done':i===K.step&&K.phase!=='bilan'?'cur':'';
   const res=h?(h.skip?`<small>${h.skip==='NQ'?'non qualifié':h.skip}</small>`:`<small>${rankTxt(h.rank,h.of)} · ${nf(h.total)} pts</small>`):`<small>min ${L.min}/20 · ${q?'<span style="color:var(--ok)">qualifié</span>':'<span style="color:var(--bad)">non qualifié</span>'}</small>`;
@@ -2697,7 +2705,7 @@ const played=K.hist.filter(h=>!h.skip&&h.total>0),bestH=played.reduce((a,h)=>h.t
  const recRow=`<tr class="rec"><td colspan="4">🏆 <b>Record en ${recName} : ${bestH.total?nf(bestH.total)+' pts':'—'}</b>${bestH.total?`<br><small>${esc(bestH.name)}, ${bestH.year}</small>`:''}</td></tr>`;
  const pod=K.hist.filter(h=>!h.skip&&h.rank>=1&&h.rank<=3);
  const yrs=(L,r)=>pod.filter(h=>h.lv===L.id&&h.rank===r).map(h=>h.year).sort((x,y)=>x-y).join(', ');
- const cups=[...LEVELS].reverse().map(L=>{const m=[0,0,0];pod.filter(h=>h.lv===L.id).forEach(h=>m[h.rank-1]++);const n=m[0]+m[1]+m[2];
+ const cups=[...LEVELS,...STARS].reverse().map(L=>{const m=[0,0,0];pod.filter(h=>h.lv===L.id).forEach(h=>m[h.rank-1]++);const n=m[0]+m[1]+m[2];
   const line=(ic,r)=>m[r-1]?`<div class="trY"><span>${m[r-1]} ${ic}</span><small>${yrs(L,r)}</small></div>`:'';
   return `<div class="trCard ${n?(m[0]?'g':'s'):'off'}"><i>${n?'🏆':'🔒'}</i><b>${L.s}</b>${n?line('🥇',1)+line('🥈',2)+line('🥉',3):'<small>Pas encore de médaille</small>'}</div>`;}).join('');
  $('#cHist').innerHTML=`<div class="vitrine"><h3>Vitrine des trophées</h3><div class="trGrid">${cups}</div></div>
@@ -2760,7 +2768,7 @@ function addSlot(s){
 }
 function trainHTML(){
  const steps=seasonSteps(K.year),st=steps[K.step],full=K.slots.every(Boolean);
- const L=LEVELS.find(l=>l.id===st.lv),q=careerQualified(K,st.lv);
+ const L=lvById(st.lv),q=careerQualified(K,st.lv);
  const slots=K.slots.map((s,i)=>`<div class="slot ${i<K.sessDone?'done':i===K.sessDone&&full?'cur':''}"><span class="sn">${i+1}</span><div>${slotLabel(s)}</div>${s&&i>=K.sessDone?`<button class="btn small" data-a="unslot" data-i="${i}">✕</button>`:i<K.sessDone?'<span class="chip p">fait</span>':''}</div>`).join('');
  let body;
  if(!full){
@@ -2831,7 +2839,7 @@ function doDiscipline(ev){
 
 /* ---------- compétition ---------- */
 function compHTML(){
- const st=seasonSteps(K.year)[K.step],L=LEVELS.find(l=>l.id===st.lv),q=careerQualified(K,st.lv),avg=careerAvg(K);
+ const st=seasonSteps(K.year)[K.step],L=lvById(st.lv),q=careerQualified(K,st.lv),avg=careerAvg(K);
  return `<div class="card"><h3>🏁 ${esc(st.n)}</h3>
  <p class="note" style="margin:0 0 10px">${st.m} ${K.year} · ${L.parts} participants · niveau moyen des adversaires ≈ ${L.avg} %${L.bars>=4?' · barres très hautes':''}</p>
  <div class="cmpBox"><div><small>Minimum de qualification</small><b>${L.min}/20</b></div><div><small>Ta moyenne de capacité</small><b style="color:${q?'var(--ok)':'var(--bad)'}">${fmt1c(avg)}/20</b></div><div><small>Fatigue</small><b>${K.tf?'●'.repeat(K.tf):'○'}</b></div></div>
@@ -2995,7 +3003,7 @@ async function loadComm(){
  COMM.loading=false;renderCommBox();
 }
 const commPicked=()=>COMM.list.filter(c=>COMM.sel.has(c.id)&&COMM.cat===setup.cfg.cat);
-function commSlots(){if(setup.cfg.level==='legends')return 0;const lv=LEVELS.find(l=>l.id===setup.cfg.level),nh=setup.players.length;return Math.max(0,Math.max(lv.parts,nh)-nh);}
+function commSlots(){if(setup.cfg.level==='legends')return 0;const lv=lvById(setup.cfg.level),nh=setup.players.length;return Math.max(0,Math.max(lv.parts,nh)-nh);}
 function renderCommBox(){
  if(!COMM)return;
  const box=$('#commBox');if(!box)return;
