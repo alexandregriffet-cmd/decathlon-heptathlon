@@ -298,6 +298,8 @@ tr.rec td{background:#ffc83d1f;padding:8px 10px}tr.rec small{color:var(--mute)}
 .rkM small{display:block;color:var(--mute);font-size:.65em}
 
 .barPick{margin-top:8px;font-size:13px;color:var(--mute,#8fa0c4)}.barPick input{width:74px;padding:4px 6px;border-radius:6px;border:1px solid #3a4a73;background:#0f1a33;color:#fff;font-weight:700}
+
+.morph{margin:6px 0;padding:6px 8px;border:1px solid var(--line,#2b3a5e);border-radius:8px}.mrow{display:flex;gap:10px;flex-wrap:wrap}.mrow label{flex:1;min-width:130px;font-size:12px}.mrow input{width:100%}.cp small.mp{color:#4ade80;font-weight:700}.cp small.mm{color:#f87171;font-weight:700}
 </style>
 </head>
 <body>
@@ -377,7 +379,7 @@ tr.rec td{background:#ffc83d1f;padding:8px 10px}tr.rec small{color:var(--mute)}
 <p><b>En salle</b> : l’heptathlon en salle (hommes : 60 m, longueur, poids, hauteur, 60 m haies, perche, 1 000 m) et le pentathlon en salle (femmes : 60 m haies, hauteur, poids, longueur, 800 m) se jouent en mode libre, avec les mêmes niveaux jusqu’aux championnats du monde en salle. En carrière, la saison en salle suit chaque été : régionaux en salle, France Élite en salle, puis Europe ou Monde en salle, avec tes records de salle à part.</p>
 <p>Pour entrer dans une compétition, la moyenne de tes capacités sur toutes les épreuves doit atteindre un minimum : départementaux 6/20, régionaux 8/20, interrégionaux 10/20, France Élite 13/20, Europe, Monde et Jeux 15/20 (décathlon comme heptathlon). Sans le minimum, le niveau reste verrouillé.</p>
  <h4>Les qualités</h4>
- <p>9 qualités en pourcentage : vitesse, force, puissance, détente, endurance, dextérité, technique, mental, tactique. Tout le monde démarre à 30 % partout et déplace ses pourcentages comme il veut (maximum 90 %).</p>
+ <p>9 qualités en pourcentage : vitesse, force, puissance, détente, endurance, dextérité, technique, mental, tactique. Tout le monde démarre à 30 % partout et déplace ses pourcentages comme il veut (maximum 100 %). Tu choisis aussi ta <b>taille</b> et ton <b>poids</b> : ils donnent un profil (sprinteur, cardio, léger, lanceur, grand gabarit, complet) et un <b>bonus ou malus de −2 à +2 par épreuve</b>.</p>
  <h4>La capacité sur 20</h4>
  <p>Chaque lancer combine plusieurs qualités. La moyenne des pourcentages, divisée par 5 et arrondie au supérieur, donne une capacité sur 20, jamais plus de 18 : le 19 reste un échec et le 20 un échec critique. La forme du jour se joue au dé en début de journée : un d20 contre ta capacité de la première épreuve (échec critique −1, échec 0, réussite +1, réussite parfaite +2). Elle s'ajoute aux conditions du moment (pluie, vent de face −1 ; temps neutre 0 ; soirée idéale +1) pour donner le seuil.</p>
  <h4>Le d20</h4>
@@ -398,7 +400,7 @@ tr.rec td{background:#ffc83d1f;padding:8px 10px}tr.rec small{color:var(--mute)}
  <p>Après une compétition : record personnel +3 points (qualités de l'épreuve, 4 max), podium selon le niveau de la compétition (1re / 2e / 3e place) : départementaux 6 / 3 / 1, régionaux et interrégionaux 10 / 5 / 2, France Élite et Europe 14 / 7 / 3, Monde et Jeux olympiques 20 / 10 / 5 points à répartir librement. À partir de 75 %, un point coûte deux points, à partir de 85 % trois points ; les séances de discipline ne font plus progresser au-delà de 85 %. Si tes adversaires sont nettement plus faibles que toi, les points de podium sont réduits (×0,75, ×0,5 ou ×0,25). À chaque fin de saison : croissance jusqu'à 22 ans, déclin dès 29 ans. La carrière est sauvegardée dans le navigateur et exportable.</p>
  <h4>Écarts de résultats</h4>
  <p>Le résultat ne dépend pas que des dés : le niveau réel de l'athlète (la moyenne exacte de ses pourcentages sur l'épreuve) pèse aussi. À jets de dés équivalents, un athlète à 80 % fait mieux qu'un athlète à 70 %. En course, les cases restant à parcourir avant la dernière relance comptent : arriver à la case d'arrivée avec moins de cases à franchir donne un meilleur temps. Les temps sont au centième de seconde, les sauts et les lancers au centimètre : chaque valeur est atteignable, avec un plafond propre à chaque niveau.</p>
- <p>Chaque épreuve a aussi un plafond selon le niveau de l'athlète dans la discipline (la moyenne de ses qualités sur l'épreuve) : même avec que des réussites critiques, on ne court pas plus vite, on ne saute pas plus haut et on ne lance pas plus loin que ce niveau le permet. Ce plafond monte graduellement avec le niveau, et les <b>records du monde de chaque épreuve</b> (9,58 s au 100 m, 8,95 m en longueur, 6,30 m à la perche…) ne sont à portée que d'un athlète à 90 % partout dont les jets sont tous parfaits : dans ce cas, tu peux les battre.</p>
+ <p>Chaque épreuve a aussi un plafond selon le niveau de l'athlète dans la discipline (la moyenne de ses qualités sur l'épreuve) : même avec que des réussites critiques, on ne court pas plus vite, on ne saute pas plus haut et on ne lance pas plus loin que ce niveau le permet. Ce plafond monte graduellement avec le niveau, et les <b>records du monde de chaque épreuve</b> (9,58 s au 100 m, 8,95 m en longueur, 6,30 m à la perche…) ne sont à portée que dans une discipline où ta capacité atteint 18/20. L'entraînement plafonne la capacité d'une épreuve à <b>16/20</b> (80 % de moyenne sur ses qualités) ; ta morphologie ajoute ensuite −2 à +2 (18 au maximum). Il faut donc un profil parfaitement adapté à l'épreuve (+2), au moins 80 % dans ses qualités et des jets tous parfaits pour battre le record : le grand sauteur mince bat le record en hauteur, pas au poids, et inversement pour le lanceur.</p>
  <p style="margin-top:14px"><button class="btn" onclick="document.getElementById('rules').close()">Fermer</button></p>
 </dialog>
 <dialog id="fiche"><div class="fbody"></div></dialog>
@@ -420,7 +422,7 @@ const STATS=[
  {k:'tec',n:'Technique',i:'⚙️'},{k:'men',n:'Mental',i:'🧠'},{k:'tac',n:'Tactique',i:'♟️'}
 ];
 const SX={};STATS.forEach(s=>SX[s.k]=s);
-const START_PCT=30, PCT_MIN=0, PCT_MAX=90;
+const START_PCT=30, PCT_MIN=0, PCT_MAX=100;
 
 /* épreuves : mech = race (course à cases) | jump | throw (concours à essais) | bar (sauts à la barre) */
 const EV={
@@ -505,7 +507,7 @@ const lvById=id=>LEVELS.find(l=>l.id===id)||STARS.find(l=>l.id===id)||LEVELS_I.f
 const BAR_START={DEC:{hj:[145,150,160,170,175,180,185],pv:[260,300,340,380,420,440,460]},HEP:{hj:[120,125,135,145,150,155,160]}};
 BAR_START.HEPI=BAR_START.DEC;BAR_START.PENI=BAR_START.HEP;
 /* moyenne des capacités sur les épreuves : niveau minimum pour être qualifié */
-function avgCap(p,cat){const evs=EV[cat];return evs.reduce((s,e)=>s+capOf(p,e.sk||evAllSk(e)),0)/evs.length;}
+function avgCap(p,cat){const evs=EV[cat];return evs.reduce((s,e)=>s+capOf(p,e.sk||evAllSk(e),e,cat),0)/evs.length;}
 function qualified(p,cat,level){return avgCap(p,cat)>=level.min-.001;}
 function barList(cat,ev,li){
  const st=BAR_START[cat][ev.id][li],out=[];let h=st;
@@ -544,9 +546,31 @@ function recPts(cat,ri,upto){let s=0;const r=RECS[cat][ri];for(let i=0;i<upto;i+
 
 /* ---------- capacités et dés ---------- */
 const effPct=(p,k)=>Math.max(0,p.pct[k]-((p.inj&&p.inj[k])||0));
-function capOf(p,skills){
- let s=0;skills.forEach(k=>s+=effPct(p,k));
- return clamp(Math.ceil(s/skills.length/5),1,18);   /* arrondi supérieur, jamais plus de 18 : le 19 échoue, le 20 est critique */
+/* morphologie : taille et poids donnent un bonus ou un malus de -2 à +2 par épreuve ; l'entraînement plafonne la capacité d'une épreuve à 16/20 (80 %), le bonus s'ajoute ensuite (18/20 maximum) */
+const HM={M:181,F:169},MUNIT={M:6.5,F:5.5},MBMI={M:22.5,F:21};
+function morphSM(h,w,sex){const S=(h-HM[sex])/6.5,M=(w-MBMI[sex]*Math.pow(h/100,2))/MUNIT[sex];return[S,M];}
+const MORPH={spr:[.3,.9],q4:[.5,.2],mid:[.2,-.6],lg:[-.2,-1.2],hur:[1.1,.3],lj:[.6,.3],hj:[1.5,-.9],pv:[.7,0],sp:[1.1,2.1],dt:[1.3,1.7],jt:[1.2,.9]};
+const MKEY={'60':'spr','100':'spr','200':'spr','400':'q4','800':'mid','1000':'mid','1500':'lg','60h':'hur','100h':'hur','110h':'hur',lj:'lj',hj:'hj',pv:'pv',sp:'sp',dt:'dt',jt:'jt'};
+const PROFILES=[{id:'spr',n:'Sprinteur',S:.3,M:.9},{id:'car',n:'Cardio',S:-.2,M:-1.2},{id:'leg',n:'Léger (sauteur)',S:1.5,M:-.9},{id:'lan',n:'Lanceur',S:1.2,M:2},{id:'gra',n:'Grand gabarit',S:1.3,M:.3},{id:'com',n:'Complet',S:.2,M:.1}];
+function morphSex(p,cat){return p.sex||sexOf(cat||p.cat||'DEC');}
+function morphMod(p,ev,cat){
+ if(!p.h||!p.w)return 0;
+ const[S,M]=morphSM(p.h,p.w,morphSex(p,cat)),k=MORPH[MKEY[ev.id]];if(!k)return 0;
+ return clamp(Math.round(2.6-2.2*Math.hypot((S-k[0])/1.5,(M-k[1])/1.15)),-2,2);
+}
+function morphProfile(p,cat){
+ if(!p.h||!p.w)return null;
+ const[S,M]=morphSM(p.h,p.w,morphSex(p,cat));let b=null,bd=1e9;
+ PROFILES.forEach(q=>{const d=Math.hypot(S-q.S,(M-q.M)*.8);if(d<bd){bd=d;b=q;}});return b;
+}
+function morphOf(S,M,sex){const h=Math.round(HM[sex]+S*6.5),w=Math.round(MBMI[sex]*Math.pow(h/100,2)+M*MUNIT[sex]);return{h,w};}
+/* pourcentage moyen utile dans une épreuve : plafond 80 % + bonus morphologique (jamais au-delà de 90 %) */
+function evPct(p,skills,ev,cat){
+ let s=0;skills.forEach(k=>s+=effPct(p,k));const m=s/skills.length;
+ return ev?clamp(Math.min(m,80)+5*morphMod(p,ev,cat),0,90):m;
+}
+function capOf(p,skills,ev,cat){
+ return clamp(Math.ceil(evPct(p,skills,ev,cat)/5),1,18);   /* arrondi supérieur, jamais plus de 18 : le 19 échoue, le 20 est critique */
 }
 const clampT=x=>clamp(Math.round(x),1,18);
 function mkOut(T,roll){if(roll===20)return'crit';if(roll===T)return'perfect';return roll<T?'ok':'fail';}
@@ -555,9 +579,8 @@ const OV={crit:0,fail:.22,ok:.68,perfect:1};
 /* paramètres de calibrage du barème */
 const CAL={PM:920,g:1,race:1.05,fa:.31,fb:.62,bar:1,long:1.08,bs:35,bo:-.03,nuance:.1,noise:.028,lvw:.4};
 /* niveau réel de l'athlète sur les qualités d'une épreuve (moyenne continue des %, sans arrondi de capacité) -> qualité attendue */
-function levelQ(p,skills){
- let s=0;skills.forEach(k=>s+=effPct(p,k));
- const c=s/skills.length/5+.5,N=[[0,.1],[6,.42],[10,.63],[14,.8],[18,.92],[20,.98]];
+function levelQ(p,skills,ev,cat){
+ const c=evPct(p,skills,ev,cat)/5+.5,N=[[0,.1],[6,.42],[10,.63],[14,.8],[18,.92],[20,.98]];
  for(let i=1;i<N.length;i++)if(c<=N[i][0]||i===N.length-1){const[x0,y0]=N[i-1],[x1,y1]=N[i];return clamp(y0+(y1-y0)*(c-x0)/(x1-x0),0,1.1);}
 }
 /* plancher doux : pas de résultats identiques « au plancher » pour les moins bons */
@@ -575,9 +598,9 @@ const CEIL_NODES=[[0,.12],[30,.35],[50,.52],[70,.66],[80,.78],[90,1.18],[100,1.3
 function ceilFrac(m){
  for(let i=1;i<CEIL_NODES.length;i++)if(m<=CEIL_NODES[i][0]||i===CEIL_NODES.length-1){const[x0,y0]=CEIL_NODES[i-1],[x1,y1]=CEIL_NODES[i];return clamp(y0+(y1-y0)*(m-x0)/(x1-x0),.05,1.3);}
 }
-const meanPct=(p,sk)=>sk.reduce((s,k)=>s+effPct(p,k),0)/sk.length;
+const meanPct=(p,sk,ev,cat)=>evPct(p,sk,ev,cat);
 /* points maximum atteignables par cet athlète dans l'épreuve, même avec que des réussites critiques */
-const ptsCeil=(p,ev)=>Math.max((p.cm||1)*ev.ceilPts*ceilFrac(meanPct(p,ev.sk&&ev.mech==='race'?ev.sk:evAllSk(ev))),p.evT&&p.evT[ev.id]?1.1*p.evT[ev.id]:0);
+const ptsCeil=(p,ev)=>Math.max((p.cm||1)*ev.ceilPts*ceilFrac(meanPct(p,ev.sk&&ev.mech==='race'?ev.sk:evAllSk(ev),ev)),p.evT&&p.evT[ev.id]?1.1*p.evT[ev.id]:0);
 /* athlète réel : niveau visé dans l'épreuve d'après ses résultats réels */
 const evTq=(p,ev,k)=>p.evT&&p.evT[ev.id]!=null?Math.min(1.3,p.evT[ev.id]/(CAL.PM*(ev.pmx||1))/k):null;
 const softMin=(x,c,n=10)=>x<=0?x:Math.pow(Math.pow(x,-n)+Math.pow(c,-n),-1/n);
@@ -670,7 +693,7 @@ async function doRace(ev,p,cur,io){
  await io.phase({kind:'race',ev});
  const rg=await rageRoll(p,m,io),rage=rg.bonus;
  for(let g=0;g<4;g++){
-  const cap=capOf(p,ev.skS),T=clampT(cap+m.total+rage+chain+pen);
+  const cap=capOf(p,ev.skS,ev),T=clampT(cap+m.total+rage+chain+pen);
   const r=await R(p,io,{kind:'start',label:'Départ',sk:ev.skS,cap,T,mods:m,pen,rage,bonus:chain});
   if(r.out==='crit'&&ev.fs){
    if(!p.warned){p.warned=true;pen=-2;chain=0;await io.note('Faux départ ! Premier avertissement, on recommence avec −2.');continue;}
@@ -687,7 +710,7 @@ async function doRace(ev,p,cur,io){
  const endCap=capOf(p,['end']);
  while(cum<ev.D){
   const fatT=ev.fat?Math.floor((cum/ev.D)*ev.fat*(1-endCap/20)+.0001):0;
-  const cap=capOf(p,ev.sk),T=clampT(cap+m.total-fatT+rage+chain);
+  const cap=capOf(p,ev.sk,ev),T=clampT(cap+m.total-fatT+rage+chain);
   const r=await R(p,io,{kind:'run',label:'Course',sk:ev.sk,cap,T,mods:m,fatT,cum,D:ev.D,rage,bonus:chain});
   qs.push(finalQ(r,T));
   chain=CHAIN[r.out];
@@ -701,7 +724,7 @@ async function doRace(ev,p,cur,io){
  const Qd=(aeff-1.9)/1.3,Qr=Math.min(1.6,Qd)+CAL.nuance*(avgQ-.6)+CAL.noise*gauss();
  /* le niveau réel de l'athlète pèse aussi : à dés équivalents, 80 % de moyenne bat 70 % */
  const tq=evTq(p,ev,CAL.race*(ev.D>=40?CAL.long:1)),lw=tq!=null?.7:CAL.lvw;
- const Q0=softFloor((1-lw)*Qr+lw*(tq!=null?tq:levelQ(p,ev.sk)),.12);
+ const Q0=softFloor((1-lw)*Qr+lw*(tq!=null?tq:levelQ(p,ev.sk,ev)),.12);
  /* plafond progressif : les meilleurs ne se retrouvent plus tous au même temps maximal */
  const Qs=tq!=null?Math.max(0,Q0):(Q0>1?.996+(Q0-1):Q0>.92?.92+.2*Math.tanh((Q0-.92)/.2):Math.max(0,Q0));
  const Q=Qs*CAL.race*(ev.D>=40?CAL.long:1);
@@ -737,7 +760,7 @@ function barInt(ev,a,b){let s=0;for(let h=Math.round(a);h<b;h++)s+=barRate(ev,h)
 function easyBar(p,ev){
  if(p.evT&&p.evT[ev.id]){let h=perfOf(ev,p.evT[ev.id])||0;for(let i=0;i<3;i++)h-=1/barRate(ev,h);return h;}
  const N=EASY_BAR[ev.id==='pv'?'pv':(sexOf(p.cat)==='F'||p.sex==='F'?'hjH':'hjD')];
- const c=clamp(meanPct(p,evAllSk(ev))/5,0,20);
+ const c=clamp(meanPct(p,evAllSk(ev),ev)/5,0,20);
  for(let i=1;i<N.length;i++)if(c<=N[i][0]||i===N.length-1){const[x0,y0]=N[i-1],[x1,y1]=N[i];return y0+(y1-y0)*clamp((c-x0)/(x1-x0),0,1);}
 }
 function barDelta(p,ev,bar){
@@ -758,14 +781,14 @@ async function doAttempt(ev,p,cur,io,bar){
  await io.phase({kind:'stages',ev});
  const rg=await rageRoll(p,m,io),rage=rg.bonus;outs.push(rg.out);
  /* jet 2 : prise d'élan */
- const capE=capOf(p,ev.el.sk),TE=clampT(capE+m.total+rage);
+ const capE=capOf(p,ev.el.sk,ev),TE=clampT(capE+m.total+rage);
  const r1=await R(p,io,{kind:'stage',label:ev.el.n,sk:ev.el.sk,cap:capE,T:TE,mods:m,si:0,ns:2,rage,bonus:0,pen:0,barPen:0});
  outs.push(r1.out);
  if(ev.run)await io.advance(ev.run.D,ev.run.D,r1.out);
  const chain=CHAIN[r1.out];
  /* jet 3 : saut / lancer */
  const pen=(ev.mech==='bar'&&bar)?barDelta(p,ev,bar):0;
- const capF=capOf(p,ev.fin.sk),TF=clampT(capF+m.total+rage+chain-pen);
+ const capF=capOf(p,ev.fin.sk,ev),TF=clampT(capF+m.total+rage+chain-pen);
  const r2=await R(p,io,{kind:'stage',label:ev.fin.n,sk:ev.fin.sk,cap:capF,T:TF,mods:m,si:1,ns:2,rage,bonus:chain,pen:0,barPen:pen});
  outs.push(r2.out);last=r2;lastT=TF;
  if(ev.mech==='bar'){
@@ -776,7 +799,7 @@ async function doAttempt(ev,p,cur,io,bar){
   await io.note(ev.mech==='jump'?'Pied mordu : essai nul !':'Engin hors secteur : essai nul !');
   return{nul:true,perf:null,pts:0,Q:0,outs};
  }
- const Qd=((.7*finalQ(last,lastT)+.3*finalQ(r1,TE))-CAL.fa)/CAL.fb,tq=evTq(p,ev,1),lw=tq!=null?.7:CAL.lvw,Q=clamp(softFloor((1-lw)*Qd+lw*(tq!=null?tq:levelQ(p,evAllSk(ev))),.1),.004,1.3);
+ const Qd=((.7*finalQ(last,lastT)+.3*finalQ(r1,TE))-CAL.fa)/CAL.fb,tq=evTq(p,ev,1),lw=tq!=null?.7:CAL.lvw,Q=clamp(softFloor((1-lw)*Qd+lw*(tq!=null?tq:levelQ(p,evAllSk(ev),ev)),.1),.004,1.3);
  const pts0=softMin(ptsFromQ(Q,ev),ptsCeil(p,ev)),perf=perfOf(ev,pts0);
  return{nul:false,perf,pts:ptsOf(ev,perf),Q,outs,bonusOut:rg.out};
 }
@@ -799,7 +822,8 @@ function makeBot(level,cat,id,usedNames){
  /* profil de spécialité : un point fort, un point faible */
  pct[pick(STATS).k]+=8;pct[pick(STATS).k]-=7;
  STATS.forEach(s=>pct[s.k]=clamp(pct[s.k],8,PCT_MAX));
- return{id,human:false,first,last,nat:nat[0],flag:nat[1],sex,cat,pct,color:'#8a96b8',age:19+rnd(14)};
+ const pr=pick(PROFILES),mo=morphOf(pr.S+gauss()*.35,pr.M+gauss()*.35,sex);
+ return{id,human:false,first,last,nat:nat[0],flag:nat[1],sex,cat,pct,h:mo.h,w:mo.w,color:'#8a96b8',age:19+rnd(14)};
 }
 function initRuntime(p){p.res=[];p.total=0;p.fat=0;p.inj={};p.warned=false;p.form={};p.att=[];}
 
@@ -896,7 +920,7 @@ async function runFieldEvent(C,H){
 }
 
 function expectedPts(p,ev){
- return ptsFromQ(clamp(.0533*capOf(p,evAllSk(ev))-.06,0,1.1)*CAL.bar,ev);
+ return ptsFromQ(clamp(.0533*capOf(p,evAllSk(ev),ev)-.06,0,1.1)*CAL.bar,ev);
 }
 
 async function runBarEvent(C,H){
@@ -1039,7 +1063,7 @@ function newCareer(h,cat,startAge,att){
  return{v:1,id:'c'+Date.now().toString(36)+Math.floor(Math.random()*1e4),
   first:h.first,last:h.last,nat:h.nat,color:h.color,cat,att:att||3,
   cal2:1,inj:null,regain:{},age:startAge,year:START_YEAR,season:1,step:0,phase:'train',
-  pct:{...h.pct},tf:0,slots:[null,null,null],sessDone:0,pools:[],
+  pct:{...h.pct},h:h.h,w:h.w,tf:0,slots:[null,null,null],sessDone:0,pools:[],
   pb:{},hist:[],medals:[0,0,0],comps:0,bestTotal:0,log:[],created:Date.now(),saved:Date.now()};
 }
 const careerAvg=K=>avgCap(K,K.cat);
@@ -1139,14 +1163,14 @@ function trainingOutcome(t){
 }
 function applyDisciplineGain(K,ev,t){
  const o=trainingOutcome(t),sk=trainSk(ev),gains={};
- if(o.ok)sk.forEach(k=>{const v=K.pct[k],g=hurtSk(K,k)?0:v>=85?0:(v>=75&&RNG()<.5)?0:Math.min(1,PCT_MAX-v);K.pct[k]+=g;gains[k]=g;});
+ if(o.ok)sk.forEach(k=>{const v=K.pct[k],g=hurtSk(K,k)?0:v>=95?0:(v>=85&&RNG()<.75)?0:(v>=75&&RNG()<.5)?0:Math.min(1,PCT_MAX-v);K.pct[k]+=g;gains[k]=g;});
  K.tf=Math.min(3,K.tf+1+(t.crit?1:0));
  if(o.bonus>0)K.pools.push({n:o.bonus,sk:sk.slice(),why:`Séance ${ev.s} : ${o.bonus} lancer${o.bonus>1?'s':''} parfait${o.bonus>1?'s':''}`});
  return{...o,sk,gains};
 }
 /* une séance de discipline complète pour un athlète : même moteur que la compétition, seul sur le plateau */
 function buildTrainingC(K,ev){
- const C=buildCompetition('dep',K.cat,[{first:K.first,last:K.last,nat:K.nat,color:K.color,pct:{...K.pct},age:K.age,sex:sexOf(K.cat)}]);
+ const C=buildCompetition('dep',K.cat,[{first:K.first,last:K.last,nat:K.nat,color:K.color,pct:{...K.pct},h:K.h,w:K.w,age:K.age,sex:sexOf(K.cat)}]);
  C.all=[C.all[0]];C.evs=[ev];C.dayBreak=99;C.noForm=true;C.attempts=ev.mech==='bar'?3:2;
  C.level={...C.level,n:'Entraînement · '+ev.n,parts:1};
  const p=C.all[0];p.fat=K.tf*2.5;p.form={1:{d:10,out:'ok',mod:0,T:10,ev:ev.s},2:{d:10,out:'ok',mod:0,T:10,ev:ev.s}};
@@ -1174,11 +1198,11 @@ function silentHooks(tally,isTrain){
 /* athlète de carrière pour une salle en ligne (les écrans reconstruisent tous la même compétition) */
 function careerHumanPayload(K){
  const pr={};['hj','pv'].forEach(id=>{if(K.pb[id]&&K.pb[id].perf!=null)pr[id]=K.pb[id].perf;});
- return{first:K.first,last:K.last,nat:K.nat,color:K.color,pct:{...K.pct},age:K.age,fatI:K.tf*2.5,hr:1+K.tf*.4,pr};
+ return{first:K.first,last:K.last,nat:K.nat,color:K.color,pct:{...K.pct},h:K.h,w:K.w,age:K.age,fatI:K.tf*2.5,hr:1+K.tf*.4,pr};
 }
 function buildCareerComp(K,lvId){
  const lvl=lvById(lvId),cat=lvl&&lvl.indoor?IND[K.cat]:K.cat;
- const C=buildCompetition(lvId,cat,[{first:K.first,last:K.last,nat:K.nat,color:K.color,pct:{...K.pct},age:K.age,sex:sexOf(K.cat)}]);
+ const C=buildCompetition(lvId,cat,[{first:K.first,last:K.last,nat:K.nat,color:K.color,pct:{...K.pct},h:K.h,w:K.w,age:K.age,sex:sexOf(K.cat)}]);
  C.attempts=K.att;C.all[0].fat=K.tf*2.5;C.hurtRisk=1+K.tf*.4+(K.inj?0:0);
  C.all[0].pr={};['hj','pv'].forEach(id=>{if(K.pb[id]&&K.pb[id].perf!=null)C.all[0].pr[id]=K.pb[id].perf;});
  return C;
@@ -2364,7 +2388,7 @@ function ageOf(dob){
 }
 function newHuman(){
  const used=setup.players.map(p=>p.color);
- return{uid:++setup.uid,first:'',last:'',dob:'2008-04-12',nat:'France',color:COLORS.find(c=>!used.includes(c))||COLORS[0],pct:Object.fromEntries(STATS.map(s=>[s.k,START_PCT]))};
+ return{uid:++setup.uid,first:'',last:'',dob:'2008-04-12',nat:'France',color:COLORS.find(c=>!used.includes(c))||COLORS[0],pct:Object.fromEntries(STATS.map(s=>[s.k,START_PCT])),h:HM.M,w:Math.round(MBMI.M*HM.M*HM.M/10000+.5)};
 }
 function show(v){
  ['setup','game','final','career'].forEach(id=>$('#'+id).hidden=id!==v);
@@ -2403,11 +2427,14 @@ function renderSetup(){
    <label>Nationalité<select data-f="nat">${NATS.map(n=>`<option ${n[0]===a.nat?'selected':''} value="${esc(n[0])}">${n[1]} ${esc(n[0])}</option>`).join('')}</select></label>
   </div>
   <div class="colors">${COLORS.map(c=>`<i style="--c:${c}" data-act="color" data-v="${c}" class="${a.color===c?'on':''}"></i>`).join('')}</div>
+  ${(()=>{const sx=sexOf(cfg.cat);if(!a.h||sx==='M'&&a.h<150||!a.w){const m=morphOf(0,.1,sx);a.h=a.h||m.h;a.w=a.w||m.w;}const pr=morphProfile(a,cfg.cat);return `<div class="morph"><div class="pts"><span>Morphologie · profil <b>${pr?pr.n:'?'}</b></span><b class="zero">${a.h} cm · ${a.w} kg</b></div>
+  <div class="mrow"><label>Taille <input type="range" min="${sx==='M'?160:150}" max="${sx==='M'?210:195}" value="${a.h}" data-m="h"> </label><label>Poids <input type="range" min="${sx==='M'?55:42}" max="${sx==='M'?135:100}" value="${a.w}" data-m="w"> </label></div>
+  <div class="tools">${PROFILES.map(q=>`<button class="btn small" data-act="prof" data-p="${q.id}">${q.n}</button>`).join('')}</div></div>`;})()}
   <div class="pts pleft"><span>Pourcentages à répartir</span><b class="${left===0?'zero':'left'}">${left} %</b></div>
   ${STATS.map(s=>`<div class="stat"><span>${s.i}</span><span>${s.n}</span><div class="bar"><i style="width:${a.pct[s.k]/PCT_MAX*100}%"></i></div><b>${a.pct[s.k]}%</b>
    <button data-act="adj" data-k="${s.k}" data-d="-5">−5</button><button data-act="adj" data-k="${s.k}" data-d="-1">−1</button><button data-act="adj" data-k="${s.k}" data-d="1">+1</button><button data-act="adj" data-k="${s.k}" data-d="5">+5</button></div>`).join('')}
   <div class="pts"><span>Moyenne de capacité (qualification)</span><b class="${qualified(a,cfg.cat,lv)?'zero':'left'}">${fmt1c(avgCap(a,cfg.cat))}/20</b></div>
-  <div class="caps">${EV[cfg.cat].map(e=>`<span class="cp">${e.i} ${e.s} <b>${capOf(a,evSkills(e))}/20</b></span>`).join('')}</div>
+  <div class="caps">${EV[cfg.cat].map(e=>`<span class="cp">${e.i} ${e.s} <b>${capOf(a,evSkills(e),e,cfg.cat)}/20</b>${(()=>{const d=morphMod(a,e,cfg.cat);return d?` <small class="${d>0?'mp':'mm'}">${d>0?'+':''}${d}</small>`:'';})()}</span>`).join('')}</div>
   <div class="tools"><button class="btn small" data-act="even">Tout à 30 %</button><button class="btn small" data-act="rand">Aléatoire</button></div>
   </div>`;
  }).join('');
@@ -2440,13 +2467,16 @@ $('#athletes').addEventListener('click',e=>{
  }
  else if(act==='even')a.pct=Object.fromEntries(STATS.map(s=>[s.k,START_PCT]));
  else if(act==='rand')a.pct=randPct();
+ else if(act==='prof'){const q=PROFILES.find(x=>x.id===b.dataset.p),m=morphOf(q.S,q.M,sexOf(setup.cfg.cat));a.h=m.h;a.w=m.w;}
  renderSetup();
 });
 $('#athletes').addEventListener('input',e=>{
+ if(e.target.dataset.m)return;
  const f=e.target.dataset.f;if(!f)return;
  const a=setup.players.find(x=>x.uid==e.target.closest('.ath').dataset.uid);a[f]=e.target.value;if(typeof roomPing==='function')roomPing();
  if(f==='first'||f==='last')e.target.closest('.ath').querySelector('.head b').textContent=(a.first||'Athlète')+' '+a.last.toUpperCase();
 });
+$('#athletes').addEventListener('change',e=>{if(!e.target.dataset.m)return;const a=setup.players.find(x=>x.uid==e.target.closest('.ath').dataset.uid);a[e.target.dataset.m]=+e.target.value;renderSetup();});
 $('#cfgLevel').onchange=e=>{setup.cfg.level=e.target.value;renderSetup();};
 $('#cfgCat').onchange=e=>{setup.cfg.cat=e.target.value;renderSetup();};
 $('#cfgAtt').onchange=e=>setup.cfg.attempts=+e.target.value;
@@ -2466,7 +2496,7 @@ $('#cfgAge').onchange=e=>setup.cfg.age=+e.target.value;
 let G=null;
 function launch(){
  const cfg=setup.cfg;
- const humans=setup.players.map(a=>({first:(a.first||'').trim()||'Athlète',last:(a.last||'').trim()||String(a.uid),nat:a.nat,flag:flagOf(a.nat),color:a.color,pct:{...a.pct},age:a.age!=null?a.age:ageOf(a.dob),sex:sexOf(cfg.cat)}));
+ const humans=setup.players.map(a=>({first:(a.first||'').trim()||'Athlète',last:(a.last||'').trim()||String(a.uid),nat:a.nat,flag:flagOf(a.nat),color:a.color,pct:{...a.pct},h:a.h,w:a.w,age:a.age!=null?a.age:ageOf(a.dob),sex:sexOf(cfg.cat)}));
  const C=cfg.level==='legends'?buildLegendsComp(cfg.cat,humans):buildCompetition(cfg.level,cfg.cat,humans);
  C.attempts=cfg.attempts;
  if(typeof injectComm==='function')injectComm(C);
@@ -2864,7 +2894,7 @@ function ficheHTML(C,p){
  const skillRows=STATS.map(s=>{const v=effPct(p,s.k),inj=(p.inj&&p.inj[s.k])||0;
   return `<div class="fk"><span>${s.i} ${s.n}</span><div class="fb"><i style="width:${Math.min(100,v/PCT_MAX*100)}%;background:${v===best.v?'#fbbf24':col}"></i></div><b>${v} %${inj?` <small class="m">(−${inj} blessure)</small>`:''}</b></div>`;}).join('');
  const evRows=C.evs.map((ev,i)=>{
-  const sk=ev.sk||evAllSk(ev),cap=capOf(p,sk),pc=(cap-1)*5,r=p.res[i];
+  const sk=ev.sk||evAllSk(ev),cap=capOf(p,sk,ev),pc=(cap-1)*5,r=p.res[i];
   const skc=sk.map(k=>`<span class="chip">${SX[k].i} ${effPct(p,k)}</span>`).join('');
   const res=r?(r.dq?'<span class="nul">nul / disqualifié</span>':`<b>${fmtPerf(ev,r.perf)}</b> · ${nf(r.pts)} pts · ${evRank(C,i,p)}e`):'<span style="color:var(--mute)">à venir</span>';
   return `<tr><td>${ev.i} ${ev.s}</td><td><b>${cap}</b>/18<div class="fb sm"><i style="width:${cap/18*100}%;background:${col}"></i></div></td><td class="fch">${skc}</td><td>${pc} %</td><td>${fmtPerf(ev,perfOf(ev,ptsCeil(p,ev)))}</td><td>${res}</td></tr>`;
@@ -2937,7 +2967,7 @@ function exportCareer(c){
 
 function createCareer(){
  const a=setup.players[0],cfg=setup.cfg;if(!a)return;
- const h={first:(a.first||'').trim()||'Athlète',last:(a.last||'').trim()||'Anonyme',nat:a.nat,color:a.color,pct:{...a.pct}};
+ const h={first:(a.first||'').trim()||'Athlète',last:(a.last||'').trim()||'Anonyme',nat:a.nat,color:a.color,pct:{...a.pct},h:a.h,w:a.w};
  K=newCareer(h,cfg.cat,cfg.age,cfg.attempts);
  K.opt={auto:cfg.auto,fast:cfg.fast,quick:false};
  careers.unshift(K);persist();
@@ -3001,7 +3031,7 @@ function renderCal(){
 }
 function renderSkills(){
  $('#cSkills').innerHTML=`<h3>Qualités</h3>`+STATS.map(s=>`<div class="sk2"><span>${s.i}</span><span>${s.n}${K.regain&&K.regain[s.k]>0?` <small style="color:var(--bad)" title="À récupérer par le repos et la kiné">🩹−${K.regain[s.k]}</small>`:''}</span><div class="bar"><i style="width:${K.pct[s.k]/PCT_MAX*100}%"></i></div><b>${K.pct[s.k]}%</b></div>`).join('')+
-  `<div class="caps" style="margin-top:8px">${EV[K.cat].map(e=>`<span class="cp">${e.i} ${e.s} <b>${capOf(K,evSkills(e))}/20</b></span>`).join('')}</div>`;
+  `<div class="caps" style="margin-top:8px">${EV[K.cat].map(e=>`<span class="cp">${e.i} ${e.s} <b>${capOf(K,evSkills(e),e)}/20</b>${(()=>{const d=morphMod(K,e);return d?` <small class="${d>0?'mp':'mm'}">${d>0?'+':''}${d}</small>`:'';})()}</span>`).join('')}</div>`;
 }
 function renderHist(){
  const pbs=EV[K.cat].map(e=>{const p=K.pb[e.id];return `<tr><td>${e.i} ${e.s}</td><td>${p?fmtPerf(e,p.perf):'—'}</td><td>${p?nf(p.pts):'—'}</td><td>${p?p.year:''}</td></tr>`;}).join('');
@@ -3269,7 +3299,7 @@ async function sb(fn,args){
  if(!r.ok){let m=t;try{m=JSON.parse(t).message||t;}catch(e){}throw new Error(m);}
  return t?JSON.parse(t):null;
 }
-const charPayload=k=>({first:k.first,last:k.last,nat:k.nat,color:k.color,age:k.age,season:k.season,year:k.year,pct:k.pct,medals:k.medals,bestTotal:k.bestTotal||0,comps:k.comps||0});
+const charPayload=k=>({first:k.first,last:k.last,nat:k.nat,color:k.color,age:k.age,season:k.season,year:k.year,pct:k.pct,h:k.h,w:k.w,medals:k.medals,bestTotal:k.bestTotal||0,comps:k.comps||0});
 const charName=k=>`${k.first} ${k.last}`.trim().slice(0,60);
 const errTxt=e=>/code incorrect/i.test(e.message)?'code secret incorrect':/Failed to fetch|NetworkError|load failed/i.test(e.message)?'hors ligne':e.message;
 
@@ -3337,7 +3367,7 @@ function cleanChar(r){
  STATS.forEach(s=>pct[s.k]=clamp(Math.round(+(d.pct&&d.pct[s.k])||START_PCT),PCT_MIN,PCT_MAX));
  const nat=NATS.find(n=>n[0]===d.nat)||NATS[0];
  return{id:r.id,first:String(d.first||'Athlète').slice(0,20),last:String(d.last||'').slice(0,24),nat:nat[0],flag:nat[1],
-  color:/^#[0-9a-f]{6}$/i.test(d.color||'')?d.color:'#5ec2ff',age:clamp(Math.round(+d.age||25),15,45),pct,
+  color:/^#[0-9a-f]{6}$/i.test(d.color||'')?d.color:'#5ec2ff',age:clamp(Math.round(+d.age||25),15,45),pct,h:clamp(Math.round(+d.h||0),0,230)||undefined,w:clamp(Math.round(+d.w||0),0,200)||undefined,
   season:+d.season||1,medals:Array.isArray(d.medals)?d.medals.slice(0,3).map(x=>+x||0):[0,0,0],best:+d.bestTotal||0};
 }
 async function loadComm(){
@@ -3371,7 +3401,7 @@ function renderCommBox(){
   const c=careers.find(x=>x.id===$('#cmMineSel').value);if(!c)return;
   if(taken.has(c.id)){return;}
   const pr={};Object.keys(c.pb||{}).forEach(k=>{if(c.pb[k]&&c.pb[k].perf!=null)pr[k]=c.pb[k].perf;});
-  setup.players.push({uid:++setup.uid,first:c.first,last:c.last,dob:'2000-01-01',age:c.age,nat:c.nat,color:c.color,pct:{...c.pct},locked:true,cat:c.cat,fromCareer:c.id,pr});
+  setup.players.push({uid:++setup.uid,first:c.first,last:c.last,dob:'2000-01-01',age:c.age,nat:c.nat,color:c.color,pct:{...c.pct},h:c.h,w:c.w,locked:true,cat:c.cat,fromCareer:c.id,pr});
   renderSetup();
  };
  const l=$('#cmLoad');if(l)l.onclick=loadComm;
@@ -3386,7 +3416,7 @@ function injectComm(C){
  const bots=C.all.filter(p=>!p.human);
  sel.slice(0,bots.length).forEach((c,i)=>{
   const b=bots[bots.length-1-i];
-  Object.assign(b,{first:c.first,last:c.last,nat:c.nat,flag:c.flag,pct:{...c.pct},color:c.color,age:c.age,comm:true});
+  Object.assign(b,{first:c.first,last:c.last,nat:c.nat,flag:c.flag,pct:{...c.pct},h:c.h,w:c.w,color:c.color,age:c.age,comm:true});
  });
 }
 
@@ -3399,7 +3429,7 @@ const ROOM_MAX=16,ROOM_ALPHA='ABCDEFGHJKLMNPQRSTUVWXYZ';
 const roomHost=()=>!!ROOM&&ROOM.seat===0;
 function roomHuman(){
  const a=setup.players[0];if(!a)return null;
- return{first:(a.first||'').trim()||'Athlète',last:(a.last||'').trim()||'Joueur',nat:a.nat,color:a.color,pct:{...a.pct},age:a.age!=null?a.age:ageOf(a.dob),ready:!!a.locked||TOTAL_PCT-sumPct(a)===0};
+ return{first:(a.first||'').trim()||'Athlète',last:(a.last||'').trim()||'Joueur',nat:a.nat,color:a.color,pct:{...a.pct},h:a.h,w:a.w,age:a.age!=null?a.age:ageOf(a.dob),ready:!!a.locked||TOTAL_PCT-sumPct(a)===0};
 }
 function roomSendQ(kind,data){
  if(!ROOM)return Promise.resolve();
@@ -3502,7 +3532,7 @@ function roomStart(){
  if(!cfg.free&&cfg.level!=='legends'){const unq=list.find(m=>!qualified(m,cfg.cat,lv));if(unq){msg.textContent=`${unq.first} ${unq.last} n'a pas la moyenne minimale de ${lv.min}/20 pour ce niveau (ou coche « jeu libre »).`;return;}}
  roomSend('start',{gid:Date.now().toString(36)+Math.floor(Math.random()*1e4).toString(36),seed:1+Math.floor(Math.random()*4e9),
   cfg:{level:cfg.level,cat:cfg.cat,attempts:cfg.attempts,free:!!cfg.free},
-  humans:list.map(m=>({seat:m.seat,first:m.first,last:m.last,nat:m.nat,color:m.color,pct:m.pct,age:m.age}))});
+  humans:list.map(m=>({seat:m.seat,first:m.first,last:m.last,nat:m.nat,color:m.color,pct:m.pct,h:m.h,w:m.w,age:m.age}))});
  msg.textContent='Lancement…';
 }
 function roomStartGame(d){
@@ -3512,7 +3542,7 @@ function roomStartGame(d){
  const cr=d.career||null;
  if(!cr)Object.assign(setup.cfg,d.cfg);
  const cfg=cr?d.cfg:setup.cfg,cat=cr?cr.cat:cfg.cat;
- const humans=d.humans.map(a=>({first:a.first,last:a.last,nat:a.nat,flag:flagOf(a.nat),color:a.color,pct:{...a.pct},age:a.age,sex:sexOf(cat),seat:a.seat,fatI:a.fatI||0,hr:a.hr||0,pr:a.pr||{}}));
+ const humans=d.humans.map(a=>({first:a.first,last:a.last,nat:a.nat,flag:flagOf(a.nat),color:a.color,pct:{...a.pct},h:a.h,w:a.w,age:a.age,sex:sexOf(cat),seat:a.seat,fatI:a.fatI||0,hr:a.hr||0,pr:a.pr||{}}));
  seedRNG(d.seed);
  const C=cr?buildCompetition(cr.lv,cat,humans):(cfg.level==='legends'?buildLegendsComp(cat,humans):buildCompetition(cfg.level,cat,humans));
  C.attempts=cfg.attempts;
