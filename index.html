@@ -340,7 +340,8 @@ tr.rec td{background:#ffc83d1f;padding:8px 10px}tr.rec small{color:var(--mute)}
 <dialog id="rules">
  <h2>Règles du jeu</h2>
  <h4>La qualification</h4>
- <p><b>En salle</b> : l’heptathlon en salle (hommes : 60 m, longueur, poids, hauteur, 60 m haies, perche, 1 000 m) et le pentathlon en salle (femmes : 60 m haies, hauteur, poids, longueur, 800 m) se jouent en mode libre, avec les mêmes niveaux jusqu’aux championnats du monde en salle. En carrière, la saison en salle suit chaque été : régionaux en salle, France Élite en salle, puis Europe ou Monde en salle, avec tes records de salle à part.</p>
+ <p><b>Blessures (carrière)</b> : après une compétition ou une séance, surtout si tu es fatigué, tu peux te blesser (luxation de l’épaule, ischio-jambiers, cheville, tendon d’Achille…). Tu manques alors des étapes du calendrier (1 à 3 mois). Chaque mois d’arrêt, les qualités touchées perdent environ 5 % de leur valeur (4 points à 80 %). Ces points ne reviennent ni par l’entraînement ni par les points à répartir : seulement par le repos et la kiné (d20 : +1 %, +2 % si parfait), pendant l’arrêt comme après.</p>
+<p><b>En salle</b> : l’heptathlon en salle (hommes : 60 m, longueur, poids, hauteur, 60 m haies, perche, 1 000 m) et le pentathlon en salle (femmes : 60 m haies, hauteur, poids, longueur, 800 m) se jouent en mode libre, avec les mêmes niveaux jusqu’aux championnats du monde en salle. En carrière, la saison en salle suit chaque été : régionaux en salle, France Élite en salle, puis Europe ou Monde en salle, avec tes records de salle à part.</p>
 <p>Pour entrer dans une compétition, la moyenne de tes capacités sur toutes les épreuves doit atteindre un minimum : départementaux 6/20, régionaux 8/20, interrégionaux 10/20, France Élite 13/20, Europe, Monde et Jeux 15/20 (décathlon comme heptathlon). Sans le minimum, le niveau reste verrouillé.</p>
  <h4>Les qualités</h4>
  <p>9 qualités en pourcentage : vitesse, force, puissance, détente, endurance, dextérité, technique, mental, tactique. Tout le monde démarre à 30 % partout et déplace ses pourcentages comme il veut (maximum 90 %).</p>
@@ -773,7 +774,7 @@ const call=async(H,n,...a)=>{if(H[n])return H[n](...a);};
 function makeHeats(C){
  const sh=a=>{a=[...a];for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;};
  const arr=sh(C.all.filter(x=>!x.human)).concat(sh(C.all.filter(x=>x.human)));
- const n=Math.ceil(arr.length/8),heats=[];let i=0;
+ const NLN=C.indoor?6:8,n=Math.ceil(arr.length/NLN),heats=[];let i=0;
  for(let h=0;h<n;h++){const sz=Math.floor(arr.length/n)+(h>=n-(arr.length%n)?1:0);heats.push(arr.slice(i,i+sz));i+=sz;}
  return heats.map(h=>sh(h));
 }
@@ -943,6 +944,7 @@ const SESS=[
  {id:'tec',n:'Technique',i:'🎯',sk:['tec','dex','tac'],d:'Gestes et coordination : technique, dextérité, tactique.'},
  {id:'men',n:'Préparation mentale',i:'🧠',sk:['men','tac','tec'],d:'Visualisation et gestion du stress : mental, tactique, technique.'},
  {id:'rep',n:'Repos / vacances',i:'🏖️',sk:[],d:'Aucun gain, mais la fatigue d’entraînement retombe à zéro.'},
+ {id:'kin',n:'Kiné / rééducation',i:'🩺',sk:[],d:'Rééducation : récupère les % perdus à cause d’une blessure (d20 : +1 %, +2 % si parfait).'},
  {id:'dis',n:'Séance de discipline',i:'🏟️',sk:[],d:'Une épreuve complète sur le plateau : chaque qualité de l’épreuve gagne +1 % si la séance est réussie.'}
 ];
 const SESSX={};SESS.forEach(s=>SESSX[s.id]=s);
@@ -958,7 +960,7 @@ function trainSk(ev){
 function newCareer(h,cat,startAge,att){
  return{v:1,id:'c'+Date.now().toString(36)+Math.floor(Math.random()*1e4),
   first:h.first,last:h.last,nat:h.nat,color:h.color,cat,att:att||3,
-  cal2:1,age:startAge,year:START_YEAR,season:1,step:0,phase:'train',
+  cal2:1,inj:null,regain:{},age:startAge,year:START_YEAR,season:1,step:0,phase:'train',
   pct:{...h.pct},tf:0,slots:[null,null,null],sessDone:0,pools:[],
   pb:{},hist:[],medals:[0,0,0],comps:0,bestTotal:0,log:[],created:Date.now(),saved:Date.now()};
 }
@@ -979,6 +981,7 @@ function gymSession(K,sess,rollFn){
   const roll=rollFn?rollFn():rnd(20),out=mkOut(T,roll);
   const pc=K.pct[k],lo=pc<45?1:0;   /* les débutants progressent plus vite */
   let g=out==='perfect'?(pc<60?2:1)+lo:out==='ok'?(Math.random()<gainChance(pc)?1+lo:0):0;
+  if(hurtSk(K,k))g=0;   /* qualité en rééducation : seul le repos et la kiné la font remonter */
   g=Math.min(g,PCT_MAX-K.pct[k]);K.pct[k]+=g;
   if(out==='crit')crit=true;
   rows.push({k,roll,out,gain:g,T});
@@ -986,7 +989,53 @@ function gymSession(K,sess,rollFn){
  K.tf=Math.min(3,K.tf+1+(crit?1:0));
  return{rows,crit,T};
 }
-function restSession(K){K.tf=0;}
+/* ---------- blessures : arrêt, perte de % par mois, rééducation ---------- */
+const INJURIES=[
+ {id:'epa',n:'Luxation de l’épaule',zone:'l’épaule',sk:['for','pui','dex'],months:2,w:2},
+ {id:'isc',n:'Déchirure des ischio-jambiers',zone:'les ischio-jambiers',sk:['vit','pui','det'],months:2,w:3},
+ {id:'che',n:'Entorse de la cheville',zone:'la cheville',sk:['det','dex','vit'],months:1,w:3},
+ {id:'ach',n:'Tendinite du tendon d’Achille',zone:'le tendon d’Achille',sk:['det','end','vit'],months:2,w:2},
+ {id:'dos',n:'Lombalgie aiguë',zone:'le dos',sk:['for','pui','tec'],months:1,w:2},
+ {id:'mol',n:'Claquage du mollet',zone:'le mollet',sk:['vit','det','end'],months:1,w:3},
+ {id:'gen',n:'Entorse du genou (ligaments)',zone:'le genou',sk:['det','pui','dex'],months:3,w:1},
+ {id:'tib',n:'Fracture de fatigue du tibia',zone:'le tibia',sk:['end','det','vit'],months:3,w:1}
+];
+const injLoss=pc=>Math.max(2,Math.round(pc*.05));            /* % perdus par mois d'arrêt, par qualité touchée : 80 % → 4 */
+const hurtSk=(K,k)=>!!(K.regain&&K.regain[k]>0);
+const hasRegain=K=>!!K.regain&&Object.keys(K.regain).some(k=>K.regain[k]>0);
+function pickInjury(K){
+ const tot=INJURIES.reduce((a,x)=>a+x.w,0);let r=Math.random()*tot,t=INJURIES[0];
+ for(const x of INJURIES){r-=x.w;if(r<=0){t=x;break;}}
+ return{id:t.id,n:t.n,zone:t.zone,sk:t.sk.slice(),months:t.months,left:t.months,total:t.months,fresh:true};
+}
+/* chance de se blesser après une compétition ou une séance : fatigue, âge, échec critique pendant l'épreuve */
+const injChance=(K,hit)=>Math.min(.35,.04+.02*K.tf+Math.max(0,K.age-30)*.005+(hit?.25:0));
+/* début d'un mois d'arrêt : chaque qualité touchée perd des %, récupérables par le repos et la kiné */
+function enterRehab(K){
+ K.regain=K.regain||{};const lost=[];
+ K.inj.fresh=false;
+ K.inj.sk.forEach(k=>{const d=Math.min(injLoss(K.pct[k]),Math.max(0,K.pct[k]-8));if(d>0){K.pct[k]-=d;K.regain[k]=(K.regain[k]||0)+d;lost.push({k,d});}});
+ K.inj.lastLoss=lost;K.phase='rehab';K.slots=[null,null,null];K.sessDone=0;
+ return lost;
+}
+/* récupère n % sur la qualité la plus en retard */
+function recoverPct(K,n){
+ const got=[];K.regain=K.regain||{};
+ while(n>0){
+  const k=Object.keys(K.regain).filter(x=>K.regain[x]>0).sort((a,b)=>K.regain[b]-K.regain[a])[0];
+  if(!k)break;K.regain[k]--;K.pct[k]++;n--;const g=got.find(x=>x.k===k);if(g)g.n++;else got.push({k,n:1});
+ }
+ Object.keys(K.regain).forEach(k=>{if(!(K.regain[k]>0))delete K.regain[k];});
+ return got;
+}
+function kineSession(K){
+ const T=clampT(capOf(K,['men','tec'])+5),roll=rnd(20),out=mkOut(T,roll);
+ const n=out==='perfect'?2:out==='ok'?1:0;
+ const got=hasRegain(K)?recoverPct(K,n):[];
+ if(out==='crit')K.tf=Math.min(3,K.tf+1);
+ return{T,roll,out,n,got};
+}
+function restSession(K){K.tf=0;return hasRegain(K)&&Math.random()<.5?recoverPct(K,1):[];}
 
 /* ---------- séance de discipline : bilan des lancers de la séance ---------- */
 function trainingOutcome(t){
@@ -997,7 +1046,7 @@ function trainingOutcome(t){
 }
 function applyDisciplineGain(K,ev,t){
  const o=trainingOutcome(t),sk=trainSk(ev),gains={};
- if(o.ok)sk.forEach(k=>{const v=K.pct[k],g=v>=85?0:(v>=75&&Math.random()<.5)?0:Math.min(1,PCT_MAX-v);K.pct[k]+=g;gains[k]=g;});
+ if(o.ok)sk.forEach(k=>{const v=K.pct[k],g=hurtSk(K,k)?0:v>=85?0:(v>=75&&Math.random()<.5)?0:Math.min(1,PCT_MAX-v);K.pct[k]+=g;gains[k]=g;});
  K.tf=Math.min(3,K.tf+1+(t.crit?1:0));
  if(o.bonus>0)K.pools.push({n:o.bonus,sk:sk.slice(),why:`Séance ${ev.s} : ${o.bonus} lancer${o.bonus>1?'s':''} parfait${o.bonus>1?'s':''}`});
  return{...o,sk,gains};
@@ -1056,8 +1105,10 @@ function settleCompetition(K,C,step){
  if(pod){K.pools.push({n:pod,sk:null,why:`${['','Victoire','2e place','3e place'][rank]} : ${step.n}${wk<1?' (adversaires plus faibles que toi)':''}`});K.medals[rank-1]++;}
  K.comps++;K.bestTotal=Math.max(K.bestTotal,p.total);
  K.hist.push({year:K.year,age:K.age,name:step.n,lv:step.lv,rank,of:list.length,total:p.total,pbs:pbs.length,tl:lvById(step.lv).s});
+ let hurt=null;
+ if(!K.inj&&Math.random()<injChance(K,p.inj&&Object.keys(p.inj).length>0)){hurt=pickInjury(K);K.inj=hurt;}
  K.tf=0;
- return{rank,total:p.total,pbs,pod,of:list.length};
+ return{rank,total:p.total,pbs,pod,of:list.length,hurt};
 }
 
 /* ---------- vieillissement ---------- */
@@ -1085,7 +1136,7 @@ function applyAging(K){
 
 /* ---------- répartition des points gagnés ---------- */
 const poolCost=(K,k)=>K.pct[k]>=85?3:K.pct[k]>=75?2:1;   /* 75 % et plus : un point coûte 2 points à répartir ; 85 % et plus : 3 points */
-function poolOk(K,pool,k){return(!pool.sk||pool.sk.includes(k))&&K.pct[k]<PCT_MAX&&pool.n>=poolCost(K,k);}
+function poolOk(K,pool,k){return(!pool.sk||pool.sk.includes(k))&&!hurtSk(K,k)&&K.pct[k]<PCT_MAX&&pool.n>=poolCost(K,k);}
 function poolAdd(K,pool,k){if(!poolOk(K,pool,k))return false;pool.n-=poolCost(K,k);K.pct[k]++;pool.got=pool.got||{};pool.got[k]=(pool.got[k]||0)+1;return true;}
 function poolSub(K,pool,k){if(!pool.got||!pool.got[k])return false;K.pct[k]--;pool.n+=poolCost(K,k);pool.got[k]--;return true;}
 function poolAuto(K,pool){
@@ -1342,7 +1393,7 @@ const fmtM=cm=>(cm/100).toFixed(2).replace('.',',')+' m';
    Coordonnées « plateau » : x vers la droite, y vers le haut. Monde 3D : X = x, Z = -y. */
 const ST={
  ok:false,speed:1,active:false,tws:[],pawns:{},mode:'none',heat:[],
- R1:20.8,HL:24.5,stag:false,chute:false,LW:2.4,NL:8,GW:106,GH:190,CSC:7.3,PPU:20,
+ R1:20.8,HL:24.5,stag:false,chute:false,LW:2.4,NL:8,GW:106,GH:190,CSC:7.3,PPU:20,LAP:40,indoor:false,
  BOTC:['#e11d48','#2563eb','#f59e0b','#10b981','#8b5cf6','#06b6d4','#f97316','#94a3b8'],
  cam:{tx:0,tz:0,d:90,yaw:Math.PI/2,pit:.9},goal:{tx:0,tz:0,d:90,yaw:Math.PI/2,pit:.9},pre:null,follow:false,
  L:{lj:{y0:-16,cell:3,yb:2.4,pit:[2.4,12.6]},pv:{y0:-19.2,cell:2.4,yb:.7},jt:{y0:-30,cell:5,arcY:-15,apex:-23,r:8,k:.43},
@@ -1352,10 +1403,10 @@ const ST={
  geo(){
   /* piste officielle : rayon intérieur 20,8 ; ligne droite 49 ; 8 couloirs de 2,4 ; tour de couloir 1 = 40 cases */
   const r1=this.R1+this.LW/2;
-  this.CS=(2*Math.PI*r1+4*this.HL)/40;
+  this.CS=(2*Math.PI*r1+4*this.HL)/this.LAP;
   this.S=2*this.HL/this.CS;
-  this.A0=(40-2*this.S)/2;
-  this.YE=this.HL-11*this.CSC-13.5; /* bas du couloir de départ (case des numéros de couloirs) */
+  this.A0=(this.LAP-2*this.S)/2;
+  this.YE=this.HL-(this.indoor?7:11)*this.CSC-13.5; /* bas du couloir de départ (case des numéros de couloirs) */
   this.RB=this.R1+this.NL*this.LW+8.2; /* rayon intérieur des tribunes : pelouse d'apron autour de la piste */
  },
  posR(r,s){
@@ -1369,6 +1420,20 @@ const ST={
  laneLen(k){return 2*(this.stag?Math.PI*this.laneR(k)/this.CS:this.A0)+2*this.S;},
  pos(k,s){return this.posR(this.laneR(k),s);},
 
+ /* ---------- salle (piste de 200 m, 6 couloirs, bleue) ou stade ---------- */
+ setVenue(ind){
+  ind=!!ind;if(!this.ok||this.indoor===ind)return;
+  this.indoor=ind;
+  if(!this.LO)this.LO=this.L;
+  this.L=ind?{...this.LO,sp:{cy:-9,k:.8}}:this.LO;
+  if(ind){this.R1=11;this.HL=10.3;this.NL=6;this.LAP=20;}else{this.R1=20.8;this.HL=24.5;this.NL=8;this.LAP=40;}
+  this.geo();
+  (this.stObjs||[]).forEach(o=>{this.s.remove(o);o.traverse&&o.traverse(m=>{if(m.geometry)m.geometry.dispose();});});
+  const n0=this.s.children.length;this.buildStands();this.stObjs=this.s.children.slice(n0);
+  this.s.background=new this.T.Color(ind?0x0b1022:0x0a1330);
+  Object.values(this.pawns).forEach(g=>this.pawnG.remove(g));this.pawns={};
+  if(this.ev)this.drawGround(this.ev,this._C);
+ },
  /* ---------- initialisation ---------- */
  init(canvas){
   try{
@@ -1393,7 +1458,7 @@ const ST={
    this.evG=new T.Group();this.s.add(this.evG);
    this.pawnG=new T.Group();this.s.add(this.pawnG);
    this.markG=new T.Group();this.s.add(this.markG);
-   this.buildStands();
+   {const n0=this.s.children.length;this.buildStands();this.stObjs=this.s.children.slice(n0);}
    this.halo=new T.Mesh(new T.TorusGeometry(1.25,.13,8,32),new T.MeshBasicMaterial({color:0xffd34d}));
    this.halo.rotation.x=Math.PI/2;this.halo.visible=false;this.s.add(this.halo);
    this.ok=true;this.bind();this.resize();
@@ -1439,7 +1504,7 @@ const ST={
   [[0,'#060b20'],[.22,'#111f52'],[.38,'#4a4585'],[.46,'#c8736f'],[.5,'#f2b673'],[.52,'#3a3258'],[1,'#17172b']].forEach(a=>gr.addColorStop(a[0],a[1]));
   sx.fillStyle=gr;sx.fillRect(0,0,8,256);
   const sky=new T.Mesh(new T.SphereGeometry(480,24,16),new T.MeshBasicMaterial({map:new T.CanvasTexture(sk),side:T.BackSide,fog:false,depthWrite:false}));
-  sky.position.y=-6;this.s.add(sky);
+  sky.position.y=-6;if(!this.indoor)this.s.add(sky);
   /* public : rangées de spectateurs sur des sièges colorés */
   const cv=document.createElement('canvas');cv.width=1024;cv.height=256;const x=cv.getContext('2d');
   const seat=['#22337a','#59627f','#8a2335','#22337a'];
@@ -1514,7 +1579,7 @@ const ST={
   const lc=document.createElement('canvas');lc.width=128;lc.height=64;const lx=lc.getContext('2d');lx.fillStyle='#2a3144';lx.fillRect(0,0,128,64);
   for(let a=0;a<4;a++)for(let b=0;b<8;b++){lx.fillStyle='#fffbe8';lx.beginPath();lx.arc(10+b*15,10+a*15,5.5,0,7);lx.fill();}
   const ltex=new T.CanvasTexture(lc);
-  [[-74,-84,54],[74,-84,54],[-74,84,54],[74,84,54],[-76,0,48],[76,0,48]].forEach(([px,py,h])=>{
+  (this.indoor?[]:[[-74,-84,54],[74,-84,54],[-74,84,54],[74,84,54],[-76,0,48],[76,0,48]]).forEach(([px,py,h])=>{
    const pole=new T.Mesh(new T.CylinderGeometry(.6,1.1,h,8),new T.MeshLambertMaterial({color:0x8b95a8}));pole.position.set(px,h/2,-py);this.s.add(pole);
    const lamp=new T.Mesh(new T.PlaneGeometry(11,5.5),new T.MeshBasicMaterial({map:ltex,side:T.DoubleSide}));lamp.position.set(px,h+3,-py);lamp.lookAt(0,10,0);this.s.add(lamp);
    const sp=new T.Sprite(new T.SpriteMaterial({map:glow,blending:T.AdditiveBlending,transparent:true,depthWrite:false,fog:false}));
@@ -1572,20 +1637,20 @@ const ST={
   ctx.setTransform(1,0,0,1,0,0);ctx.fillStyle='#143d28';ctx.fillRect(0,0,this.gcan.width,this.gcan.height);
   ctx.setTransform(P,0,0,-P,this.GW*P/2,this.GH*P/2);
   const stripes=(col1,col2)=>{for(let i=-30;i<30;i++){ctx.fillStyle=i%2?col1:col2;ctx.fillRect(-60,i*3.2,120,3.2);}};
-  stripes('#17482d','#1a5133');
+  stripes(...(this.indoor?['#1e2742','#1b2339']:['#17482d','#1a5133']));
   /* bande de béton autour de la piste */
   this.stad(ctx,Ro+2.6);ctx.fillStyle='#5a6478';ctx.fill();
   this.stad(ctx,Ro+2.6);ctx.strokeStyle='#2b3246';ctx.lineWidth=.3;ctx.stroke();
   this.chuteFrame(ctx);
   /* tartan */
-  this.stad(ctx,Ro);ctx.fillStyle='#c4452f';ctx.fill();
-  {const gd=ctx.createLinearGradient(0,-80,0,80);gd.addColorStop(0,'rgba(255,200,170,.10)');gd.addColorStop(.5,'rgba(0,0,0,0)');gd.addColorStop(1,'rgba(60,0,0,.12)');ctx.save();this.stad(ctx,Ro);ctx.clip();ctx.fillStyle=gd;ctx.fillRect(-60,-80,120,160);ctx.restore();}
+  const ti=this.indoor;this.stad(ctx,Ro);ctx.fillStyle=ti?'#2b62bd':'#c4452f';ctx.fill();
+  {const gd=ctx.createLinearGradient(0,-80,0,80);gd.addColorStop(0,ti?'rgba(190,215,255,.10)':'rgba(255,200,170,.10)');gd.addColorStop(.5,'rgba(0,0,0,0)');gd.addColorStop(1,ti?'rgba(0,20,80,.14)':'rgba(60,0,0,.12)');ctx.save();this.stad(ctx,Ro);ctx.clip();ctx.fillStyle=gd;ctx.fillRect(-60,-80,120,160);ctx.restore();}
   ctx.save();this.stad(ctx,Ro);ctx.clip();
-  for(let i=0;i<46000;i++){const z=.18+Math.random()*.3;ctx.fillStyle=Math.random()<.5?'rgba(255,230,210,.05)':'rgba(70,10,0,.08)';ctx.fillRect(Math.random()*90-45,Math.random()*140-70,z,z);}
+  for(let i=0;i<46000;i++){const z=.18+Math.random()*.3;ctx.fillStyle=Math.random()<.5?(ti?'rgba(210,225,255,.05)':'rgba(255,230,210,.05)'):(ti?'rgba(0,10,70,.09)':'rgba(70,10,0,.08)');ctx.fillRect(Math.random()*90-45,Math.random()*140-70,z,z);}
   ctx.restore();
   this.chuteFill(ctx,ev);
   /* pelouse intérieure */
-  ctx.save();this.stad(ctx,R1);ctx.clip();stripes('#237a43','#1f6e3c');
+  ctx.save();this.stad(ctx,R1);ctx.clip();stripes(...(this.indoor?['#2b4a80','#274376']:['#237a43','#1f6e3c']));
   this.txt(ctx,'DÉCA · HEPTA',0,-1,8.4,'rgba(255,255,255,.10)',Math.PI/2,null,true);
   if(C)this.txt(ctx,C.level.s.toUpperCase(),0,-14,3,'rgba(255,255,255,.12)',Math.PI/2,null,true);
   ctx.restore();
@@ -1630,9 +1695,9 @@ const ST={
  },
  chuteFill(ctx,ev){
   const R1=this.R1,Ro=R1+this.NL*this.LW,H=this.HL,top=this.chute?H:-H+.02,yE=this.YE;
-  ctx.fillStyle='#c4452f';ctx.fillRect(R1,yE,Ro-R1,top-yE);
-  const gd=ctx.createLinearGradient(R1,0,Ro,0);gd.addColorStop(0,'rgba(255,200,170,.08)');gd.addColorStop(1,'rgba(60,0,0,.10)');ctx.fillStyle=gd;ctx.fillRect(R1,yE,Ro-R1,top-yE);
-  for(let i=0;i<9000;i++){const z=.18+Math.random()*.3;ctx.fillStyle=Math.random()<.5?'rgba(255,230,210,.05)':'rgba(70,10,0,.08)';ctx.fillRect(R1+Math.random()*(Ro-R1),yE+Math.random()*(top-yE),z,z);}
+  const ti=this.indoor;ctx.fillStyle=ti?'#2b62bd':'#c4452f';ctx.fillRect(R1,yE,Ro-R1,top-yE);
+  const gd=ctx.createLinearGradient(R1,0,Ro,0);gd.addColorStop(0,ti?'rgba(190,215,255,.08)':'rgba(255,200,170,.08)');gd.addColorStop(1,ti?'rgba(0,20,80,.12)':'rgba(60,0,0,.10)');ctx.fillStyle=gd;ctx.fillRect(R1,yE,Ro-R1,top-yE);
+  for(let i=0;i<9000;i++){const z=.18+Math.random()*.3;ctx.fillStyle=Math.random()<.5?(ti?'rgba(210,225,255,.05)':'rgba(255,230,210,.05)'):(ti?'rgba(0,10,70,.09)':'rgba(70,10,0,.08)');ctx.fillRect(R1+Math.random()*(Ro-R1),yE+Math.random()*(top-yE),z,z);}
  },
  chuteLines(ctx,ev){
   const R1=this.R1,LW=this.LW,Ro=R1+this.NL*LW,H=this.HL,cs=this.CSC,yE=this.YE,bx=yE+5.8,dash=[.9,.65];
@@ -1685,13 +1750,12 @@ const ST={
     }
    }
    if(D>40){
-    for(let lap=1;lap*40<=D+39;lap++){}
-    const q=this.posR(Ro+2.6,0);this.txt(ctx,Math.round(D/40*100)/100+' tours',q.x+3.2,q.y,1.3,'#fff',0);
+    const q=this.posR(Ro+2.6,0);this.txt(ctx,Math.round(D/this.LAP*100)/100+' tours',q.x+3.2,q.y,1.3,'#fff',0);
    }
    return;
   }
   const grass=(x0,y0,w,h,c)=>{ctx.fillStyle=c;ctx.fillRect(x0,y0,w,h);};
-  const tartan='#bf3f2c';
+  const tartan=this.indoor?'#2759ae':'#bf3f2c';
   const runway=(x0,y0,w,len,cell)=>{
    ctx.fillStyle=tartan;ctx.fillRect(x0,y0,w,len);
    ctx.strokeStyle='#fff';ctx.lineWidth=.12;ctx.strokeRect(x0,y0,w,len);
@@ -2269,6 +2333,7 @@ function startGame(C,o){
  if(G)G.abort=true;
  G={C,abort:false,auto:!!o.auto,turbo:false,fast:!!o.fast,S:null,heat:[],prog:{},lvl:o.fast?.15:(+$('#botSpeed').value),spNow:1,onFinish:o.onFinish||null,train:!!o.train,onRoll:o.onRoll||null};
  $('#autoChk').checked=G.auto;
+ if(ST&&ST.setVenue)ST.setVenue(!!C.indoor);
  if(ST&&ST.resetPawns)ST.resetPawns();
  const g=G;
  runCompetition(C,makeHooks(g)).catch(err=>{if(!g.abort&&err&&err.message!=='abort')console.error(err);});
@@ -2447,7 +2512,7 @@ function makeHooks(g){
    setWho(null,C.cur.cond.txt);$('#status').innerHTML='';
    $('#live').innerHTML='';
    if(ev.mech!=='race')renderLive(C);
-   await banner(`${ev.i} ${ev.n}`,C.cur.cond.txt+(ev.mech==='race'?` · séries de 8 couloirs, chacun lance le dé à tour de rôle.`:ev.mech==='bar'?' · 3 essais par hauteur.':` · ${C.attempts} essai${C.attempts>1?'s':''} par athlète, tout le monde passe à chaque tour.`),g.fast?600:1700);
+   await banner(`${ev.i} ${ev.n}`,C.cur.cond.txt+(ev.mech==='race'?` · séries de ${C.indoor?6:8} couloirs, chacun lance le dé à tour de rôle.`:ev.mech==='bar'?' · 3 essais par hauteur.':` · ${C.attempts} essai${C.attempts>1?'s':''} par athlète, tout le monde passe à chaque tour.`),g.fast?600:1700);
   },
   async formStart(C,p,day,ev){
    guard();g.turbo=false;Die.tint(null);ST.speed=1;
@@ -2683,6 +2748,7 @@ function createCareer(){
 function openCareer(c){
  K=c;K.opt=K.opt||{auto:false,fast:false,quick:false};cNote='';
  if(!K.cal2){K.cal2=1;if(K.step>=3)K.step++;persist();}
+ K.regain=K.regain||{};if(K.inj&&K.inj.fresh&&K.phase!=='comp-run'&&K.phase!=='bilan'&&K.phase!=='retired'){enterRehab(K);persist();}
  if(K.phase==='comp-run'){
   const steps=seasonSteps(K.year),st=steps[K.step];
   pushSkip(st,'forfait');advanceStep();persist();
@@ -2696,7 +2762,7 @@ function enterCareer(){inCareerGame=false;ST.show(false);show('career');renderCa
 function pushSkip(st,why){K.hist.push({year:K.year,age:K.age,name:st.n,lv:st.lv,tl:lvById(st.lv).s,rank:0,of:0,total:0,pbs:0,skip:why});K.tf=0;}
 function advanceStep(){
  K.step++;K.slots=[null,null,null];K.sessDone=0;
- {const ss=seasonSteps(K.year);K.phase=K.step>=ss.length?'bilan':(ss[K.step].ind?'comp':'train');}
+ {const ss=seasonSteps(K.year);K.phase=K.step>=ss.length?'bilan':(ss[K.step].ind?'comp':'train');if(K.inj&&K.phase!=='bilan')enterRehab(K);}
 }
 
 /* ---------- rendu général ---------- */
@@ -2711,7 +2777,7 @@ function renderHead(){
  const o=K.opt,ol=onlineHeadHTML();
  $('#cHead').innerHTML=`<div class="cTop">
   <div class="who"><span class="dot" style="--c:${K.color};width:34px;height:34px"></span><div><b class="nm">${flagOf(K.nat)} ${esc(K.first)} ${esc(K.last.toUpperCase())}</b><small>${CATN[K.cat]} · Saison ${K.season} (${K.year}) · ${K.age} ans</small></div></div>
-  <div class="cStats"><span class="chip">Moyenne ${fmt1c(careerAvg(K))}/20</span><span class="chip">${medalsTxt(K.medals)}</span><span class="chip">${K.comps} ${plural(K.comps,'compétition')}</span><span class="chip ${K.tf>=2?'m':''}">Fatigue ${K.tf?'●'.repeat(K.tf):'○'}</span><span class="chip ${saveOK?'p':'m'}">${saveOK?'💾 Sauvegardé':'⚠️ Sauvegarde impossible : exporte !'}</span>${ol.chip}</div>
+  <div class="cStats"><span class="chip">Moyenne ${fmt1c(careerAvg(K))}/20</span><span class="chip">${medalsTxt(K.medals)}</span><span class="chip">${K.comps} ${plural(K.comps,'compétition')}</span>${K.inj?`<span class="chip m">🩹 Blessé · ${esc(K.inj.n)} · ${K.inj.left} mois</span>`:''}<span class="chip ${K.tf>=2?'m':''}">Fatigue ${K.tf?'●'.repeat(K.tf):'○'}</span><span class="chip ${saveOK?'p':'m'}">${saveOK?'💾 Sauvegardé':'⚠️ Sauvegarde impossible : exporte !'}</span>${ol.chip}</div>
   <div class="cBtns"><label class="chk"><input type="checkbox" id="oAuto" ${o.auto?'checked':''}> Dés auto</label><label class="chk"><input type="checkbox" id="oFast" ${o.fast?'checked':''}> Virtuels rapides</label><label class="chk"><input type="checkbox" id="oQuick" ${o.quick?'checked':''}> Séances de discipline automatiques</label>
   ${ol.btns}<button class="btn small" id="cExport">Exporter</button><button class="btn small" id="cRetire">Prendre sa retraite</button><button class="btn small" id="cMenu">Menu</button></div></div>`;
  onlineHeadBind();
@@ -2734,7 +2800,7 @@ function renderCal(){
  }).join('');
 }
 function renderSkills(){
- $('#cSkills').innerHTML=`<h3>Qualités</h3>`+STATS.map(s=>`<div class="sk2"><span>${s.i}</span><span>${s.n}</span><div class="bar"><i style="width:${K.pct[s.k]/PCT_MAX*100}%"></i></div><b>${K.pct[s.k]}%</b></div>`).join('')+
+ $('#cSkills').innerHTML=`<h3>Qualités</h3>`+STATS.map(s=>`<div class="sk2"><span>${s.i}</span><span>${s.n}${K.regain&&K.regain[s.k]>0?` <small style="color:var(--bad)" title="À récupérer par le repos et la kiné">🩹−${K.regain[s.k]}</small>`:''}</span><div class="bar"><i style="width:${K.pct[s.k]/PCT_MAX*100}%"></i></div><b>${K.pct[s.k]}%</b></div>`).join('')+
   `<div class="caps" style="margin-top:8px">${EV[K.cat].map(e=>`<span class="cp">${e.i} ${e.s} <b>${capOf(K,evSkills(e))}/20</b></span>`).join('')}</div>`;
 }
 function renderHist(){
@@ -2760,6 +2826,7 @@ function renderMain(){
  if(K.pools.length)return void(m.innerHTML=poolsHTML());
  if(K.phase==='retired')return void(m.innerHTML=retiredHTML());
  if(K.phase==='bilan')return void(m.innerHTML=bilanHTML());
+ if(K.phase==='rehab')return void(m.innerHTML=rehabHTML());
  if(K.phase==='comp')return void(m.innerHTML=compHTML());
  m.innerHTML=trainHTML();
 }
@@ -2776,6 +2843,7 @@ $('#cMain').addEventListener('click',e=>{
  else if(a==='run')runSlot();
  else if(a==='comp')compAction(b.dataset.m);
  else if(a==='next'){afterSessionNext();}
+ else if(a==='skipRehab'){K.sessDone=3;finishRehab();}
  else if(a==='skipPrep'){K.sessDone=3;K.phase='comp';persist();renderCareer();}
  else if(a==='season')nextSeason();
 });
@@ -2817,7 +2885,7 @@ function trainHTML(){
  let body;
  if(!full){
   body=`<p class="note" style="margin:0 0 8px">Choisis ${K.slots.filter(x=>!x).length} séance${K.slots.filter(x=>!x).length>1?'s':''} pour préparer : <b>${esc(st.n)}</b> (${st.m}). Chaque séance de salle ajoute de la fatigue (−1 au seuil par séance déjà faite) : termine par du repos si tu veux arriver frais.</p>
-  <div class="palette">${SESS.filter(s=>s.id!=='dis').map(s=>`<button class="pal" data-a="slot" data-t="${s.id}"><b>${s.i} ${s.n}</b><small>${s.d}</small>${s.sk.length?`<span class="chips">${s.sk.map(k=>`<span class="chip">${SX[k].i} ${K.pct[k]} %</span>`).join('')}</span><span class="th">d20 ≤ ${gymThreshold(K,s)}</span>`:''}</button>`).join('')}
+  <div class="palette">${SESS.filter(s=>s.id!=='dis'&&(s.id!=='kin'||hasRegain(K))).map(s=>`<button class="pal" data-a="slot" data-t="${s.id}"><b>${s.i} ${s.n}</b><small>${s.d}</small>${s.sk.length?`<span class="chips">${s.sk.map(k=>`<span class="chip">${SX[k].i} ${K.pct[k]} %</span>`).join('')}</span><span class="th">d20 ≤ ${gymThreshold(K,s)}</span>`:''}</button>`).join('')}
   <div class="pal dis"><b>🏟️ Séance de discipline</b><small>${SESSX.dis.d}</small><select id="cDisEv">${EV[K.cat].map(e=>`<option value="${e.id}">${e.i} ${e.n}</option>`).join('')}${EV[IND[K.cat]].filter(e=>!EV[K.cat].some(x=>x.id===e.id)).map(e=>`<option value="${e.id}">${e.i} ${e.n} (salle)</option>`).join('')}</select><button class="btn small primary" data-a="slotDis">Ajouter</button></div></div>`;
  }else if(K.sessDone<3){
   const sl=K.slots[K.sessDone];
@@ -2827,21 +2895,51 @@ function trainHTML(){
   <p class="note" style="margin:0 0 10px">${K.tf>=2?'Tu es fatigué. ':''}Niveau visé : ${L.s}, minimum ${L.min}/20 — ta moyenne : <b style="color:${q?'var(--ok)':'var(--bad)'}">${fmt1c(careerAvg(K))}/20</b>.</p>
   <div class="slots">${slots}</div>${body}${K.sessDone<3?`<p style="margin:10px 0 0"><button class="btn small" data-a="skipPrep">Sauter la préparation →</button></p>`:''}</div>`;
 }
+/* ---------- blessure : mois d'arrêt, soins et rééducation ---------- */
+function rehabHTML(){
+ const steps=seasonSteps(K.year),st=steps[K.step]||steps[steps.length-1],full=K.slots.every(Boolean),inj=K.inj;
+ const slots=K.slots.map((s,i)=>`<div class="slot ${i<K.sessDone?'done':i===K.sessDone&&full?'cur':''}"><span class="sn">${i+1}</span><div>${slotLabel(s)}</div>${s&&i>=K.sessDone?`<button class="btn small" data-a="unslot" data-i="${i}">✕</button>`:i<K.sessDone?'<span class="chip p">fait</span>':''}</div>`).join('');
+ const loss=(inj.lastLoss||[]).map(x=>`${SX[x.k].i} ${SX[x.k].n} −${x.d} %`).join(', ');
+ const pend=Object.keys(K.regain||{}).filter(k=>K.regain[k]>0).map(k=>`${SX[k].i} ${SX[k].n} ${K.regain[k]} %`).join(', ');
+ let body;
+ if(!full)body=`<p class="note" style="margin:0 0 8px">Choisis ${K.slots.filter(x=>!x).length} séance${K.slots.filter(x=>!x).length>1?'s':''} de soins. Pendant l’arrêt, seuls le repos et la kiné font remonter tes qualités.</p>
+  <div class="palette">${SESS.filter(s=>s.id==='kin'||s.id==='rep').map(s=>`<button class="pal" data-a="slot" data-t="${s.id}"><b>${s.i} ${s.n}</b><small>${s.id==='rep'?'Récupération : une chance sur deux de regagner 1 %, fatigue à zéro.':s.d}</small>${s.id==='kin'?`<span class="th">d20 ≤ ${clampT(capOf(K,['men','tec'])+5)}</span>`:''}</button>`).join('')}</div>`;
+ else if(K.sessDone<3){const sl=K.slots[K.sessDone];body=`<div class="startRow"><button class="btn primary big" data-a="run">▶ Séance ${K.sessDone+1}/3 : ${slotLabel(sl)}</button></div>`;}
+ return `<div class="card"><h3>🩹 Blessé · ${esc(inj.n)}</h3>
+ <p class="note" style="margin:0 0 10px">Arrêt de ${inj.total} mois : il reste <b>${inj.left} mois</b>, tu manques <b>${esc(st.n)}</b> (${st.m}). Cette étape : ${loss||'aucune perte'}. À récupérer : <b>${pend||'rien'}</b>.</p>
+ <div class="slots">${slots}</div>${body}<p style="margin:10px 0 0"><button class="btn small" data-a="skipRehab">Passer ce mois sans soins →</button></p></div>`;
+}
+function finishRehab(){
+ const steps=seasonSteps(K.year),st=steps[K.step];
+ if(st)pushSkip(st,'blessé');
+ K.inj.left--;
+ if(K.inj.left<=0){
+  const rest=Object.keys(K.regain||{}).filter(k=>K.regain[k]>0).map(k=>`${SX[k].i} ${SX[k].n} ${K.regain[k]} %`).join(', ');
+  cNote=`<div class="card cnote"><h3>💪 Tu es rétabli</h3><p>Fin de l’arrêt (${esc(K.inj.n)}).${rest?` Il te reste à récupérer : ${rest}. Utilise des séances de kiné et de repos : l’entraînement ne les fera pas remonter.`:' Tu as tout récupéré.'}</p></div>`;
+  K.inj=null;
+ }
+ advanceStep();persist();renderCareer();
+}
 function runSlot(){
  const sl=K.slots[K.sessDone];if(!sl)return;
  cNote='';
- if(sl.t==='rep'){restSession(K);K.sessDone++;persist();cNote=`<div class="card cnote"><h3>🏖️ Repos</h3><p>Tu récupères : la fatigue d’entraînement retombe à zéro.</p></div>`;afterSessionNext(true);return;}
+ if(sl.t==='rep'){const g=restSession(K);K.sessDone++;persist();cNote=`<div class="card cnote"><h3>🏖️ Repos</h3><p>Tu récupères : la fatigue d’entraînement retombe à zéro.${g.length?` Le repos fait aussi remonter ${g.map(x=>`${SX[x.k].i} ${SX[x.k].n} +${x.n} %`).join(', ')}.`:(hasRegain(K)?' Cette fois, rien de plus sur tes qualités blessées.':'')}</p></div>`;afterSessionNext(true);return;}
+ if(sl.t==='kin'){const r=kineSession(K);K.sessDone++;persist();cNote=`<div class="card cnote ${r.n?'':'warn'}"><h3>🩺 Kiné · rééducation</h3><p>Dé ${r.roll} contre un seuil de ${r.T} : <b>${OUTT[r.out]}</b>${r.got.length?` : ${r.got.map(x=>`${SX[x.k].i} ${SX[x.k].n} +${x.n} %`).join(', ')} récupéré${r.got.reduce((a,x)=>a+x.n,0)>1?'s':''}.`:'. Pas de progrès cette séance.'}${r.out==='crit'?' Petite rechute : tu es plus fatigué.':''}</p></div>`;afterSessionNext(true);return;}
  if(sl.t==='dis'){doDiscipline(trainEv(sl.ev));return;}
  gymFlow(SESSX[sl.t]);
 }
 function afterSessionNext(keep){
  if(!keep)cNote='';
+ if(K.phase==='rehab'){if(K.sessDone>=3){finishRehab();return;}persist();renderCareer();return;}
+ if(K.inj&&K.inj.fresh){enterRehab(K);persist();renderCareer();return;}
  if(K.sessDone>=3)K.phase='comp';
  persist();renderCareer();
 }
 async function gymFlow(sess){
  const T=gymThreshold(K,sess),before={...K.pct};
- const res=gymSession(K,sess);K.sessDone++;persist();
+ const res=gymSession(K,sess);K.sessDone++;
+ if(res.crit&&!K.inj&&Math.random()<injChance(K,false)+.1)K.inj=pickInjury(K);
+ persist();
  $('#cMain').innerHTML=`<div class="card gym"><h3>${sess.i} ${sess.n}</h3>
  <p class="note" style="margin:0 0 10px">${sess.d}<br>Seuil du d20 : <b>${T}</b>. Réussite : +1 % (+2 % sous 45 %) · parfait : +2 % (+3 % sous 45 %) · échec : 0 · échec critique : fatigue en plus.</p>
  <div class="gymRows">${sess.sk.map(k=>`<div class="gr"><span>${SX[k].i} ${SX[k].n}</span><b>${before[k]} %</b><div class="cdie" id="cd_${k}">?</div><span class="gres" id="gx_${k}"></span></div>`).join('')}</div>
@@ -2858,7 +2956,7 @@ async function gymFlow(sess){
   }
   const g=res.rows.reduce((a,r)=>a+r.gain,0);
   const wrap=$('#cMain .gym');
-  wrap.insertAdjacentHTML('beforeend',`<p class="note" style="margin:10px 0 0">${g?`+${g} % au total.`:'Séance sans progrès.'}${res.crit?' Échec critique : une petite blessure te fatigue davantage.':''}</p>
+  wrap.insertAdjacentHTML('beforeend',`<p class="note" style="margin:10px 0 0">${g?`+${g} % au total.`:'Séance sans progrès.'}${res.crit?' Échec critique : une petite blessure te fatigue davantage.':''}</p>${K.inj&&K.inj.fresh?`<div class="card cnote warn" style="margin-top:10px"><h3>🚑 Blessure</h3><p><b>${esc(K.inj.n)}</b> : arrêt de ${K.inj.months} mois. Tu perdras environ ${injLoss(K.pct[K.inj.sk[0]])} % par mois sur ${K.inj.sk.map(k=>SX[k].n.toLowerCase()).join(', ')}, à récupérer par le repos et la kiné.</p></div>`:''}
   <div class="startRow"><button class="btn primary big" id="gymNext">${K.sessDone>=3?'Terminer la préparation →':'Séance suivante →'}</button></div>`);
   $('#gymNext').onclick=()=>afterSessionNext();
  };
@@ -2910,7 +3008,7 @@ function endComp(C,st){
  const gain=K.pools.reduce((a,x)=>a+x.n,0);
  cNote=`<div class="card cnote ${r.rank<=3?'gold':''}"><h3>${r.rank===1?'🏆 Victoire !':r.rank<=3?'🏅 Sur le podium !':'🏁 Compétition terminée'}</h3>
  <p>${esc(st.n)} : <b>${rankTxt(r.rank,r.of)}</b> avec <b>${nf(r.total)} points</b>${r.pbs.length?` · ${r.pbs.length} ${plural(r.pbs.length,'record personnel','records personnels')} (${r.pbs.map(e=>e.s).join(', ')})`:''}.${gain?` Tu as <b>${gain} points</b> à répartir.`:''}</p>
- <div class="tw"><table>${top}${mine}</table></div></div>`;
+ <div class="tw"><table>${top}${mine}</table></div></div>${r.hurt?`<div class="card cnote warn"><h3>🚑 Blessure</h3><p><b>${esc(r.hurt.n)}</b> : arrêt de ${r.hurt.months} mois. Tu perdras environ ${injLoss(K.pct[r.hurt.sk[0]])} % par mois sur ${r.hurt.sk.map(k=>SX[k].n.toLowerCase()).join(', ')}, à récupérer par le repos et la kiné.</p></div>`:''}`;
  persist();enterCareer();
 }
 
@@ -2927,7 +3025,7 @@ function bilanHTML(){
  <div class="startRow"><button class="btn primary big" data-a="season">Saison ${K.season+1} →</button></div></div>`;
 }
 function nextSeason(){
- const r=applyAging(K);
+ const r=applyAging(K);if(K.inj)enterRehab(K);
  cNote=`<div class="card cnote"><h3>🎂 Saison ${K.season} · ${K.year} · ${K.age} ans</h3><p>${esc(r.plan.txt)}${r.lost.length?` Tu perds : ${r.lost.map(l=>`${SX[l.k].i} ${SX[l.k].n} −${l.d} %`).join(', ')}.`:''}${r.plan.gain?` Tu as <b>${r.plan.gain} points</b> à répartir.`:''}</p></div>`;
  persist();renderCareer();
 }
