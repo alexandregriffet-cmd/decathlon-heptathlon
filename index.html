@@ -1452,7 +1452,7 @@ const fmtM=cm=>(cm/100).toFixed(2).replace('.',',')+' m';
    Coordonnées « plateau » : x vers la droite, y vers le haut. Monde 3D : X = x, Z = -y. */
 const ST={
  ok:false,speed:1,active:false,tws:[],pawns:{},mode:'none',heat:[],
- R1:20.8,HL:24.5,stag:false,chute:false,LW:2.4,NL:8,GW:106,GH:190,CSC:7.3,PPU:20,LAP:40,indoor:false,
+ R1:20.8,HL:24.5,stag:false,chute:false,LW:2.4,NL:8,GW:106,GH:190,CSC:7.3,PPU:(/iPhone|iPad|iPod/.test(navigator.userAgent)||(navigator.maxTouchPoints>1&&/Mac/.test(navigator.platform)))?13:20,LAP:40,indoor:false,
  BOTC:['#e11d48','#2563eb','#f59e0b','#10b981','#8b5cf6','#06b6d4','#f97316','#94a3b8'],
  cam:{tx:0,tz:0,d:90,yaw:Math.PI/2,pit:.9},goal:{tx:0,tz:0,d:90,yaw:Math.PI/2,pit:.9},pre:null,follow:false,
  L:{lj:{y0:-16,cell:3,yb:2.4,pit:[2.4,12.6]},pv:{y0:-19.2,cell:2.4,yb:.7},jt:{y0:-30,cell:5,arcY:-15,apex:-23,r:8,k:.43},
@@ -1509,7 +1509,9 @@ const ST={
    dl.shadow.mapSize.set(2048,2048);const sc=dl.shadow.camera;sc.left=-84;sc.right=84;sc.top=84;sc.bottom=-84;sc.near=20;sc.far=260;dl.shadow.bias=-.0005;
    this.s.add(dl);
    this.gcan=document.createElement('canvas');this.gcan.width=this.GW*this.PPU;this.gcan.height=this.GH*this.PPU;
-   this.gtex=new T.CanvasTexture(this.gcan);this.gtex.anisotropy=Math.min(8,this.r.capabilities.getMaxAnisotropy());
+   canvas.addEventListener('webglcontextlost',e=>e.preventDefault());
+  canvas.addEventListener('webglcontextrestored',()=>{try{this.drawGround(this.ev,this.lastC);}catch(e){}this.gtex.needsUpdate=true;});
+  this.gtex=new T.CanvasTexture(this.gcan);this.gtex.anisotropy=Math.min(8,this.r.capabilities.getMaxAnisotropy());
    const gr=new T.Mesh(new T.PlaneGeometry(this.GW,this.GH),new T.MeshBasicMaterial({map:this.gtex}));
    gr.rotation.x=-Math.PI/2;this.s.add(gr);
    const shp=new T.Mesh(new T.PlaneGeometry(this.GW,this.GH),new T.ShadowMaterial({opacity:.34}));
@@ -1878,7 +1880,7 @@ const ST={
  box(w,h,d,col,x,y,z,parent){
   const m=new this.T.Mesh(new this.T.BoxGeometry(w,h,d),new this.T.MeshLambertMaterial({color:col}));m.position.set(x,y,z);m.castShadow=true;(parent||this.evG).add(m);return m;
  },
- setEvent(C,ev){
+ setEvent(C,ev){this.lastC=C;
   if(!this.ok)return;
   const T=this.T,L=this.L;
   this.ev=ev;this._C=C;this.clearGroup(this.evG);this.clearGroup(this.markG);this.marks={};this.best={};this.tws.length=0;
