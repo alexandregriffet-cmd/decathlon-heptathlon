@@ -280,6 +280,8 @@ tr.rec td{background:#ffc83d1f;padding:8px 10px}tr.rec small{color:var(--mute)}
 
 .cRoom{margin:10px 0 0;padding:10px 12px;border:1px solid var(--line,#33415f);border-radius:12px;display:flex;flex-wrap:wrap;gap:8px;align-items:center}
 .cRoom .roomCode{font-size:.95em}
+.roomSum{margin:10px 0 0;font-weight:600;color:var(--gold,#fbbf24)}
+.roomBox a{color:var(--gold,#fbbf24);word-break:break-all}
 </style>
 </head>
 <body>
@@ -2310,7 +2312,7 @@ function renderSetup(){
  const lv=levelOf(cfg.level),legM=cfg.level==='legends';
  $('#cfgLevel').innerHTML=(career||isInd(cfg.cat)?'':`<option value="legends" ${legM?'selected':''}>⭐ Compétition des légendes · les 25 meilleurs de l’histoire</option>`)+(isInd(cfg.cat)?LEVELS_I:[...LEVELS,...STARS]).map(l=>`<option value="${l.id}" ${l.id===cfg.level?'selected':''} ${okLv(l)?'':'disabled'}>${l.star?'⭐ ':''}${l.n} · min ${l.min}/20${okLv(l)?'':' · non qualifié'}</option>`).join('');
  $('#cfgFree').checked=cfg.free;$('#cfgCat').value=cfg.cat;[...$('#cfgCat').options].forEach(o=>{if(isInd(o.value))o.disabled=career;});$('#cfgAtt').value=String(cfg.attempts);$('#cfgAuto').checked=cfg.auto;$('#cfgFast').checked=cfg.fast;
- const nh=setup.players.length;
+ const nh=(typeof ROOM!=='undefined'&&ROOM&&!career&&Object.keys(ROOM.members).length)||setup.players.length;
  $('#cfgInfo').textContent=career?`Carrière ${CATN[cfg.cat]} : tu débutes à ${cfg.age} ans avec 30 % partout à répartir (270 points), puis tu enchaînes les saisons du calendrier FFA.`:(legM?`${CATN[cfg.cat]} · ${lv.n} : tu affrontes les 25 meilleurs ${cfg.cat==='DEC'?'décathloniens':'heptathloniennes'} de l’histoire (records personnels réels), avec ${nh} joueur${nh>1?'s':''}.`:`${CATN[cfg.cat]} · ${lv.n} : ${Math.max(lv.parts,nh)} participants, dont ${nh} joueur${nh>1?'s':''} et ${Math.max(lv.parts,nh)-nh} athlètes virtuels.`);
  $('#cfgAge').value=String(cfg.age);
  $('#athletes').innerHTML=setup.players.map(a=>{
@@ -3278,7 +3280,7 @@ const ROOM_MAX=16,ROOM_ALPHA='ABCDEFGHJKLMNPQRSTUVWXYZ';
 const roomHost=()=>!!ROOM&&ROOM.seat===0;
 function roomHuman(){
  const a=setup.players[0];if(!a)return null;
- return{first:(a.first||'').trim()||'Athlète',last:(a.last||'').trim()||'Joueur',nat:a.nat,color:a.color,pct:{...a.pct},age:a.age!=null?a.age:ageOf(a.dob),ready:TOTAL_PCT-sumPct(a)===0};
+ return{first:(a.first||'').trim()||'Athlète',last:(a.last||'').trim()||'Joueur',nat:a.nat,color:a.color,pct:{...a.pct},age:a.age!=null?a.age:ageOf(a.dob),ready:!!a.locked||TOTAL_PCT-sumPct(a)===0};
 }
 function roomSendQ(kind,data){
  if(!ROOM)return Promise.resolve();
@@ -3476,9 +3478,13 @@ function renderRoomBox(){
   return;
  }
  const list=Object.values(R.members).sort((a,b)=>a.seat-b.seat);
+ const lvR=levelOf(setup.cfg.level),legR=setup.cfg.level==='legends',nR=Math.max(1,list.length);
+ const totR=legR?25:Math.max(lvR.parts,nR),sumR=legR?`${CATN[setup.cfg.cat]} · Compétition des légendes : les 25 meilleurs de l’histoire contre ${nR} joueur${nR>1?'s':''}.`:`${CATN[setup.cfg.cat]} · ${lvR.n} : ${totR} participants, dont ${nR} joueur${nR>1?'s':''} et ${totR-nR} athlète${totR-nR>1?'s':''} virtuel${totR-nR>1?'s':''}.`;
+ if(!career&&$('#cfgInfo'))$('#cfgInfo').textContent=sumR;
  const link=location.origin+location.pathname+'?salle='+R.code;
  box.innerHTML=`<h3>🌐 Salle <span class="roomCode">${R.code}</span> <small>${list.length}/${ROOM_MAX} joueur${list.length>1?'s':''}${R.seat===0?' · tu es l’hôte':''}</small></h3>
  <div class="roomList">${list.map(m=>`<span class="roomM" style="--c:${m.color}"><i class="dot" style="--c:${m.color}"></i>${flagOf(m.nat)} ${esc(m.first)} ${esc((m.last||'').toUpperCase())}${m.seat===0?' 👑':''}<em>${m.ready?'✓ prêt':'prépare son athlète'}</em></span>`).join('')||'<span class="note">En attente…</span>'}</div>
+ <p class="roomSum">🏟️ ${esc(sumR)}</p>
  <p class="note" style="margin:8px 0">${R.seat===0?'Tu règles le niveau et la catégorie ci-dessous, puis tu lances quand tout le monde est prêt.':'L’hôte règle le niveau et lance la partie. Prépare ton athlète ci-dessous.'} Lien à partager : <a href="${esc(link)}">${esc(link)}</a></p>
  ${R.err?`<p class="note" style="color:var(--bad)">Connexion : ${esc(R.err)}</p>`:''}
  <div class="cmRow"><button class="btn small" id="roomLeave">Quitter la salle</button>${R.playing?'<span class="note">Partie en cours.</span>':''}</div>`;
