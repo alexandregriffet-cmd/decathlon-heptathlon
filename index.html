@@ -2708,10 +2708,10 @@ $('#homeBtn').onclick=()=>{
 
 /* ================= PERSONNAGES PARTAGÉS (base en ligne Supabase) ================= */
 /* à renseigner après la création du projet Supabase (voir supabase.sql) : adresse du projet et clé « anon » (publique) */
-var ONLINE={url:'',key:''};
+var ONLINE={url:'https://skgvhzdjuqwkicaxrkkm.supabase.co',key:'sb_publishable_4T6THboFFOqRzjIlndJGCA_iLuGch8u'};
 const onlineOn=()=>!!(ONLINE.url&&ONLINE.key);
 async function sb(fn,args){
- const r=await fetch(ONLINE.url.replace(/\/$/,'')+'/rest/v1/rpc/'+fn,{method:'POST',headers:{apikey:ONLINE.key,Authorization:'Bearer '+ONLINE.key,'Content-Type':'application/json'},body:JSON.stringify(args)});
+ const r=await fetch(ONLINE.url.replace(/\/$/,'')+'/rest/v1/rpc/'+fn,{method:'POST',headers:Object.assign({apikey:ONLINE.key,'Content-Type':'application/json'},/^eyJ/.test(ONLINE.key)?{Authorization:'Bearer '+ONLINE.key}:{}),body:JSON.stringify(args)});
  const t=await r.text();
  if(!r.ok){let m=t;try{m=JSON.parse(t).message||t;}catch(e){}throw new Error(m);}
  return t?JSON.parse(t):null;
