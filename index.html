@@ -360,7 +360,7 @@ tr.rec td{background:#ffc83d1f;padding:8px 10px}tr.rec small{color:var(--mute)}
  <h4>Mode carrière</h4>
  <p>Tu pars à 15–19 ans avec 270 points à répartir. Chaque saison suit le calendrier FFA : départementaux, régionaux, interrégionaux, France Élite, Europe/Monde/JO (selon l'année), meeting de fin de saison. Il faut la moyenne de capacité minimale du niveau pour participer.</p>
  <p>Avant chaque compétition : 3 séances. Salle (musculation, cardio, explosivité, technique, mental) : un d20 par qualité, +1 % (+2 % sous 45 %), parfait +1 de plus. Séance de discipline : l'épreuve se joue sur le plateau ; si les échecs restent tolérés, chaque qualité de l'épreuve gagne +1 %, et chaque lancer parfait donne un point bonus (3 max). Le repos remet la fatigue d'entraînement à zéro (elle ne pénalise que les séances de salle).</p>
- <p>Après une compétition : record personnel +3 points (qualités de l'épreuve, 4 max), podium selon le niveau de la compétition (1re / 2e / 3e place) : départementaux 6 / 3 / 1, régionaux et interrégionaux 10 / 5 / 2, France Élite et Europe 14 / 7 / 3, Monde et Jeux olympiques 20 / 10 / 5 points à répartir librement. Au-dessus de 75 %, un point coûte deux points. À chaque fin de saison : croissance jusqu'à 22 ans, déclin dès 29 ans. La carrière est sauvegardée dans le navigateur et exportable.</p>
+ <p>Après une compétition : record personnel +3 points (qualités de l'épreuve, 4 max), podium selon le niveau de la compétition (1re / 2e / 3e place) : départementaux 6 / 3 / 1, régionaux et interrégionaux 10 / 5 / 2, France Élite et Europe 14 / 7 / 3, Monde et Jeux olympiques 20 / 10 / 5 points à répartir librement. À partir de 75 %, un point coûte deux points, à partir de 85 % trois points ; les séances de discipline ne font plus progresser au-delà de 85 %. Si tes adversaires sont nettement plus faibles que toi, les points de podium sont réduits (×0,75, ×0,5 ou ×0,25). À chaque fin de saison : croissance jusqu'à 22 ans, déclin dès 29 ans. La carrière est sauvegardée dans le navigateur et exportable.</p>
  <h4>Écarts de résultats</h4>
  <p>Le résultat ne dépend pas que des dés : le niveau réel de l'athlète (la moyenne exacte de ses pourcentages sur l'épreuve) pèse aussi. À jets de dés équivalents, un athlète à 80 % fait mieux qu'un athlète à 70 %. En course, les cases restant à parcourir avant la dernière relance comptent : arriver à la case d'arrivée avec moins de cases à franchir donne un meilleur temps. Chaque temps et chaque distance est atteignable, avec un plafond propre à chaque niveau.</p>
  <p>Chaque épreuve a aussi un plafond selon le niveau de l'athlète dans la discipline (la moyenne de ses qualités sur l'épreuve) : même avec que des réussites critiques, on ne court pas plus vite, on ne saute pas plus haut et on ne lance pas plus loin que ce niveau le permet. Ce plafond monte graduellement : environ 83 % du meilleur niveau connu en multiple à 70 % de moyenne, 97 % à 90 %. Les records du monde des spécialistes ne sont jamais accessibles en décathlon ou en heptathlon.</p>
@@ -952,7 +952,7 @@ function trainingOutcome(t){
 }
 function applyDisciplineGain(K,ev,t){
  const o=trainingOutcome(t),sk=trainSk(ev),gains={};
- if(o.ok)sk.forEach(k=>{const g=Math.min(1,PCT_MAX-K.pct[k]);K.pct[k]+=g;gains[k]=g;});
+ if(o.ok)sk.forEach(k=>{const v=K.pct[k],g=v>=85?0:(v>=75&&Math.random()<.5)?0:Math.min(1,PCT_MAX-v);K.pct[k]+=g;gains[k]=g;});
  K.tf=Math.min(3,K.tf+1+(t.crit?1:0));
  if(o.bonus>0)K.pools.push({n:o.bonus,sk:sk.slice(),why:`Séance ${ev.s} : ${o.bonus} lancer${o.bonus>1?'s':''} parfait${o.bonus>1?'s':''}`});
  return{...o,sk,gains};
@@ -1005,8 +1005,9 @@ function settleCompetition(K,C,step){
   if(!old||r.pts>old.pts)K.pb[ev.id]={pts:r.pts,perf:r.perf,year:K.year};
  });
  pbs.forEach(ev=>K.pools.push({n:3,sk:trainSk(ev).slice(),why:`Record personnel : ${ev.s} ${fmtPerf(ev,K.pb[ev.id].perf)}`}));
- const pod=podPts(step.lv,rank);
- if(pod){K.pools.push({n:pod,sk:null,why:`${['','Victoire','2e place','3e place'][rank]} : ${step.n}`});K.medals[rank-1]++;}
+ const mAll=x=>STATS.reduce((a,t)=>a+x.pct[t.k],0)/STATS.length,fld=C.all.filter(x=>!x.human),fAvg=fld.length?fld.reduce((a,x)=>a+mAll(x),0)/fld.length:0,gap=mAll(p)-fAvg,wk=gap>=25?.25:gap>=15?.5:gap>=8?.75:1;
+ let pod=podPts(step.lv,rank);if(pod&&wk<1)pod=Math.max(1,Math.round(pod*wk));
+ if(pod){K.pools.push({n:pod,sk:null,why:`${['','Victoire','2e place','3e place'][rank]} : ${step.n}${wk<1?' (adversaires plus faibles que toi)':''}`});K.medals[rank-1]++;}
  K.comps++;K.bestTotal=Math.max(K.bestTotal,p.total);
  K.hist.push({year:K.year,age:K.age,name:step.n,lv:step.lv,rank,of:list.length,total:p.total,pbs:pbs.length,tl:LEVELS.find(l=>l.id===step.lv).s});
  K.tf=0;
@@ -1037,7 +1038,7 @@ function applyAging(K){
 }
 
 /* ---------- répartition des points gagnés ---------- */
-const poolCost=(K,k)=>K.pct[k]>=75?2:1;   /* au-dessus de 75 %, un point coûte deux points à répartir */
+const poolCost=(K,k)=>K.pct[k]>=85?3:K.pct[k]>=75?2:1;   /* 75 % et plus : un point coûte 2 points à répartir ; 85 % et plus : 3 points */
 function poolOk(K,pool,k){return(!pool.sk||pool.sk.includes(k))&&K.pct[k]<PCT_MAX&&pool.n>=poolCost(K,k);}
 function poolAdd(K,pool,k){if(!poolOk(K,pool,k))return false;pool.n-=poolCost(K,k);K.pct[k]++;pool.got=pool.got||{};pool.got[k]=(pool.got[k]||0)+1;return true;}
 function poolSub(K,pool,k){if(!pool.got||!pool.got[k])return false;K.pct[k]--;pool.n+=poolCost(K,k);pool.got[k]--;return true;}
@@ -2539,7 +2540,7 @@ function poolsHTML(){
  const can=p.n===0||!STATS.some(s=>poolOk(K,p,s.k));
  return `<div class="card pool"><h3>🎁 Points à répartir</h3>
  <div class="ph"><b>${esc(p.why)}</b><span class="chip ${p.n?'m':'p'}">${p.n} ${plural(p.n,'point')} à répartir</span></div>
- <p class="note" style="margin:4px 0 8px">${p.sk?'Choisis parmi les qualités de l’épreuve.':'Répartis librement entre tes qualités.'} Au-dessus de 75 %, un point coûte deux points à répartir.${more>0?` · ${more} autre${more>1?'s':''} répartition${more>1?'s':''} ensuite`:''}</p>
+ <p class="note" style="margin:4px 0 8px">${p.sk?'Choisis parmi les qualités de l’épreuve.':'Répartis librement entre tes qualités.'} À partir de 75 %, un point coûte 2 points à répartir, à partir de 85 % 3 points.${more>0?` · ${more} autre${more>1?'s':''} répartition${more>1?'s':''} ensuite`:''}</p>
  ${STATS.map(s=>{
   const ok=poolOk(K,p,s.k),el=!p.sk||p.sk.includes(s.k),got=(p.got&&p.got[s.k])||0;
   return `<div class="stat pl ${el?'':'off'}"><span>${s.i}</span><span>${s.n}</span><div class="bar"><i style="width:${K.pct[s.k]/PCT_MAX*100}%"></i></div><b>${K.pct[s.k]}%</b>
