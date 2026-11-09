@@ -567,7 +567,7 @@ function morphOf(S,M,sex){const h=Math.round(HM[sex]+S*6.5),w=Math.round(MBMI[se
 /* pourcentage moyen utile dans une épreuve : plafond 80 % + bonus morphologique (jamais au-delà de 90 %) */
 function evPct(p,skills,ev,cat){
  let s=0;skills.forEach(k=>s+=effPct(p,k));const m=s/skills.length;
- return ev?clamp(Math.min(m,80)+5*morphMod(p,ev,cat),0,90):m;
+ return(ev&&!p.noCap)?clamp(Math.min(m,80)+5*morphMod(p,ev,cat),0,90):m;
 }
 function capOf(p,skills,ev,cat){
  return clamp(Math.ceil(evPct(p,skills,ev,cat)/5),1,18);   /* arrondi supérieur, jamais plus de 18 : le 19 échoue, le 20 est critique */
@@ -669,6 +669,14 @@ function modsOf(p,cur){
 }
 
 /* ---------- jets (avec blessure possible sur échec critique) ---------- */
+/* écart continu d'un jet : où le dé tombe à l'intérieur de sa catégorie (réussi, raté...) ; rend tous les chronos possibles, au centième près */
+function dCont(r,T){
+ const v=+r.roll||0;if(!v)return 0;
+ if(r.out==='ok')return((T-v)/Math.max(1,T)-.5)*.8;
+ if(r.out==='fail')return(.5-(v-T)/Math.max(1,19-T))*.8;
+ if(r.out==='perfect')return .15;
+ return 0;
+}
 async function R(p,io,o){
  const r=await io.roll(o);
  if(r.out==='crit'&&RNG()<.2&&o.sk){
@@ -689,7 +697,7 @@ async function rageRoll(p,m,io){
 
 /* ---------- course sur plateau ---------- */
 async function doRace(ev,p,cur,io){
- const m=modsOf(p,cur);let cum=0,pen=0,chain=0;const qs=[];
+ const m=modsOf(p,cur);let cum=0,pen=0,chain=0,dsum=0;const qs=[];
  await io.phase({kind:'race',ev});
  const rg=await rageRoll(p,m,io),rage=rg.bonus;
  for(let g=0;g<4;g++){
@@ -702,11 +710,11 @@ async function doRace(ev,p,cur,io){
   }
   qs.push(finalQ(r,T));
   chain=CHAIN[r.out];
-  cum=r.out==='perfect'?2:r.out==='ok'?1:0;
+  cum=r.out==='perfect'?2:r.out==='ok'?1:0;dsum=cum?dCont(r,T):0;
   if(cum)await io.advance(cum,cum,r.out,true);
   break;
  }
- let rolls=0,before=cum,last=1;
+ let rolls=0,before=cum,last=1,dlast=0;
  const endCap=capOf(p,['end']);
  while(cum<ev.D){
   const fatT=ev.fat?Math.floor((cum/ev.D)*ev.fat*(1-endCap/20)+.0001):0;
@@ -714,10 +722,10 @@ async function doRace(ev,p,cur,io){
   const r=await R(p,io,{kind:'run',label:'Course',sk:ev.sk,cap,T,mods:m,fatT,cum,D:ev.D,rage,bonus:chain});
   qs.push(finalQ(r,T));
   chain=CHAIN[r.out];
-  const a=ADV[r.out];before=cum;cum+=a;rolls++;last=a;
+  const a=ADV[r.out],dv=dCont(r,T);before=cum;dsum+=dlast;dlast=dv;cum+=a;rolls++;last=a;
   await io.advance(Math.min(cum,ev.D),a,r.out);
  }
- const Nf=(rolls-1)+(ev.D-before)/last;
+ const Nf=(rolls-1)+clamp((ev.D-(before+dsum))/Math.max(.5,last+dlast),.05,1.3);
  const aeff=ev.D/Math.max(.5,Nf);
  /* nuances : qualité moyenne des jets (marge sous le seuil) et petite part d'aléa (départ, appuis, vent) pour départager les arrivées serrées */
  const avgQ=qs.reduce((s,x)=>s+x,0)/Math.max(1,qs.length);
