@@ -279,7 +279,7 @@ tr.rec td{background:#ffc83d1f;padding:8px 10px}tr.rec small{color:var(--mute)}
 </header>
 <main>
 <section id="setup">
- <div class="modeTabs"><button class="btn big on" id="modeFree">🏟️ Compétition libre</button><button class="btn big" id="modeCareer">🏅 Mode carrière</button></div>
+ <div class="modeTabs"><button class="btn big on" id="modeFree">🏟️ Compétition libre</button><button class="btn big" id="modeLegends">⭐ Compétition des légendes</button><button class="btn big" id="modeCareer">🏅 Mode carrière</button></div>
  <div class="hero"><h1>Crée ton athlète. Lance les dés.</h1>
  <p>Chaque athlète démarre avec 30 % dans chaque qualité et répartit ses pourcentages. Chaque épreuve se joue en plusieurs lancers de d20 sur un plateau à cases, puis le résultat est converti en secondes, mètres ou centimètres et en points selon le barème officiel.</p></div>
  <div class="card cfg">
@@ -2016,7 +2016,7 @@ function renderSetup(){
  const cfg=setup.cfg;
  const career=setup.mode==='career';
  $('#setup').classList.toggle('cm',career);
- $('#modeFree').classList.toggle('on',!career);$('#modeCareer').classList.toggle('on',career);
+ $('#modeFree').classList.toggle('on',!career&&cfg.level!=='legends');$('#modeLegends').classList.toggle('on',!career&&cfg.level==='legends');$('#modeCareer').classList.toggle('on',career);
  if(career&&setup.players.length>1)setup.players.length=1;
  const okLv=l=>cfg.free||career||setup.players.every(a=>qualified(a,cfg.cat,l));
  if(cfg.level!=='legends'&&!okLv(LEVELS.find(l=>l.id===cfg.level))){
@@ -2091,7 +2091,8 @@ $('#addHuman').onclick=()=>{setup.players.push(newHuman());renderSetup();};
 $('#rulesBtn').onclick=()=>$('#rules').showModal();
 $('#homeBtn').onclick=()=>{if(G)G.abort=true;show('setup');renderSetup();};
 $('#startBtn').onclick=()=>{if(setup.mode==='career'&&typeof createCareer==='function')createCareer();else launch();};
-$('#modeFree').onclick=()=>{setup.mode='free';renderSetup();};
+$('#modeFree').onclick=()=>{setup.mode='free';if(setup.cfg.level==='legends')setup.cfg.level='dep';renderSetup();};
+$('#modeLegends').onclick=()=>{setup.mode='free';setup.cfg.level='legends';renderSetup();};
 $('#modeCareer').onclick=()=>{setup.mode='career';renderSetup();};
 $('#cfgAge').onchange=e=>setup.cfg.age=+e.target.value;
 
