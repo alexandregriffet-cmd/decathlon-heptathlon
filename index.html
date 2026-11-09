@@ -282,6 +282,20 @@ tr.rec td{background:#ffc83d1f;padding:8px 10px}tr.rec small{color:var(--mute)}
 .cRoom .roomCode{font-size:.95em}
 .roomSum{margin:10px 0 0;font-weight:600;color:var(--gold,#fbbf24)}
 .roomBox a{color:var(--gold,#fbbf24);word-break:break-all}
+
+.simBox{margin:8px 0;padding:8px 10px;border:1px dashed var(--line,#33415f);border-radius:10px}
+.simBox small{display:block;color:var(--mute);margin-top:4px;font-size:.72rem;line-height:1.3}
+.simRow{display:flex;gap:6px;margin-top:6px}.simRow select{flex:1;min-width:0}
+.evc.done{cursor:pointer}
+.rkOv{position:fixed;inset:0;background:rgba(5,8,20,.78);z-index:90;display:flex;align-items:flex-start;justify-content:center;padding:4vh 10px;overflow:auto}
+.rkOv[hidden]{display:none}
+.rkBox{background:var(--card,#16213e);border:1px solid var(--line,#33415f);border-radius:16px;padding:14px;max-width:960px;width:100%}
+.rkHead{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}.rkHead h3{margin:0}
+.rkTabs{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px}
+.rkT{padding:5px 10px;border-radius:999px;border:1px solid var(--line,#33415f);background:transparent;color:inherit;font:inherit;font-size:.85em;cursor:pointer}
+.rkT.on{background:var(--gold,#fbbf24);color:#111;border-color:transparent}.rkT[disabled]{opacity:.35;cursor:default}
+.rkM td,.rkM th{white-space:nowrap;text-align:center}.rkM td:nth-child(2),.rkM th:nth-child(2){text-align:left;position:sticky;left:0;background:var(--card,#16213e)}
+.rkM small{display:block;color:var(--mute);font-size:.65em}
 </style>
 </head>
 <body>
@@ -332,6 +346,8 @@ tr.rec td{background:#ffc83d1f;padding:8px 10px}tr.rec small{color:var(--mute)}
    <div id="who" class="who"></div>
    <label class="chk" style="display:flex;gap:8px;align-items:center;font-size:13px;color:var(--mute);margin:4px 0"><input type="checkbox" id="autoChk"> Lancer les dés automatiquement</label>
    <label class="chk" style="display:flex;gap:8px;align-items:center;font-size:13px;color:var(--mute);margin:4px 0">Adversaires <select id="botSpeed"><option value="0.5">animés</option><option value="0.15" selected>rapides</option><option value="0">instantanés</option></select></label>
+   <div class="simBox"><b>⏩ Aller plus vite</b><div class="simRow"><select id="simN"><option value="1">Simuler cette épreuve</option><option value="2">Simuler 2 épreuves</option><option value="3">Simuler 3 épreuves</option><option value="99">Simuler toutes les épreuves restantes</option></select><button class="btn small" id="simBtn">Simuler</button></div><small>Tes dés sont lancés pour toi, tes choix de barres sont automatiques. Tu t’arrêtes sur le résultat de la dernière épreuve simulée.</small></div>
+   <button class="btn small" id="ranksBtn" style="width:100%;margin:6px 0">📊 Classements par épreuve</button>
    <div id="status" class="status"></div>
    <div id="tResult"></div>
    <div id="rollLog" class="log"></div>
@@ -2406,7 +2422,46 @@ function startGame(C,o){
  const g=G;
  runCompetition(C,makeHooks(g)).catch(err=>{if(!g.abort&&err&&err.message!=='abort')console.error(err);});
 }
-$('#autoChk').onchange=e=>{if(G)G.auto=e.target.checked;};
+$('#autoChk').onchange=e=>{if(!G)return;if(G.simmed){if(!e.target.checked)endSim(G);else G.userAuto=true;return;}G.auto=e.target.checked;};
+function endSim(g){g.auto=!!g.userAuto;g.fast=!!g.userFast;g.simmed=false;g.simLeft=0;$('#autoChk').checked=g.auto;}
+$('#simBtn').onclick=()=>{
+ if(!G||G.abort||G.train)return;
+ const n=+$('#simN').value;G.simLeft=n;
+ if(!G.simmed){G.simmed=true;G.userAuto=G.auto;G.userFast=G.fast;}
+ G.auto=true;G.fast=true;$('#autoChk').checked=true;
+ if(G.cancel)G.cancel();
+ const b=$('#actBtn');if(!b.hidden)b.click();
+};
+/* ---------- classements par épreuve ---------- */
+function ranksInto(el,C,sel){
+ const evDone=i=>C.all.some(p=>p.res[i])&&C.all.filter(p=>!p.dnf).every(p=>p.res[i]);
+ const nd=C.evs.filter((e,i)=>evDone(i)).length;
+ if(sel==null)sel='all';
+ const cum=(p,i)=>{let t=0;for(let k=0;k<=i;k++)if(p.res[k])t+=p.res[k].pts;return t;};
+ const tabs=`<div class="rkTabs"><button class="rkT ${sel==='all'?'on':''}" data-s="all">Général</button>${C.evs.map((e,i)=>`<button class="rkT ${sel===i?'on':''}" data-s="${i}" ${evDone(i)?'':'disabled'} title="${esc(e.n)}">${e.i} ${e.s}</button>`).join('')}</div>`;
+ let body='';
+ if(!nd)body='<p class="note">Aucune épreuve terminée pour le moment.</p>';
+ else if(sel==='all'){
+  const L=nd,list=[...C.all].sort((a,b)=>cum(b,L-1)-cum(a,L-1));
+  body=`<div class="tw"><table class="rkM"><tr><th>#</th><th>Athlète</th>${C.evs.slice(0,L).map(e=>`<th title="${esc(e.n)}">${e.i}</th>`).join('')}<th>Total</th></tr>`+
+   list.map((p,r)=>`<tr class="${p.human?'me':''}"><td>${r+1}</td><td>${nameCell(p)}</td>${C.evs.slice(0,L).map((e,i)=>{const x=p.res[i];return x?`<td title="${x.dq?'DQ':fmtPerf(e,x.perf)}">${nf(x.pts)}<small>${evRank(C,i,p)}e</small></td>`:'<td>–</td>';}).join('')}<td><b>${nf(cum(p,L-1))}</b></td></tr>`).join('')+'</table></div><p class="note">Points par épreuve, avec le rang dans l’épreuve en petit. Survole ou touche une case pour voir la performance.</p>';
+ }else{
+  const i=sel,e=C.evs[i],rows=C.all.filter(p=>p.res[i]).sort((a,b)=>b.res[i].pts-a.res[i].pts||0);
+  const gen=[...C.all].sort((a,b)=>cum(b,i)-cum(a,i)),gr=p=>gen.indexOf(p)+1;
+  body=`<h4 style="margin:6px 0">${e.i} ${esc(e.n)}</h4><div class="tw"><table><tr><th>#</th><th>Athlète</th><th>Performance</th><th>Points</th><th>Cumul</th><th>Général</th></tr>`+
+   rows.map((p,r)=>`<tr class="${p.human?'me':''}"><td>${r+1}</td><td>${nameCell(p)}</td><td>${p.res[i].dq?'DQ':fmtPerf(e,p.res[i].perf)}</td><td><b>${nf(p.res[i].pts)}</b></td><td>${nf(cum(p,i))}</td><td>${gr(p)}e</td></tr>`).join('')+'</table></div>';
+ }
+ el.innerHTML=tabs+body;
+ el.querySelectorAll('.rkT').forEach(b=>b.onclick=()=>ranksInto(el,C,b.dataset.s==='all'?'all':+b.dataset.s));
+}
+function openRanks(C,sel){
+ let m=$('#ranksModal');
+ if(!m){m=document.createElement('div');m.id='ranksModal';m.className='rkOv';m.innerHTML='<div class="rkBox"><div class="rkHead"><h3>📊 Classements par épreuve</h3><button class="btn small" id="rkClose">✕ Fermer</button></div><div id="rkBody"></div></div>';document.body.appendChild(m);
+  m.onclick=e=>{if(e.target===m)m.hidden=true;};$('#rkClose').onclick=()=>{m.hidden=true;};}
+ m.hidden=false;ranksInto($('#rkBody'),C,sel==null?'all':sel);
+}
+$('#ranksBtn').onclick=()=>{if(G&&G.C){const C=G.C,r=C.cur?C.cur.r:0;const d=C.all.some(p=>p.res[r])&&C.all.filter(p=>!p.dnf).every(p=>p.res[r]);openRanks(C,d?r:(r>0?r-1:'all'));}};
+$('#evbar').onclick=e=>{const c=e.target.closest('.evc.done');if(c&&G&&G.C)openRanks(G.C,+c.dataset.i);};
 $('#botSpeed').onchange=e=>{if(G&&!G.fast)G.lvl=+e.target.value;};
 $('#vReset').onclick=()=>{ST.manual=false;ST.applyPre(false);};
 $('#vOver').onclick=()=>{ST.overview();};
@@ -2463,13 +2518,13 @@ function makeIO(g,C,p){
    if(!mine){roll=await roomWaitRoll(g,p,o);if(g.abort||roll==null)throw new Error('abort');}
    else{
     const kk=R_?roomNext(p,'r'):0;
-    if(g.auto||g.turbo)await sleep(g.turbo?50:450);
+    if(g.auto||g.turbo)await sleep(g.simmed?40:(g.turbo?50:450));
     else await waitBtn(g,`🎲 Lancer le d20 · ${o.label}`,allowTurbo);
     if(g.abort)throw new Error('abort');
     roll=R_?rndTrue(20):rnd(20);
     if(R_)roomSend('roll',{gid:R_.gid,pid:p.id,k:kk,v:roll});
    }
-   await Die.roll(roll,g.turbo);
+   await Die.roll(roll,g.turbo||g.simmed);
    const out=mkOut(o.T,roll);
    if(g.onRoll)g.onRoll(o,out,roll);
    Die.tint(out);showOut(out,roll,o);ST.speed=1;ST.popup(p,`${roll} · ${OUTT[out].replace(' !','').replace('ÉCHEC CRITIQUE','Échec critique')}`,OUTCOL[out]);
@@ -2522,7 +2577,7 @@ function evRank(C,r,p){
  return l.indexOf(p)+1;
 }
 function buildEvBar(C){
- $('#evbar').innerHTML=C.evs.map((e,i)=>`<div class="evc ${C.cur&&i===C.cur.r?'on':(C.cur&&i<C.cur.r)?'done':''}"><span>${e.i}</span>${e.s}</div>`).join('');
+ $('#evbar').innerHTML=C.evs.map((e,i)=>`<div class="evc ${C.cur&&i===C.cur.r?'on':(C.cur&&i<C.cur.r)?'done':''}" data-i="${i}"><span>${e.i}</span>${e.s}</div>`).join('');
 }
 function renderGeneral(C){
  const done=C.all[0].res.filter(Boolean).length;
@@ -2691,6 +2746,7 @@ function makeHooks(g){
   },
   async eventEnd(C){
    guard();ST.speed=1;
+   if(g.simmed){g.simLeft--;if(g.simLeft<=0)endSim(g);}
    const{ev,r}=C.cur;
    renderLive(C,ev.mech==='race'?[...C.all].sort((a,b)=>b.res[r].pts-a.res[r].pts).map((p,i)=>({p,rank:i+1})):undefined);
    buildEvBar({...C,cur:{...C.cur,r:r+1}});renderGeneral(C);
@@ -2701,7 +2757,7 @@ function makeHooks(g){
    if(g.auto)await sleep(g.fast?300:1500);
    else await waitBtn(g,last?(g.train?'Terminer la séance →':'Voir le classement final →'):`Épreuve suivante : ${C.evs[r+1].n} →`);
   },
-  async finish(C){guard();if(g.room)roomGameOver(g);
+  async finish(C){guard();if(g.simmed)endSim(g);if(g.room)roomGameOver(g);
    if(g.train){ST.show(false);if(g.onFinish)g.onFinish(C);return;}
    await banner('🏁 Compétition terminée','Place au classement…',g.fast?600:1700);ST.show(false);showFinal(C,g.onFinish?()=>g.onFinish(C):null);}
  };
@@ -2723,8 +2779,9 @@ function showFinal(C,cont){
  }).join('');
  $('#final').innerHTML=`<div class="hero"><h1>Classement final</h1><p>${esc(C.level.n)} · ${CATN[C.cat]} · ${list.length} participants</p></div><div class="podium">${pod}</div>${det}
  <div class="card" style="margin-top:14px"><h3>Classement complet</h3><div class="tw"><table><tr><th>#</th><th>Athlète</th><th>Points</th></tr>${list.map((p,i)=>`<tr class="${p.human?'me':''}"><td>${medal(i)}</td><td>${nameCell(p)}</td><td><b>${nf(p.total)}</b></td></tr>`).join('')}</table></div></div>
+ <div class="card" style="margin-top:14px"><h3>📊 Analyse par épreuve</h3><div id="finalRanks"></div></div>
  <div class="startRow" style="margin-top:18px">${cont?'<button class="btn primary big" id="again">Continuer ma carrière →</button>':'<button class="btn primary big" id="again">Rejouer la compétition</button><button class="btn big" id="edit">Modifier les athlètes</button>'}</div>`;
- show('final');
+ show('final');ranksInto($('#finalRanks'),C,'all');
  if(cont){$('#again').onclick=cont;return;}
  $('#again').onclick=()=>launch();
  $('#edit').onclick=()=>{show('setup');renderSetup();};
