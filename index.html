@@ -1663,7 +1663,7 @@ const ST={
   ctx.beginPath();ctx.moveTo(a[0],a[1]);ctx.lineTo(b[0],b[1]);ctx.lineTo(c[0],c[1]);ctx.lineTo(d[0],d[1]);ctx.closePath();
  },
  drawGround(ev,C){
-  this.stag=!!(ev&&ev.mech==='race'&&ev.D<=40);this.chute=!!(ev&&ev.mech==='race'&&ev.D<=11);
+  this.stag=!!(ev&&ev.mech==='race'&&(ev.D<=40||this.indoor));this.chute=!!(ev&&ev.mech==='race'&&ev.D<=11);
   const S=this.S,i0=Math.ceil(S);
   const ctx=this.gcan.getContext('2d'),P=this.PPU,R1=this.R1,LW=this.LW,Ro=R1+this.NL*LW;
   ctx.setTransform(1,0,0,1,0,0);ctx.fillStyle='#143d28';ctx.fillRect(0,0,this.gcan.width,this.gcan.height);
@@ -1769,7 +1769,7 @@ const ST={
     this.qL(ctx,k,s0-1,s0);ctx.fillStyle='rgba(0,0,0,.16)';ctx.fill();
     this.qL(ctx,k,s0-.06,s0+.06);ctx.fillStyle='#fff';ctx.fill();
    }
-   if(D>40){ /* 800 m et 1 500 m : tout le monde court à la corde, couloirs 1 et 2 */
+   if(D>40&&!this.indoor){ /* 800 m et 1 500 m : tout le monde court à la corde, couloirs 1 et 2 */
     for(let k=2;k<this.NL;k++){const E=this.laneLen(k)-this.S;for(let i=-Math.ceil(this.S);i<E;i++){this.qL(ctx,k,Math.max(i,-this.S),Math.min(i+1,E));ctx.fillStyle='rgba(0,0,0,.22)';ctx.fill();}}
     const t2=this.posR(R1+LW*1.0,s0);this.txt(ctx,'À LA CORDE · COULOIRS 1 ET 2',0,-3,1.7,'rgba(255,255,255,.6)',Math.PI/2,null,true);
    }
@@ -1781,7 +1781,7 @@ const ST={
      this.txt(ctx,String(c),q.x,q.y,1.15,'rgba(255,255,255,.5)',q.a,null,true);
     }
    }
-   if(D>40){
+   if(D>40&&!this.indoor){
     const q=this.posR(Ro+2.6,0);this.txt(ctx,Math.round(D/this.LAP*100)/100+' tours',q.x+3.2,q.y,1.3,'#fff',0);
    }
    return;
@@ -2073,7 +2073,7 @@ const ST={
   this.hideAll();this.heat=heat;this.mode='race';
   const D=this.ev.D,s0=-D;
   heat.forEach((p,k)=>{
-   const co=D>40,kk=co?k%2:k,row=co?k>>1:0;
+   const co=D>40&&!this.indoor,kk=co?k%2:k,row=co?k>>1:0;
    const g=this.pawn(p);g.visible=true;const q=this.pos(kk,s0-.5-row*.3);
    g.userData.v.s=0;g.userData.v.sc=null;g.userData.lane=kk;g.userData.row=row;this.place(p,q.x,q.y,q.a,0);
   });
@@ -2468,7 +2468,7 @@ function renderHeat(g,C){
  const heat=g.heat;if(!heat||!heat.length||C.cur.ev.mech!=='race')return;
  const ev=C.cur.ev,D=ev.D;
  const list=heat.map((p,k)=>({p,k,c:g.prog[p.id]||0})).sort((a,b)=>b.c-a.c);
- $('#live').innerHTML='<table><tr><th>#</th><th>'+(D>40?'N°':'Cx')+'</th><th>Athlète</th><th style="width:42%">Progression</th><th>Case</th></tr>'+list.map((x,i)=>
+ $('#live').innerHTML='<table><tr><th>#</th><th>'+(D>40&&!ev.indoor?'N°':'Cx')+'</th><th>Athlète</th><th style="width:42%">Progression</th><th>Case</th></tr>'+list.map((x,i)=>
   `<tr class="${x.p.human?'me':''}"><td>${i+1}</td><td>${x.k+1}</td><td>${nameCell(x.p)}</td><td><div class="pg" style="--c:${x.p.human?x.p.color:ST.BOTC[x.p.id%8]}"><i style="width:${Math.min(100,x.c/D*100)}%"></i></div></td><td>${Math.min(x.c,D)}/${D}</td></tr>`).join('')+'</table>';
 }
 
@@ -2572,7 +2572,7 @@ function makeHooks(g){
    HUD(`Série ${hi+1}/${n} · ${C.cur.cond.s}`);
    $('#rollLog').innerHTML='';$('#tResult').innerHTML='';$('#status').innerHTML='';$('#dieMsg').textContent='';
    renderHeat(g,C);
-   ticker((ev.D>40?'Départ : ':'Couloirs : ')+heat.map((p,k)=>`${k+1} ${p.flag||''} ${fullName(p)}`).join(' · '));
+   ticker((ev.D>40&&!ev.indoor?'Départ : ':'Couloirs : ')+heat.map((p,k)=>`${k+1} ${p.flag||''} ${fullName(p)}`).join(' · '));
    if(has||n===1)await banner(`Série ${hi+1}/${n}`,heat.some(p=>p.human)?'Départ : chacun lance le d20 à tour de rôle, couloir 1 en premier.':'Les adversaires courent.',g.fast?350:1200);
    setWho(null,`Série ${hi+1}/${n}`);
   },
