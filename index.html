@@ -340,7 +340,7 @@ tr.rec td{background:#ffc83d1f;padding:8px 10px}tr.rec small{color:var(--mute)}
 <dialog id="rules">
  <h2>Règles du jeu</h2>
  <h4>La qualification</h4>
- <p><b>Blessures (carrière)</b> : après une compétition ou une séance, surtout si tu es fatigué, tu peux te blesser (luxation de l’épaule, ischio-jambiers, cheville, tendon d’Achille…). Tu manques alors des étapes du calendrier (1 à 3 mois). Chaque mois d’arrêt, les qualités touchées perdent environ 5 % de leur valeur (4 points à 80 %). Ces points ne reviennent ni par l’entraînement ni par les points à répartir : seulement par le repos et la kiné (d20 : +1 %, +2 % si parfait), pendant l’arrêt comme après.</p>
+ <p><b>Blessures (carrière)</b> : après une compétition ou une séance, surtout si tu es fatigué, tu peux te blesser (luxation de l’épaule, ischio-jambiers, cheville, tendon d’Achille…). Elle peut survenir en pleine compétition : tu abandonnes alors les épreuves restantes. Tu manques ensuite des étapes du calendrier : 1 mois pour une entorse ou un claquage, 3 mois pour une lésion musculaire, jusqu’à 9 mois pour une rupture du ligament croisé du genou. Chaque mois d’arrêt, les qualités touchées perdent environ 5 % de leur valeur (4 points à 80 %). Ces points ne reviennent ni par l’entraînement ni par les points à répartir : seulement par le repos et la kiné (d20 : +1 %, +2 % si parfait), pendant l’arrêt comme après.</p>
 <p><b>En salle</b> : l’heptathlon en salle (hommes : 60 m, longueur, poids, hauteur, 60 m haies, perche, 1 000 m) et le pentathlon en salle (femmes : 60 m haies, hauteur, poids, longueur, 800 m) se jouent en mode libre, avec les mêmes niveaux jusqu’aux championnats du monde en salle. En carrière, la saison en salle suit chaque été : régionaux en salle, France Élite en salle, puis Europe ou Monde en salle, avec tes records de salle à part.</p>
 <p>Pour entrer dans une compétition, la moyenne de tes capacités sur toutes les épreuves doit atteindre un minimum : départementaux 6/20, régionaux 8/20, interrégionaux 10/20, France Élite 13/20, Europe, Monde et Jeux 15/20 (décathlon comme heptathlon). Sans le minimum, le niveau reste verrouillé.</p>
  <h4>Les qualités</h4>
@@ -557,6 +557,7 @@ async function doForm(C,H,day){
  const fsk=ev.sk||ev.skS||(ev.run&&ev.run.sk)||ev.stages[0].sk;
  const mk=p=>{const cap=capOf(p,fsk);return{kind:'form',label:'Forme du jour',sk:fsk,cap,T:clampT(cap),mods:{form:0,fat:0,cond:0,condName:'Aucune condition',total:0}};};
  for(const p of C.all){
+  if(p.dnf)continue;
   const o=mk(p);let r;
   if(p.human&&H.formStart){await H.formStart(C,p,day,ev);r=await H.humanIO(C,p).roll(o);}
   else r=await botIO.roll(o);
@@ -893,7 +894,7 @@ async function runBarEvent(C,H){
 }
 
 async function runCompetition(C,H){
- C.attempts=C.attempts||3;
+ C.attempts=C.attempts||3;let removed=[],all0=null;
  await H.begin(C);
  if(!C.noForm)await doForm(C,H,1);
  for(let r=0;r<C.evs.length;r++){
@@ -903,11 +904,26 @@ async function runCompetition(C,H){
   C.cur={r,ev,cond:drawCond(ev),day:r<C.dayBreak?1:2};
   C.all.forEach(p=>{p.att[r]=[];});
   await H.eventStart(C);
+  removed=C.all.filter(p=>p.dnf);if(removed.length){all0=[...C.all];C.all=C.all.filter(p=>!p.dnf);}
   if(ev.mech==='race')await runRaceEvent(C,H);
   else if(ev.mech==='bar')await runBarEvent(C,H);
   else await runFieldEvent(C,H);
   if(H.aborted())return;
   C.all.forEach(p=>{p.fat+=ev.f*(p.age>=34?1.25:1);});
+  /* blessure en pleine compétition (mode carrière) : le joueur abandonne les épreuves suivantes */
+  if(removed.length){C.all=all0;removed.forEach(p=>{setRes(p,r,null,0,false);});removed=[];}
+  if(C.hurtRisk&&typeof pickInjury==='function'){
+   for(const p of C.all){
+    if(!p.human||p.dnf)continue;
+    const hit=Object.keys(p.inj||{}).length>(p.injN||0);p.injN=Object.keys(p.inj||{}).length;
+    const risk=C.hurtRisk*(.0015+ev.f*.0012+(p.age>=30?.004:0))+(hit?.03:0);
+    if(Math.random()<risk){
+     p.hurt=pickInjury(null,ev);p.hurt.where=ev.n;
+     if(r<C.evs.length-1){p.dnf=true;p.hurt.dnf=true;}
+     await call(H,'injured',C,p,p.hurt,ev);
+    }
+   }
+  }
   await H.eventEnd(C);
  }
  await H.finish(C);
@@ -991,30 +1007,45 @@ function gymSession(K,sess,rollFn){
 }
 /* ---------- blessures : arrêt, perte de % par mois, rééducation ---------- */
 const INJURIES=[
- {id:'epa',n:'Luxation de l’épaule',zone:'l’épaule',sk:['for','pui','dex'],months:2,w:2},
- {id:'isc',n:'Déchirure des ischio-jambiers',zone:'les ischio-jambiers',sk:['vit','pui','det'],months:2,w:3},
- {id:'che',n:'Entorse de la cheville',zone:'la cheville',sk:['det','dex','vit'],months:1,w:3},
- {id:'ach',n:'Tendinite du tendon d’Achille',zone:'le tendon d’Achille',sk:['det','end','vit'],months:2,w:2},
- {id:'dos',n:'Lombalgie aiguë',zone:'le dos',sk:['for','pui','tec'],months:1,w:2},
- {id:'mol',n:'Claquage du mollet',zone:'le mollet',sk:['vit','det','end'],months:1,w:3},
- {id:'gen',n:'Entorse du genou (ligaments)',zone:'le genou',sk:['det','pui','dex'],months:3,w:1},
- {id:'tib',n:'Fracture de fatigue du tibia',zone:'le tibia',sk:['end','det','vit'],months:3,w:1}
+ /* légères : 1 mois */
+ {id:'che',n:'Entorse de la cheville',zone:'la cheville',sk:['det','dex','vit'],months:1,w:3,tg:'jr'},
+ {id:'mol',n:'Claquage du mollet',zone:'le mollet',sk:['vit','det','end'],months:1,w:3,tg:'re'},
+ {id:'dos',n:'Lombalgie aiguë',zone:'le dos',sk:['for','pui','tec'],months:1,w:2,tg:'tj'},
+ /* moyennes : 2 à 3 mois (lésions musculaires et tendineuses longues) */
+ {id:'epa',n:'Luxation de l’épaule',zone:'l’épaule',sk:['for','pui','dex'],months:2,w:2,tg:'tb'},
+ {id:'poi',n:'Fracture du poignet',zone:'le poignet',sk:['for','dex','tec'],months:2,w:1,tg:'tb'},
+ {id:'isc',n:'Déchirure des ischio-jambiers',zone:'les ischio-jambiers',sk:['vit','pui','det'],months:3,w:3,tg:'r'},
+ {id:'qua',n:'Lésion musculaire du quadriceps',zone:'le quadriceps',sk:['pui','det','vit'],months:3,w:2,tg:'rj'},
+ {id:'add',n:'Déchirure des adducteurs',zone:'les adducteurs',sk:['vit','det','pui'],months:3,w:2,tg:'r'},
+ {id:'ach',n:'Tendinite du tendon d’Achille',zone:'le tendon d’Achille',sk:['det','end','vit'],months:3,w:2,tg:'jre'},
+ {id:'cla',n:'Fracture de la clavicule',zone:'la clavicule',sk:['for','pui','dex'],months:3,w:1,tg:'tb'},
+ /* graves : 4 mois et plus */
+ {id:'men',n:'Lésion du ménisque',zone:'le genou',sk:['det','pui','dex'],months:4,w:1,tg:'jr'},
+ {id:'tib',n:'Fracture de fatigue du tibia',zone:'le tibia',sk:['end','det','vit'],months:4,w:1,tg:'re'},
+ {id:'her',n:'Hernie discale',zone:'le dos',sk:['for','pui','tec'],months:4,w:1,tg:'tb'},
+ {id:'lat',n:'Entorse grave du genou (ligament latéral)',zone:'le genou',sk:['det','pui','dex','vit'],months:5,w:1,tg:'jr'},
+ {id:'tac',n:'Rupture du tendon d’Achille',zone:'le tendon d’Achille',sk:['det','vit','pui','end'],months:7,w:.5,tg:'jr'},
+ {id:'lca',n:'Rupture du ligament croisé antérieur (genou)',zone:'le genou',sk:['det','pui','vit','dex'],months:9,w:.7,tg:'jr'}
 ];
 const injLoss=pc=>Math.max(2,Math.round(pc*.05));            /* % perdus par mois d'arrêt, par qualité touchée : 80 % → 4 */
 const hurtSk=(K,k)=>!!(K.regain&&K.regain[k]>0);
 const hasRegain=K=>!!K.regain&&Object.keys(K.regain).some(k=>K.regain[k]>0);
-function pickInjury(K){
- const tot=INJURIES.reduce((a,x)=>a+x.w,0);let r=Math.random()*tot,t=INJURIES[0];
- for(const x of INJURIES){r-=x.w;if(r<=0){t=x;break;}}
- return{id:t.id,n:t.n,zone:t.zone,sk:t.sk.slice(),months:t.months,left:t.months,total:t.months,fresh:true};
+/* épreuve → famille de blessures : r course, j saut/appuis, t lancer, b barre, e endurance */
+const evTags=ev=>!ev?'':ev.mech==='throw'?'t':ev.mech==='race'?(ev.D>=60?'re':'r'):ev.mech==='bar'?'jb':'j';
+function pickInjury(K,ev){
+ const tg=evTags(ev),wt=x=>x.w*(tg&&[...tg].some(c=>x.tg.includes(c))?3:1);
+ const tot=INJURIES.reduce((a,x)=>a+wt(x),0);let r=Math.random()*tot,t=INJURIES[0];
+ for(const x of INJURIES){r-=wt(x);if(r<=0){t=x;break;}}
+ return{id:t.id,n:t.n,zone:t.zone,sk:t.sk.slice(),months:t.months,left:t.months,total:t.months,fresh:true,lost:{}};
 }
 /* chance de se blesser après une compétition ou une séance : fatigue, âge, échec critique pendant l'épreuve */
-const injChance=(K,hit)=>Math.min(.35,.04+.02*K.tf+Math.max(0,K.age-30)*.005+(hit?.25:0));
+const injChance=(K,hit)=>Math.min(.35,.02+.015*K.tf+Math.max(0,K.age-30)*.005+(hit?.25:0));
 /* début d'un mois d'arrêt : chaque qualité touchée perd des %, récupérables par le repos et la kiné */
 function enterRehab(K){
  K.regain=K.regain||{};const lost=[];
  K.inj.fresh=false;
- K.inj.sk.forEach(k=>{const d=Math.min(injLoss(K.pct[k]),Math.max(0,K.pct[k]-8));if(d>0){K.pct[k]-=d;K.regain[k]=(K.regain[k]||0)+d;lost.push({k,d});}});
+ const cap=Math.min(26,6+3*K.inj.total);K.inj.lost=K.inj.lost||{};
+ K.inj.sk.forEach(k=>{const d=Math.min(injLoss(K.pct[k]),cap-(K.inj.lost[k]||0),Math.max(0,K.pct[k]-8));if(d>0){K.pct[k]-=d;K.regain[k]=(K.regain[k]||0)+d;K.inj.lost[k]=(K.inj.lost[k]||0)+d;lost.push({k,d});}});
  K.inj.lastLoss=lost;K.phase='rehab';K.slots=[null,null,null];K.sessDone=0;
  return lost;
 }
@@ -1081,7 +1112,7 @@ function silentHooks(tally,isTrain){
 function buildCareerComp(K,lvId){
  const lvl=lvById(lvId),cat=lvl&&lvl.indoor?IND[K.cat]:K.cat;
  const C=buildCompetition(lvId,cat,[{first:K.first,last:K.last,nat:K.nat,color:K.color,pct:{...K.pct},age:K.age,sex:sexOf(K.cat)}]);
- C.attempts=K.att;C.all[0].fat=K.tf*2.5;
+ C.attempts=K.att;C.all[0].fat=K.tf*2.5;C.hurtRisk=1+K.tf*.4+(K.inj?0:0);
  C.all[0].pr={};['hj','pv'].forEach(id=>{if(K.pb[id]&&K.pb[id].perf!=null)C.all[0].pr[id]=K.pb[id].perf;});
  return C;
 }
@@ -1106,7 +1137,8 @@ function settleCompetition(K,C,step){
  K.comps++;K.bestTotal=Math.max(K.bestTotal,p.total);
  K.hist.push({year:K.year,age:K.age,name:step.n,lv:step.lv,rank,of:list.length,total:p.total,pbs:pbs.length,tl:lvById(step.lv).s});
  let hurt=null;
- if(!K.inj&&Math.random()<injChance(K,p.inj&&Object.keys(p.inj).length>0)){hurt=pickInjury(K);K.inj=hurt;}
+ if(!K.inj&&p.hurt){hurt=p.hurt;K.inj=hurt;}
+ else if(!K.inj&&Math.random()<injChance(K,false)){hurt=pickInjury(K);K.inj=hurt;}
  K.tf=0;
  return{rank,total:p.total,pbs,pod,of:list.length,hurt};
 }
@@ -2607,6 +2639,11 @@ function makeHooks(g){
    guard();renderLive(C);ticker(`Barre ${fmtM(bar)} terminée`);
    if(g.spNow>0)await sleep(150*g.spNow);
   },
+  async injured(C,p,h,ev){
+   guard();
+   if(p.human)await banner('🚑 Blessure',`${esc(fullName(p))} se blesse pendant ${esc(ev.n)} : ${esc(h.n)}.${h.dnf?' Abandon pour la suite de la compétition.':''}`,g.fast?900:2800);
+   ticker(`🚑 ${fullName(p)} blessé (${h.n})`);
+  },
   async eventEnd(C){
    guard();ST.speed=1;
    const{ev,r}=C.cur;
@@ -3008,7 +3045,7 @@ function endComp(C,st){
  const gain=K.pools.reduce((a,x)=>a+x.n,0);
  cNote=`<div class="card cnote ${r.rank<=3?'gold':''}"><h3>${r.rank===1?'🏆 Victoire !':r.rank<=3?'🏅 Sur le podium !':'🏁 Compétition terminée'}</h3>
  <p>${esc(st.n)} : <b>${rankTxt(r.rank,r.of)}</b> avec <b>${nf(r.total)} points</b>${r.pbs.length?` · ${r.pbs.length} ${plural(r.pbs.length,'record personnel','records personnels')} (${r.pbs.map(e=>e.s).join(', ')})`:''}.${gain?` Tu as <b>${gain} points</b> à répartir.`:''}</p>
- <div class="tw"><table>${top}${mine}</table></div></div>${r.hurt?`<div class="card cnote warn"><h3>🚑 Blessure</h3><p><b>${esc(r.hurt.n)}</b> : arrêt de ${r.hurt.months} mois. Tu perdras environ ${injLoss(K.pct[r.hurt.sk[0]])} % par mois sur ${r.hurt.sk.map(k=>SX[k].n.toLowerCase()).join(', ')}, à récupérer par le repos et la kiné.</p></div>`:''}`;
+ <div class="tw"><table>${top}${mine}</table></div></div>${r.hurt?`<div class="card cnote warn"><h3>🚑 Blessure</h3><p>${r.hurt.dnf?`Tu as abandonné après ${esc(r.hurt.where)}. `:r.hurt.where?`Blessure pendant ${esc(r.hurt.where)}. `:''}<b>${esc(r.hurt.n)}</b> : arrêt de ${r.hurt.months} mois. Tu perdras environ ${injLoss(K.pct[r.hurt.sk[0]])} % par mois sur ${r.hurt.sk.map(k=>SX[k].n.toLowerCase()).join(', ')}, à récupérer par le repos et la kiné.</p></div>`:''}`;
  persist();enterCareer();
 }
 
