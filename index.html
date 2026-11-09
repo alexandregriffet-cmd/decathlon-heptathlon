@@ -259,6 +259,12 @@ dialog p,dialog li{color:#dfe5f7;font-size:14px;line-height:1.5;margin:4px 0}
 .trLvs{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:4px 18px}.trM{white-space:nowrap}.trN{white-space:nowrap}
 .trLv{display:flex;justify-content:space-between;gap:8px;font-size:13px}.trLv.off{opacity:.45}.trN{font:600 12px Oswald;text-transform:uppercase}
 tr.rec td{background:#ffc83d1f;padding:8px 10px}tr.rec small{color:var(--mute)}
+
+.trGrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:10px}
+.trCard{display:flex;flex-direction:column;align-items:center;text-align:center;gap:4px;padding:12px 8px;border-radius:12px;background:#ffffff0d;border-bottom:5px solid #7a5a22}
+.trCard i{font-style:normal;font-size:34px;line-height:1}.trCard b{font:600 12px Oswald;text-transform:uppercase;color:var(--gold)}
+.trCard.g{outline:1px solid var(--gold);background:#ffc83d14}.trCard.off{opacity:.45}
+.trY{display:flex;flex-direction:column;align-items:center;font-size:13px}.trY small{color:var(--mute);font-size:11px}
 </style>
 </head>
 <body>
@@ -2480,10 +2486,11 @@ const played=K.hist.filter(h=>!h.skip&&h.total>0),bestH=played.reduce((a,h)=>h.t
  const recName=K.cat==='DEC'?'décathlon':'heptathlon';
  const recRow=`<tr class="rec"><td colspan="4">🏆 <b>Record en ${recName} : ${bestH.total?nf(bestH.total)+' pts':'—'}</b>${bestH.total?`<br><small>${esc(bestH.name)}, ${bestH.year}</small>`:''}</td></tr>`;
  const pod=K.hist.filter(h=>!h.skip&&h.rank>=1&&h.rank<=3);
- const shelf=[...LEVELS].reverse().map(L=>{const m=[0,0,0];pod.filter(h=>h.lv===L.id).forEach(h=>m[h.rank-1]++);const n=m[0]+m[1]+m[2];
-  return `<div class="trLv ${n?'':'off'}"><span class="trN">${L.s}</span><span class="trM">${n?medalsTxt(m):'—'}</span></div>`;}).join('');
- const cups=[...pod].sort((a,b)=>a.rank-b.rank||b.year-a.year).slice(0,30).map(h=>`<span class="trCup r${h.rank}" title="${esc(h.name)} ${h.year}"><i>${['','🏆','🥈','🥉'][h.rank]}</i><b>${esc(h.tl||h.name)}</b><small>${h.year}</small></span>`).join('');
- $('#cHist').innerHTML=`<div class="vitrine"><h3>Vitrine des trophées</h3><div class="trShelf">${cups||'<span class="note">Aucun podium pour l’instant : la vitrine attend son premier trophée.</span>'}</div><div class="trLvs">${shelf}</div></div>
+ const yrs=(L,r)=>pod.filter(h=>h.lv===L.id&&h.rank===r).map(h=>h.year).sort((x,y)=>x-y).join(', ');
+ const cups=[...LEVELS].reverse().map(L=>{const m=[0,0,0];pod.filter(h=>h.lv===L.id).forEach(h=>m[h.rank-1]++);const n=m[0]+m[1]+m[2];
+  const line=(ic,r)=>m[r-1]?`<div class="trY"><span>${m[r-1]} ${ic}</span><small>${yrs(L,r)}</small></div>`:'';
+  return `<div class="trCard ${n?(m[0]?'g':'s'):'off'}"><i>${n?'🏆':'🔒'}</i><b>${L.s}</b>${n?line('🥇',1)+line('🥈',2)+line('🥉',3):'<small>Pas encore de médaille</small>'}</div>`;}).join('');
+ $('#cHist').innerHTML=`<div class="vitrine"><h3>Vitrine des trophées</h3><div class="trGrid">${cups}</div></div>
  <div class="histGrid"><div><h3>Parcours</h3><div class="tw"><table><tr><th>Année</th><th>Âge</th><th>Compétition</th><th>Place</th><th>Points</th><th>Records</th></tr>${rows||'<tr><td colspan="6" style="color:var(--mute)">Aucune compétition disputée pour l’instant.</td></tr>'}</table></div></div>
  <div><h3>Records personnels</h3><div class="tw"><table>${recRow}<tr><th>Épreuve</th><th>Perf.</th><th>Pts</th><th>Année</th></tr>${pbs}</table></div></div></div>`;
 }
