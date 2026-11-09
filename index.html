@@ -269,6 +269,17 @@ tr.rec td{background:#ffc83d1f;padding:8px 10px}tr.rec small{color:var(--mute)}
 .cmRow select{max-width:100%}.cmList{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:6px;width:100%;max-height:300px;overflow:auto}
 .cmItem{display:flex;gap:8px;align-items:center;padding:6px 8px;border-radius:10px;background:#ffffff0a;cursor:pointer}.cmItem small{display:block;color:var(--mute);font-size:11.5px}
 .ath.lk .stat button,.ath.lk .tools,.ath.lk .colors,.ath.lk .grid2,.ath.lk .pleft{display:none}.ath.lk .rm{display:inline-block}
+
+.roomBox h3{margin:0 0 6px}.roomBox h3 small{font-weight:400;color:var(--mute);font-size:.7em;margin-left:6px}
+.roomCode{font-family:ui-monospace,Menlo,monospace;letter-spacing:.18em;background:var(--card2,#1f2a44);padding:2px 10px;border-radius:8px;border:1px solid var(--line,#33415f)}
+.roomList{display:flex;flex-wrap:wrap;gap:6px}
+.roomM{display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:999px;border:1px solid var(--line,#33415f);font-size:.85em}
+.roomM em{font-style:normal;color:var(--mute);font-size:.8em}
+.roomM .dot{width:12px;height:12px}
+.inRoom #addHuman,.inRoom .ath .rm{display:none!important}
+
+.cRoom{margin:10px 0 0;padding:10px 12px;border:1px solid var(--line,#33415f);border-radius:12px;display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.cRoom .roomCode{font-size:.95em}
 </style>
 </head>
 <body>
@@ -293,6 +304,7 @@ tr.rec td{background:#ffc83d1f;padding:8px 10px}tr.rec small{color:var(--mute)}
  </div>
  <p class="info" id="cfgInfo"></p>
  <div id="careerBox" class="card careerBox"></div>
+ <div id="roomBox" class="card roomBox" hidden></div>
  <div id="commBox" class="card commBox" hidden></div>
  <div id="athletes" class="athletes"></div>
  <div class="addRow"><button class="btn" id="addHuman">＋ Ajouter un athlète joueur</button></div>
@@ -341,6 +353,7 @@ tr.rec td{background:#ffc83d1f;padding:8px 10px}tr.rec small{color:var(--mute)}
  <h2>Règles du jeu</h2>
  <h4>La qualification</h4>
  <p><b>Blessures (carrière)</b> : après une compétition ou une séance, surtout si tu es fatigué, tu peux te blesser (luxation de l’épaule, ischio-jambiers, cheville, tendon d’Achille…). Elle peut survenir en pleine compétition : tu abandonnes alors les épreuves restantes. Tu manques ensuite des étapes du calendrier : 1 mois pour une entorse ou un claquage, 3 mois pour une lésion musculaire, jusqu’à 9 mois pour une rupture du ligament croisé du genou. Chaque mois d’arrêt, les qualités touchées perdent environ 5 % de leur valeur (4 points à 80 %). Ces points ne reviennent ni par l’entraînement ni par les points à répartir : seulement par le repos et la kiné (d20 : +1 %, +2 % si parfait), pendant l’arrêt comme après.</p>
+ <p><b>Salle en ligne (jusqu’à 16 joueurs)</b> : un joueur crée une salle et envoie le code (ou le lien) aux autres. Chacun joue sur son propre écran : même stade, mêmes adversaires, mêmes résultats, chacun lance le d20 de son athlète. L’hôte choisit le niveau et lance la partie. En mode carrière, chaque joueur garde sa propre carrière : sur une même étape du calendrier, tous se déclarent prêts, l’hôte lance, et chacun voit le résultat entrer dans sa carrière.</p>
 <p><b>En salle</b> : l’heptathlon en salle (hommes : 60 m, longueur, poids, hauteur, 60 m haies, perche, 1 000 m) et le pentathlon en salle (femmes : 60 m haies, hauteur, poids, longueur, 800 m) se jouent en mode libre, avec les mêmes niveaux jusqu’aux championnats du monde en salle. En carrière, la saison en salle suit chaque été : régionaux en salle, France Élite en salle, puis Europe ou Monde en salle, avec tes records de salle à part.</p>
 <p>Pour entrer dans une compétition, la moyenne de tes capacités sur toutes les épreuves doit atteindre un minimum : départementaux 6/20, régionaux 8/20, interrégionaux 10/20, France Élite 13/20, Europe, Monde et Jeux 15/20 (décathlon comme heptathlon). Sans le minimum, le niveau reste verrouillé.</p>
  <h4>Les qualités</h4>
@@ -373,6 +386,13 @@ tr.rec td{background:#ffc83d1f;padding:8px 10px}tr.rec small{color:var(--mute)}
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script>
+var ROOM=null;
+/* générateur aléatoire de la logique : Math.random en solo, graine partagée en salle en ligne (tous les écrans calculent le même résultat) */
+var RNGF=Math.random;
+function RNG(){return RNGF();}
+function seedRNG(s){let a=(s>>>0)||1;RNGF=function(){a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;};}
+function unseedRNG(){RNGF=Math.random;}
+const rndTrue=n=>1+Math.floor(Math.random()*n);
 /* ================= LOGIQUE DU JEU (sans DOM) ================= */
 const STATS=[
  {k:'vit',n:'Vitesse',i:'⚡'},{k:'for',n:'Force',i:'💪'},{k:'pui',n:'Puissance',i:'💥'},
@@ -478,8 +498,8 @@ function barList(cat,ev,li){
 
 /* ---------- barème ---------- */
 const clamp=(x,a,b)=>Math.max(a,Math.min(b,x));
-const rnd=n=>1+Math.floor(Math.random()*n);
-const pick=a=>a[Math.floor(Math.random()*a.length)];
+const rnd=n=>1+Math.floor(RNG()*n);
+const pick=a=>a[Math.floor(RNG()*a.length)];
 function ptsOf(ev,P){
  if(P==null||P<=0)return 0;
  const v=ev.k==='track'?ev.A*Math.pow(ev.B-P,ev.C):ev.A*Math.pow(P-ev.B,ev.C);
@@ -567,8 +587,8 @@ async function doForm(C,H,day){
 }
 const CONDS=[
  {w:30,s:'Conditions neutres',txt:()=>'Conditions neutres. Rien de particulier.',mod:0},
- {w:9,need:'wind',s:'Vent arrière',txt:()=>`Vent arrière favorable (+${(1+Math.random()).toFixed(1).replace('.',',')} m/s)`,mod:1},
- {w:9,need:'wind',s:'Vent de face',txt:()=>`Vent de face (−${(.8+Math.random()*1.2).toFixed(1).replace('.',',')} m/s)`,mod:-1},
+ {w:9,need:'wind',s:'Vent arrière',txt:()=>`Vent arrière favorable (+${(1+RNG()).toFixed(1).replace('.',',')} m/s)`,mod:1},
+ {w:9,need:'wind',s:'Vent de face',txt:()=>`Vent de face (−${(.8+RNG()*1.2).toFixed(1).replace('.',',')} m/s)`,mod:-1},
  {w:7,s:'Pluie',txt:()=>'Pluie fine : surfaces glissantes.',mod:-1},
  {w:6,need:'race',s:'Chaleur',txt:()=>'Chaleur écrasante (34 °C).',mod:-1},
  {w:6,need:'throw',s:'Rafales',txt:()=>'Rafales latérales sur l’aire de lancer.',mod:-1},
@@ -579,7 +599,7 @@ const CONDS=[
 function drawCond(ev){
  let ok=CONDS.filter(c=>!c.need||(c.need==='wind'&&ev.wind)||c.need===ev.mech);
  if(ev.indoor)ok=ok.filter(c=>['Conditions neutres','Public en feu','Pression'].includes(c.s));
- let x=Math.random()*ok.reduce((s,c)=>s+c.w,0),c=ok[0];
+ let x=RNG()*ok.reduce((s,c)=>s+c.w,0),c=ok[0];
  for(const o of ok){x-=o.w;if(x<=0){c=o;break;}}
  return{s:c.s,txt:c.txt(),mod:c.mod,mental:c.mental||null};
 }
@@ -599,7 +619,7 @@ function modsOf(p,cur){
 /* ---------- jets (avec blessure possible sur échec critique) ---------- */
 async function R(p,io,o){
  const r=await io.roll(o);
- if(r.out==='crit'&&Math.random()<.2&&o.sk){
+ if(r.out==='crit'&&RNG()<.2&&o.sk){
   const k=pick(o.sk);p.inj[k]=(p.inj[k]||0)+5;
   await io.note(`Blessure : ${SX[k].n} −5 % jusqu’à la fin de la compétition.`);
  }
@@ -736,13 +756,13 @@ const FIRST_F=['Nafi','Katarina','Jackie','Carolina','Anouk','Emma','Laura','Sof
 const LAST=['Moreau','Keller','Okafor','Silva','Tanaka','Novak','Lindqvist','Duval','Haddad','Brown','Rossi','Petrov','Mbaye','Hansen','Kowalski','Dubois','Garnier','Weber','Lopez','Nowak','Fischer','Marchand','Costa','Berger','Lemaire','Girard'];
 const NAT_FR=[['France','🇫🇷']];
 const NAT_INT=[['Allemagne','🇩🇪'],['États-Unis','🇺🇸'],['Canada','🇨🇦'],['Estonie','🇪🇪'],['Grenade','🇬🇩'],['Royaume-Uni','🇬🇧'],['Espagne','🇪🇸'],['Pologne','🇵🇱'],['Pays-Bas','🇳🇱'],['Belgique','🇧🇪'],['Brésil','🇧🇷'],['Japon','🇯🇵'],['Cuba','🇨🇺'],['Ukraine','🇺🇦'],['République tchèque','🇨🇿'],['Suède','🇸🇪'],['Australie','🇦🇺'],['Finlande','🇫🇮']];
-function gauss(){let s=0;for(let i=0;i<6;i++)s+=Math.random();return(s-3)/Math.sqrt(.5);}
+function gauss(){let s=0;for(let i=0;i<6;i++)s+=RNG();return(s-3)/Math.sqrt(.5);}
 function makeBot(level,cat,id,usedNames){
  const sex=sexOf(cat);
  let first,last,key,g=0;
  do{first=pick(sex==='M'?FIRST_M:FIRST_F);last=pick(LAST);key=first+last;}while(usedNames.has(key)&&g++<50);
  usedNames.add(key);
- const natPool=Math.random()<level.intl?NAT_INT:NAT_FR,nat=pick(natPool);
+ const natPool=RNG()<level.intl?NAT_INT:NAT_FR,nat=pick(natPool);
  const base=level.avg+gauss()*4,pct={};
  STATS.forEach(s=>pct[s.k]=clamp(Math.round(base+gauss()*7),8,PCT_MAX));
  /* profil de spécialité : un point fort, un point faible */
@@ -764,7 +784,7 @@ function buildCompetition(levelId,cat,humans){
  if(typeof injectPros==='function')injectPros(C);
  return C;
 }
-const orderByTotal=(C)=>[...C.all].map(p=>({p,k:p.total+Math.random()*.01})).sort((a,b)=>a.k-b.k).map(x=>x.p);
+const orderByTotal=(C)=>[...C.all].map(p=>({p,k:p.total+RNG()*.01})).sort((a,b)=>a.k-b.k).map(x=>x.p);
 
 function setRes(p,r,perf,pts,dq){p.res[r]={perf,pts:dq?0:pts,dq:!!dq};p.total=p.res.reduce((s,x)=>s+(x?x.pts:0),0);}
 
@@ -773,7 +793,7 @@ const call=async(H,n,...a)=>{if(H[n])return H[n](...a);};
 
 /* séries de 8 couloirs au plus ; les humains courent dans les dernières séries */
 function makeHeats(C){
- const sh=a=>{a=[...a];for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;};
+ const sh=a=>{a=[...a];for(let i=a.length-1;i>0;i--){const j=Math.floor(RNG()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;};
  const arr=sh(C.all.filter(x=>!x.human)).concat(sh(C.all.filter(x=>x.human)));
  const NLN=C.indoor?6:8,n=Math.ceil(arr.length/NLN),heats=[];let i=0;
  for(let h=0;h<n;h++){const sz=Math.floor(arr.length/n)+(h>=n-(arr.length%n)?1:0);heats.push(arr.slice(i,i+sz));i+=sz;}
@@ -912,12 +932,12 @@ async function runCompetition(C,H){
   C.all.forEach(p=>{p.fat+=ev.f*(p.age>=34?1.25:1);});
   /* blessure en pleine compétition (mode carrière) : le joueur abandonne les épreuves suivantes */
   if(removed.length){C.all=all0;removed.forEach(p=>{setRes(p,r,null,0,false);});removed=[];}
-  if(C.hurtRisk&&typeof pickInjury==='function'){
+  if((C.hurtRisk||C.all.some(x=>x.hurtRisk))&&typeof pickInjury==='function'){
    for(const p of C.all){
-    if(!p.human||p.dnf)continue;
+    if(!p.human||p.dnf||!(p.hurtRisk||C.hurtRisk))continue;
     const hit=Object.keys(p.inj||{}).length>(p.injN||0);p.injN=Object.keys(p.inj||{}).length;
-    const risk=C.hurtRisk*(.0015+ev.f*.0012+(p.age>=30?.004:0))+(hit?.03:0);
-    if(Math.random()<risk){
+    const risk=(p.hurtRisk||C.hurtRisk)*(.0015+ev.f*.0012+(p.age>=30?.004:0))+(hit?.03:0);
+    if(RNG()<risk){
      p.hurt=pickInjury(null,ev);p.hurt.where=ev.n;
      if(r<C.evs.length-1){p.dnf=true;p.hurt.dnf=true;}
      await call(H,'injured',C,p,p.hurt,ev);
@@ -996,7 +1016,7 @@ function gymSession(K,sess,rollFn){
  sess.sk.forEach(k=>{
   const roll=rollFn?rollFn():rnd(20),out=mkOut(T,roll);
   const pc=K.pct[k],lo=pc<45?1:0;   /* les débutants progressent plus vite */
-  let g=out==='perfect'?(pc<60?2:1)+lo:out==='ok'?(Math.random()<gainChance(pc)?1+lo:0):0;
+  let g=out==='perfect'?(pc<60?2:1)+lo:out==='ok'?(RNG()<gainChance(pc)?1+lo:0):0;
   if(hurtSk(K,k))g=0;   /* qualité en rééducation : seul le repos et la kiné la font remonter */
   g=Math.min(g,PCT_MAX-K.pct[k]);K.pct[k]+=g;
   if(out==='crit')crit=true;
@@ -1034,7 +1054,7 @@ const hasRegain=K=>!!K.regain&&Object.keys(K.regain).some(k=>K.regain[k]>0);
 const evTags=ev=>!ev?'':ev.mech==='throw'?'t':ev.mech==='race'?(ev.D>=60?'re':'r'):ev.mech==='bar'?'jb':'j';
 function pickInjury(K,ev){
  const tg=evTags(ev),wt=x=>x.w*(tg&&[...tg].some(c=>x.tg.includes(c))?3:1);
- const tot=INJURIES.reduce((a,x)=>a+wt(x),0);let r=Math.random()*tot,t=INJURIES[0];
+ const tot=INJURIES.reduce((a,x)=>a+wt(x),0);let r=RNG()*tot,t=INJURIES[0];
  for(const x of INJURIES){r-=wt(x);if(r<=0){t=x;break;}}
  return{id:t.id,n:t.n,zone:t.zone,sk:t.sk.slice(),months:t.months,left:t.months,total:t.months,fresh:true,lost:{}};
 }
@@ -1066,7 +1086,7 @@ function kineSession(K){
  if(out==='crit')K.tf=Math.min(3,K.tf+1);
  return{T,roll,out,n,got};
 }
-function restSession(K){K.tf=0;return hasRegain(K)&&Math.random()<.5?recoverPct(K,1):[];}
+function restSession(K){K.tf=0;return hasRegain(K)&&RNG()<.5?recoverPct(K,1):[];}
 
 /* ---------- séance de discipline : bilan des lancers de la séance ---------- */
 function trainingOutcome(t){
@@ -1077,7 +1097,7 @@ function trainingOutcome(t){
 }
 function applyDisciplineGain(K,ev,t){
  const o=trainingOutcome(t),sk=trainSk(ev),gains={};
- if(o.ok)sk.forEach(k=>{const v=K.pct[k],g=hurtSk(K,k)?0:v>=85?0:(v>=75&&Math.random()<.5)?0:Math.min(1,PCT_MAX-v);K.pct[k]+=g;gains[k]=g;});
+ if(o.ok)sk.forEach(k=>{const v=K.pct[k],g=hurtSk(K,k)?0:v>=85?0:(v>=75&&RNG()<.5)?0:Math.min(1,PCT_MAX-v);K.pct[k]+=g;gains[k]=g;});
  K.tf=Math.min(3,K.tf+1+(t.crit?1:0));
  if(o.bonus>0)K.pools.push({n:o.bonus,sk:sk.slice(),why:`Séance ${ev.s} : ${o.bonus} lancer${o.bonus>1?'s':''} parfait${o.bonus>1?'s':''}`});
  return{...o,sk,gains};
@@ -1109,6 +1129,11 @@ function silentHooks(tally,isTrain){
 }
 
 /* ---------- compétition de carrière ---------- */
+/* athlète de carrière pour une salle en ligne (les écrans reconstruisent tous la même compétition) */
+function careerHumanPayload(K){
+ const pr={};['hj','pv'].forEach(id=>{if(K.pb[id]&&K.pb[id].perf!=null)pr[id]=K.pb[id].perf;});
+ return{first:K.first,last:K.last,nat:K.nat,color:K.color,pct:{...K.pct},age:K.age,fatI:K.tf*2.5,hr:1+K.tf*.4,pr};
+}
 function buildCareerComp(K,lvId){
  const lvl=lvById(lvId),cat=lvl&&lvl.indoor?IND[K.cat]:K.cat;
  const C=buildCompetition(lvId,cat,[{first:K.first,last:K.last,nat:K.nat,color:K.color,pct:{...K.pct},age:K.age,sex:sexOf(K.cat)}]);
@@ -1121,7 +1146,7 @@ const POD={dep:[1,3,6],reg:[2,5,10],inter:[2,5,10],fra:[3,7,14],eur:[3,7,14],reg
 function podPts(lv,rank){const t=POD[lv]||POD.reg;return rank>=1&&rank<=3?t[3-rank]:0;}
 /* après une compétition : classement, records personnels, médailles, répartition des points */
 function settleCompetition(K,C,step){
- const p=C.all.find(x=>x.human);
+ const p=C.mine||C.all.find(x=>x.human);
  const list=[...C.all].sort((a,b)=>b.total-a.total),rank=list.indexOf(p)+1;
  const pbs=[];
  C.evs.forEach((ev,i)=>{
@@ -1138,7 +1163,7 @@ function settleCompetition(K,C,step){
  K.hist.push({year:K.year,age:K.age,name:step.n,lv:step.lv,rank,of:list.length,total:p.total,pbs:pbs.length,tl:lvById(step.lv).s});
  let hurt=null;
  if(!K.inj&&p.hurt){hurt=p.hurt;K.inj=hurt;}
- else if(!K.inj&&Math.random()<injChance(K,false)){hurt=pickInjury(K);K.inj=hurt;}
+ else if(!K.inj&&RNG()<injChance(K,false)){hurt=pickInjury(K);K.inj=hurt;}
  K.tf=0;
  return{rank,total:p.total,pbs,pod,of:list.length,hurt};
 }
@@ -1157,7 +1182,7 @@ function applyAging(K){
  if(plan.loss){
   const pool=[...plan.loss.from];
   for(let i=0;i<plan.loss.n&&pool.length;i++){
-   const k=pool.splice(Math.floor(Math.random()*pool.length),1)[0];
+   const k=pool.splice(Math.floor(RNG()*pool.length),1)[0];
    const d=Math.min(plan.loss.d,K.pct[k]-PCT_MIN);K.pct[k]-=d;lost.push({k,d});
   }
  }
@@ -1298,7 +1323,7 @@ function injectPros(C){
  if(ind&&!['eur','mon'].includes(id))return;
  const maxN={eur:20,mon:18,jo:18,deca:14,gotz:14}[id],oc=OUTC[C.cat],sc=ind?(sexOf(C.cat)==='M'?.73:.72):1;
  const taken=new Set(C.all.map(p=>(p.first+' '+p.last).toLowerCase()));
- const pool=REAL_ACT[oc].filter(r=>(id!=='eur'||r[5])&&Math.random()<(C.level.star?.7:.85)&&!taken.has((r[0]+' '+r[1]).toLowerCase()));
+ const pool=REAL_ACT[oc].filter(r=>(id!=='eur'||r[5])&&RNG()<(C.level.star?.7:.85)&&!taken.has((r[0]+' '+r[1]).toLowerCase()));
  const bots=C.all.filter(p=>!p.human),lim=Math.min(maxN,Math.max(0,bots.length-4));
  pool.map(r=>({r,k:r[4]+gauss()*140})).sort((a,b)=>b.k-a.k).slice(0,lim).forEach((x,i)=>{
   const keep=bots[i],rr=ind?[x.r[0],x.r[1],x.r[2],x.r[3],Math.round(x.r[4]*sc),x.r[5]]:x.r,pro=makePro(C.cat,keep.id,rr,!ind);
@@ -2307,9 +2332,11 @@ function renderSetup(){
  $('#startBtn').disabled=!setup.players.length||!!bad||!!unq;
  $('#startMsg').textContent=!setup.players.length?'Ajoute au moins un athlète.':bad?`Il reste des pourcentages à répartir : ${(bad.first||'Athlète')} ${bad.last}`:unq?`${unq.first||'Athlète'} n'a pas la moyenne minimale de ${lv.min}/20 pour ce niveau (actuellement ${fmt1c(avgCap(unq,cfg.cat))}/20). Redistribue tes pourcentages.`:'';
  $('#addHuman').disabled=setup.players.length>=6;
+ if(ROOM&&setup.players.length>1)setup.players.length=1;
  $('#startBtn').textContent=career?'Commencer la carrière':'Lancer la compétition';
  if(typeof renderCareerBox==='function')renderCareerBox();
  if(typeof renderCommBox==='function')renderCommBox();
+ try{renderRoomBox();}catch(e){if(!(e instanceof ReferenceError))throw e;}
 }
 function randPct(){
  const pct=Object.fromEntries(STATS.map(s=>[s.k,START_PCT]));
@@ -2333,7 +2360,7 @@ $('#athletes').addEventListener('click',e=>{
 });
 $('#athletes').addEventListener('input',e=>{
  const f=e.target.dataset.f;if(!f)return;
- const a=setup.players.find(x=>x.uid==e.target.closest('.ath').dataset.uid);a[f]=e.target.value;
+ const a=setup.players.find(x=>x.uid==e.target.closest('.ath').dataset.uid);a[f]=e.target.value;if(typeof roomPing==='function')roomPing();
  if(f==='first'||f==='last')e.target.closest('.ath').querySelector('.head b').textContent=(a.first||'Athlète')+' '+a.last.toUpperCase();
 });
 $('#cfgLevel').onchange=e=>{setup.cfg.level=e.target.value;renderSetup();};
@@ -2344,8 +2371,8 @@ $('#cfgFree').onchange=e=>{setup.cfg.free=e.target.checked;renderSetup();};
 $('#cfgFast').onchange=e=>setup.cfg.fast=e.target.checked;
 $('#addHuman').onclick=()=>{setup.players.push(newHuman());renderSetup();};
 $('#rulesBtn').onclick=()=>$('#rules').showModal();
-$('#homeBtn').onclick=()=>{if(G)G.abort=true;show('setup');renderSetup();};
-$('#startBtn').onclick=()=>{if(setup.mode==='career'&&typeof createCareer==='function')createCareer();else launch();};
+$('#homeBtn').onclick=()=>{if(typeof ROOM!=='undefined'&&ROOM&&ROOM.playing){if(!confirm('Quitter la partie en ligne ?'))return;roomLeave();return;}if(G)G.abort=true;show('setup');renderSetup();};
+$('#startBtn').onclick=()=>{if(ROOM&&setup.mode!=='career'){roomStart();return;}if(setup.mode==='career'&&typeof createCareer==='function')createCareer();else launch();};
 $('#modeFree').onclick=()=>{setup.mode='free';if(setup.cfg.level==='legends')setup.cfg.level='dep';renderSetup();};
 $('#modeLegends').onclick=()=>{setup.mode='free';if(isInd(setup.cfg.cat))setup.cfg.cat=OUTC[setup.cfg.cat];setup.cfg.level='legends';renderSetup();};
 $('#modeCareer').onclick=()=>{setup.mode='career';renderSetup();};
@@ -2363,7 +2390,7 @@ function launch(){
 }
 function startGame(C,o){
  if(G)G.abort=true;
- G={C,abort:false,auto:!!o.auto,turbo:false,fast:!!o.fast,S:null,heat:[],prog:{},lvl:o.fast?.15:(+$('#botSpeed').value),spNow:1,onFinish:o.onFinish||null,train:!!o.train,onRoll:o.onRoll||null};
+ G={C,abort:false,auto:!!o.auto,turbo:false,fast:!!o.fast,S:null,heat:[],prog:{},lvl:o.fast?.15:(+$('#botSpeed').value),spNow:1,onFinish:o.onFinish||null,train:!!o.train,onRoll:o.onRoll||null,room:o.room?ROOM:null};
  $('#autoChk').checked=G.auto;
  if(ST&&ST.setVenue)ST.setVenue(!!C.indoor);
  if(ST&&ST.resetPawns)ST.resetPawns();
@@ -2422,11 +2449,17 @@ function makeIO(g,C,p){
    ST.speed=1;g.spNow=1;
    setStatus(C,p,o);$('#dieMsg').className='dieMsg';$('#dieMsg').textContent='';
    setWho(p,o.label);
-   const allowTurbo=(o.kind==='run'&&o.D>=30);
-   if(g.auto||g.turbo)await sleep(g.turbo?50:450);
-   else await waitBtn(g,`🎲 Lancer le d20 · ${o.label}`,allowTurbo);
-   if(g.abort)throw new Error('abort');
-   const roll=rnd(20);
+   const allowTurbo=(o.kind==='run'&&o.D>=30),R_=g.room,mine=!R_||p.seat===R_.seat;
+   let roll;
+   if(!mine){roll=await roomWaitRoll(g,p,o);if(g.abort||roll==null)throw new Error('abort');}
+   else{
+    const kk=R_?roomNext(p,'r'):0;
+    if(g.auto||g.turbo)await sleep(g.turbo?50:450);
+    else await waitBtn(g,`🎲 Lancer le d20 · ${o.label}`,allowTurbo);
+    if(g.abort)throw new Error('abort');
+    roll=R_?rndTrue(20):rnd(20);
+    if(R_)roomSend('roll',{gid:R_.gid,pid:p.id,k:kk,v:roll});
+   }
    await Die.roll(roll,g.turbo);
    const out=mkOut(o.T,roll);
    if(g.onRoll)g.onRoll(o,out,roll);
@@ -2582,7 +2615,7 @@ function makeHooks(g){
    const rows=[...heat].sort((a,b)=>b.res[r].pts-a.res[r].pts);
    $('#live').innerHTML='<table><tr><th>#</th><th>Cx</th><th>Athlète</th><th>Temps</th><th>Points</th></tr>'+rows.map((p,i)=>`<tr class="${p.human?'me':''}"><td>${i+1}</td><td>${heat.indexOf(p)+1}</td><td>${nameCell(p)}</td><td class="${p.res[r].dq?'nul':''}">${p.res[r].dq?'DQ':fmtPerf(ev,p.res[r].perf)}</td><td>${nf(p.res[r].pts)}</td></tr>`).join('')+'</table>';
    const hum=heat.filter(p=>p.human);
-   for(const p of hum){resultPanel(C,p,p.res[r].detail);setWho(p,'Série terminée');await pause(hi===n-1?'Continuer →':'Série suivante →');}
+   for(const p of hum){resultPanel(C,p,p.res[r].detail);setWho(p,'Série terminée');if(g.room&&p.seat!==g.room.seat)await sleep(g.fast?150:1200);else await pause(hi===n-1?'Continuer →':'Série suivante →');}
    if(!hum.length)await sleep(g.spNow>0?400:0);
   },
   async raceReveal(C){
@@ -2609,7 +2642,7 @@ function makeHooks(g){
    const ev=C.cur.ev,r=C.cur.r;
    ST.speed=p.human?1:g.lvl;
    await ST.result(p,res,res.bar);
-   if(p.human){resultPanel(C,p,res);if(g.auto)await sleep(g.fast?150:900);else{ST.speed=1;await waitBtn(g,'Continuer →');}}
+   if(p.human){resultPanel(C,p,res);if(g.auto||(g.room&&p.seat!==g.room.seat))await sleep(g.fast?150:(g.room?1200:900));else{ST.speed=1;await waitBtn(g,'Continuer →');}}
    else{
     const t=ev.mech==='bar'?`${fmtM(res.bar)} ${res.ok?'franchie':'manquée'}`:(res.nul?'nul':fmtPerf(ev,res.perf));
     ticker(`${p.flag||''} ${fullName(p)} : ${t}`);if(g.spNow>0)await sleep(120*g.spNow);
@@ -2623,10 +2656,13 @@ function makeHooks(g){
    g.turbo=false;ST.speed=1;ST.setBar(bar);$('#rollLog').innerHTML='';$('#tResult').innerHTML='';
    setWho(p,`Barre à ${fmtM(bar)}`);
    $('#status').innerHTML=`<h4>Barre à ${fmtM(bar)} : tenter ou passer ?</h4><div class="prob">Passer garde tes essais pour une hauteur plus haute. Trois échecs consécutifs et tu es éliminé.</div>`;
-   if(g.auto)return false;
+   const R_=g.room;
+   if(R_&&p.seat!==R_.seat){const v=await roomWaitPass(g,p);if(g.abort||v==null)throw new Error('abort');return v;}
+   const kk=R_?roomNext(p,'p'):0,fin=v=>{if(R_)roomSend('pass',{gid:R_.gid,pid:p.id,k:kk,v:v?1:0});return v;};
+   if(g.auto)return fin(false);
    return new Promise(res=>{
     const b=$('#actBtn'),pb=$('#passBtn');b.textContent=`Tenter ${fmtM(bar)}`;pb.textContent='Passer cette hauteur';b.hidden=false;pb.hidden=false;
-    const done=v=>{b.hidden=true;pb.hidden=true;b.onclick=null;pb.onclick=null;res(v);};
+    const done=v=>{b.hidden=true;pb.hidden=true;b.onclick=null;pb.onclick=null;res(fin(v));};
     b.onclick=()=>done(false);pb.onclick=()=>done(true);
    });
   },
@@ -2656,7 +2692,7 @@ function makeHooks(g){
    if(g.auto)await sleep(g.fast?300:1500);
    else await waitBtn(g,last?(g.train?'Terminer la séance →':'Voir le classement final →'):`Épreuve suivante : ${C.evs[r+1].n} →`);
   },
-  async finish(C){guard();
+  async finish(C){guard();if(g.room)roomGameOver(g);
    if(g.train){ST.show(false);if(g.onFinish)g.onFinish(C);return;}
    await banner('🏁 Compétition terminée','Place au classement…',g.fast?600:1700);ST.show(false);showFinal(C,g.onFinish?()=>g.onFinish(C):null);}
  };
@@ -2818,6 +2854,7 @@ function renderHead(){
   <div class="cBtns"><label class="chk"><input type="checkbox" id="oAuto" ${o.auto?'checked':''}> Dés auto</label><label class="chk"><input type="checkbox" id="oFast" ${o.fast?'checked':''}> Virtuels rapides</label><label class="chk"><input type="checkbox" id="oQuick" ${o.quick?'checked':''}> Séances de discipline automatiques</label>
   ${ol.btns}<button class="btn small" id="cExport">Exporter</button><button class="btn small" id="cRetire">Prendre sa retraite</button><button class="btn small" id="cMenu">Menu</button></div></div>`;
  onlineHeadBind();
+ $('#cHead').insertAdjacentHTML('beforeend','<div id="cRoom" class="roomBox cRoom"></div>');renderCRoom();
  $('#oAuto').onchange=e=>{K.opt.auto=e.target.checked;persist();};
  $('#oFast').onchange=e=>{K.opt.fast=e.target.checked;persist();};
  $('#oQuick').onchange=e=>{K.opt.quick=e.target.checked;persist();};
@@ -3039,7 +3076,7 @@ function compAction(m){
 function endComp(C,st){
  inCareerGame=false;
  const r=settleCompetition(K,C,st);advanceStep();
- const list=[...C.all].sort((a,b)=>b.total-a.total),p=C.all.find(x=>x.human);
+ const list=[...C.all].sort((a,b)=>b.total-a.total),p=C.mine||C.all.find(x=>x.human);
  const top=list.slice(0,5).map((x,i)=>`<tr class="${x.human?'me':''}"><td>${medal(i)}</td><td>${nameCell(x)}</td><td><b>${nf(x.total)}</b></td></tr>`).join('');
  const mine=list.indexOf(p)>4?`<tr class="me"><td>${list.indexOf(p)+1}</td><td>${nameCell(p)}</td><td><b>${nf(p.total)}</b></td></tr>`:'';
  const gain=K.pools.reduce((a,x)=>a+x.n,0);
@@ -3080,6 +3117,7 @@ function careerHome(){
  if(G&&G.train){G.abort=true;G.cancel&&G.cancel();inCareerGame=false;enterCareer();return true;}
  if(inCareerGame&&K&&K.phase==='comp-run'){
   if(!confirm('Abandonner la compétition ? Elle sera comptée comme forfait.'))return true;
+  if(G&&G.room)roomLeave(false,true);
   if(G){G.abort=true;G.cancel&&G.cancel();}
   const st=seasonSteps(K.year)[K.step];pushSkip(st,'forfait');advanceStep();persist();
   cNote=`<div class="card cnote warn"><h3>⚠️ Forfait</h3><p>Tu as abandonné la compétition.</p></div>`;
@@ -3088,6 +3126,7 @@ function careerHome(){
  return false;
 }
 $('#homeBtn').onclick=()=>{
+ if(typeof ROOM!=='undefined'&&ROOM&&ROOM.playing&&G&&G.room&&!inCareerGame){if(!confirm('Quitter la partie en ligne ?'))return;roomLeave();return;}
  if(careerHome())return;
  if(G){G.abort=true;G.cancel&&G.cancel();}
  if(K&&!$('#career').hidden){setup.mode='career';}
@@ -3187,7 +3226,7 @@ function renderCommBox(){
  if(!COMM)return;
  const box=$('#commBox');if(!box)return;
  const cfg=setup.cfg,free=setup.mode!=='career';
- box.hidden=!free;if(!free)return;
+ box.hidden=!free||!!ROOM;if(!free||ROOM)return;
  if(COMM.cat&&COMM.cat!==OUTC[cfg.cat]){COMM.list=[];COMM.sel=new Set();COMM.loaded=false;COMM.cat=null;}
  setup.players=setup.players.filter(a=>!a.locked||a.cat===OUTC[cfg.cat]);
  const mine=careers.filter(c=>c.cat===OUTC[cfg.cat]);
@@ -3224,6 +3263,230 @@ function injectComm(C){
   Object.assign(b,{first:c.first,last:c.last,nat:c.nat,flag:c.flag,pct:{...c.pct},color:c.color,age:c.age,comm:true});
  });
 }
+
+
+/* ================= SALLE EN LIGNE (jusqu'à 16 joueurs, un écran chacun) =================
+   Principe : tous les écrans calculent la même compétition à partir d'une graine commune (mêmes adversaires, mêmes conditions, mêmes jets des virtuels).
+   Seuls circulent par le réseau : les athlètes de la salle, le lancement, les lancers de d20 des joueurs et leurs choix (passer une barre). */
+var ROOM=null;
+const ROOM_MAX=16,ROOM_ALPHA='ABCDEFGHJKLMNPQRSTUVWXYZ';
+const roomHost=()=>!!ROOM&&ROOM.seat===0;
+function roomHuman(){
+ const a=setup.players[0];if(!a)return null;
+ return{first:(a.first||'').trim()||'Athlète',last:(a.last||'').trim()||'Joueur',nat:a.nat,color:a.color,pct:{...a.pct},age:a.age!=null?a.age:ageOf(a.dob),ready:TOTAL_PCT-sumPct(a)===0};
+}
+function roomSendQ(kind,data){
+ if(!ROOM)return Promise.resolve();
+ const R=ROOM;
+ R.q=(R.q||Promise.resolve()).then(async()=>{
+  for(let i=0;i<8;i++){
+   if(ROOM!==R)return;
+   try{return await sb('room_send',{p_code:R.code,p_seat:R.seat,p_token:R.token,p_kind:kind,p_data:data});}
+   catch(e){if(/inconnu|incorrect|invalide|pleine/i.test(e.message))return;await new Promise(r=>setTimeout(r,700*(i+1)));}
+  }
+ });
+ return R.q;
+}
+function roomSend(kind,data){return roomSendQ(kind,data);}
+function roomNext(p,t){const R=ROOM;R.cnt=R.cnt||{};const k=t+p.id;R.cnt[k]=(R.cnt[k]||0);return R.cnt[k]++;}
+function roomWaitKey(key){
+ const R=ROOM;
+ if(R.inbox.has(key))return Promise.resolve(R.inbox.get(key));
+ return new Promise(res=>{R.waiters.set(key,res);});
+}
+async function roomWaitRoll(g,p,o){
+ const R=g.room,k=roomNext(p,'r'),key=`r:${R.gid}:${p.id}:${k}`;
+ const m=$('#dieMsg');m.className='dieMsg';m.innerHTML=`⏳ ${esc(fullName(p))} lance le d20…`;
+ let btn=null;
+ if(roomHost()){
+  btn=setTimeout(()=>{if(R.inbox.has(key)||g.abort)return;m.innerHTML=`⏳ ${esc(fullName(p))} lance le d20… <button class="btn small" id="roomForce">Jouer à sa place</button>`;const b=$('#roomForce');if(b)b.onclick=()=>roomForce(R,p,key,'roll',k);},20000);
+  if(R.gone&&R.gone.has(p.id))roomForce(R,p,key,'roll',k);
+ }
+ const v=await roomWaitKey(key);clearTimeout(btn);return v;
+}
+async function roomWaitPass(g,p){
+ const R=g.room,k=roomNext(p,'p'),key=`p:${R.gid}:${p.id}:${k}`;
+ $('#status').innerHTML=`<h4>⏳ ${esc(fullName(p))} choisit : tenter ou passer ?</h4>`;
+ if(roomHost()&&R.gone&&R.gone.has(p.id))roomForce(R,p,key,'pass',k);
+ else if(roomHost())setTimeout(()=>{if(!R.inbox.has(key)&&!g.abort)roomForce(R,p,key,'pass',k);},45000);
+ return roomWaitKey(key);
+}
+function roomForce(R,p,key,kind,k){
+ if(R.inbox.has(key))return;
+ roomSend(kind,{gid:R.gid,pid:p.id,k,v:kind==='roll'?rndTrue(20):0});
+}
+function roomGameOver(g){
+ const R=g.room;if(!R||R.gid!==g.room.gid)return;
+ R.playing=false;unseedRNG();renderRoomBox();
+}
+function roomHandle(m){
+ const R=ROOM,d=m.data||{},replay=m.seq<=R.head;
+ if(m.kind==='hello'){R.members[m.seat]=Object.assign({seat:m.seat,t:Date.now()},d);if(!R.playing)renderRoomBox();}
+ else if(m.kind==='cfg'){if(R.seat!==0&&d.cfg){Object.assign(setup.cfg,d.cfg);renderSetup();}}
+ else if(m.kind==='state'){if(d.t==='cready'){R.cr=R.cr||{};R.cr[m.seat]=d;renderCRoom();}}
+ else if(m.kind==='bye'){delete R.members[m.seat];if(R.cr)delete R.cr[m.seat];renderCRoom();R.gone=R.gone||new Set();if(R.playing&&G&&G.C){const p=G.C.all.find(x=>x.human&&x.seat===m.seat);if(p){R.gone.add(p.id);R.waiters.forEach((res,key)=>{const ps=key.split(':');if(+ps[2]===p.id&&roomHost())roomForce(R,p,key,ps[0]==='r'?'roll':'pass',+ps[3]);});}}renderRoomBox();}
+ else if(m.kind==='start'){if(!replay&&d.gid&&d.gid!==R.gid)roomStartGame(d);}
+ else if(m.kind==='roll'||m.kind==='pass'){
+  const key=`${m.kind==='roll'?'r':'p'}:${d.gid}:${d.pid}:${d.k}`;
+  if(R.inbox.has(key))return;
+  R.inbox.set(key,d.v);const w=R.waiters.get(key);if(w){R.waiters.delete(key);w(d.v);}
+ }
+}
+async function roomPoll(){
+ const R=ROOM;if(!R||R.busy)return;R.busy=true;
+ try{
+  const rows=await sb('room_poll',{p_code:R.code,p_after:R.after});
+  if(ROOM!==R)return;
+  (rows||[]).forEach(m=>{if(m.seq>R.after)R.after=m.seq;try{roomHandle(m);}catch(e){console.error(e);}});
+  R.err='';
+ }catch(e){R.err=errTxt(e);if(/inconnue|expir/i.test(e.message)){roomLeave(true);return;}}
+ R.busy=false;
+ if(ROOM===R){R.timer=setTimeout(roomPoll,R.waiters.size?450:900);if(R.err)renderRoomBox();}
+}
+function roomEnter(code,seat,token,head,fromCareer){
+ ROOM={code,seat,token,head:head||0,after:0,members:{},inbox:new Map(),waiters:new Map(),cnt:{},gid:null,playing:false,gone:new Set(),sentHello:'',sentCfg:''};
+ if(!fromCareer&&setup.mode!=='career')setup.mode='free';
+ if(setup.cfg.level==='legends'&&seat!==0)setup.cfg.level='dep';
+ if(setup.players.length>1)setup.players.length=1;
+ if(!setup.players.length)setup.players.push(newHuman());
+ roomPoll();renderSetup();if(fromCareer)renderCRoom();
+}
+async function roomCreate(fc){
+ try{const r=await sb('room_open',{});roomEnter(r.code,0,r.token,0,fc===true);}
+ catch(e){alert('Création de la salle impossible : '+errTxt(e));}
+}
+async function roomJoin(code,fc){
+ code=(code||'').trim().toUpperCase();if(code.length<4)return;
+ try{const r=await sb('room_join',{p_code:code});roomEnter(code,r.seat,r.token,r.head,fc===true);}
+ catch(e){alert('Impossible de rejoindre la salle : '+errTxt(e));}
+}
+function roomLeave(silent,noNav){
+ const R=ROOM;if(!R)return;
+ if(!silent)sb('room_send',{p_code:R.code,p_seat:R.seat,p_token:R.token,p_kind:'bye',p_data:{}}).catch(()=>{});
+ clearTimeout(R.timer);R.waiters.forEach(res=>res(null));R.waiters.clear();
+ ROOM=null;unseedRNG();if(G)G.abort=true;
+ if(!noNav){if(K&&!$('#career').hidden)renderCRoom();else{show('setup');renderSetup();}}else renderCRoom();
+}
+function roomStart(){
+ const R=ROOM;if(!R||R.seat!==0)return;
+ const cfg=setup.cfg,list=Object.values(R.members).filter(m=>m.first!=null).sort((a,b)=>a.seat-b.seat);
+ const lv=levelOf(cfg.level),msg=$('#startMsg');
+ if(!list.length)return;
+ const bad=list.find(m=>!m.ready);if(bad){msg.textContent=`${bad.first} ${bad.last} n'a pas fini de répartir ses pourcentages.`;return;}
+ if(!cfg.free&&cfg.level!=='legends'){const unq=list.find(m=>!qualified(m,cfg.cat,lv));if(unq){msg.textContent=`${unq.first} ${unq.last} n'a pas la moyenne minimale de ${lv.min}/20 pour ce niveau (ou coche « jeu libre »).`;return;}}
+ roomSend('start',{gid:Date.now().toString(36)+Math.floor(Math.random()*1e4).toString(36),seed:1+Math.floor(Math.random()*4e9),
+  cfg:{level:cfg.level,cat:cfg.cat,attempts:cfg.attempts,free:!!cfg.free},
+  humans:list.map(m=>({seat:m.seat,first:m.first,last:m.last,nat:m.nat,color:m.color,pct:m.pct,age:m.age}))});
+ msg.textContent='Lancement…';
+}
+function roomStartGame(d){
+ const R=ROOM;if(!R)return;
+ R.gid=d.gid;R.cnt={};R.playing=true;R.gone=new Set();R.cr={};
+ R.inbox.forEach((v,k)=>{if(!k.includes(':'+d.gid+':'))R.inbox.delete(k);});
+ const cr=d.career||null;
+ if(!cr)Object.assign(setup.cfg,d.cfg);
+ const cfg=cr?d.cfg:setup.cfg,cat=cr?cr.cat:cfg.cat;
+ const humans=d.humans.map(a=>({first:a.first,last:a.last,nat:a.nat,flag:flagOf(a.nat),color:a.color,pct:{...a.pct},age:a.age,sex:sexOf(cat),seat:a.seat,fatI:a.fatI||0,hr:a.hr||0,pr:a.pr||{}}));
+ seedRNG(d.seed);
+ const C=cr?buildCompetition(cr.lv,cat,humans):(cfg.level==='legends'?buildLegendsComp(cat,humans):buildCompetition(cfg.level,cat,humans));
+ C.attempts=cfg.attempts;
+ if(cr)C.all.forEach(p=>{if(p.human){p.fat=p.fatI||0;p.hurtRisk=p.hr||0;}});
+ C.mine=C.all.find(p=>p.human&&p.seat===R.seat)||null;
+ const o={auto:!!$('#cfgAuto').checked,fast:!!$('#cfgFast').checked,room:true};
+ if(cr&&typeof K!=='undefined'&&K){
+  o.auto=!!K.opt.auto;o.fast=!!K.opt.fast;
+  const st=seasonSteps(K.year)[K.step];
+  if(C.mine&&st&&st.lv===cr.lv){inCareerGame=true;K.phase='comp-run';persist();o.onFinish=()=>endComp(C,st);}
+  else{C.mine=null;o.onFinish=()=>enterCareer();}
+ }
+ startGame(C,o);
+}
+/* ---------- carrière en salle ---------- */
+function crInfo(){
+ if(typeof K==='undefined'||!K||K.phase!=='comp')return null;
+ const st=seasonSteps(K.year)[K.step];if(!st)return null;
+ const lvl=lvById(st.lv);
+ return{st,lv:st.lv,cat:lvl&&lvl.indoor?IND[K.cat]:K.cat,ok:careerQualified(K,st.lv)};
+}
+function roomCareerReady(on){
+ const R=ROOM,i=crInfo();if(!R||!i||!i.ok)return;
+ roomSend('state',{t:'cready',lv:i.lv,cat:i.cat,n:i.st.n,off:!on,h:careerHumanPayload(K),att:K.att});
+ renderCRoom();
+}
+function roomCareerGo(){
+ const R=ROOM,i=crInfo();if(!R||R.seat!==0||!i)return;
+ const mine=R.cr&&R.cr[0];if(!mine||mine.off)return;
+ const part=Object.entries(R.cr).filter(([s,x])=>!x.off&&x.lv===i.lv&&x.cat===i.cat).map(([s,x])=>({seat:+s,...x.h})).sort((a,b)=>a.seat-b.seat);
+ if(!part.length)return;
+ roomSend('start',{gid:Date.now().toString(36)+Math.floor(Math.random()*1e4).toString(36),seed:1+Math.floor(Math.random()*4e9),
+  cfg:{attempts:K.att},career:{lv:i.lv,cat:i.cat,n:i.st.n},humans:part});
+}
+function renderCRoom(){
+ const el=$('#cRoom');if(!el)return;
+ if(!onlineOn()||typeof K==='undefined'||!K){el.hidden=true;return;}
+ el.hidden=false;const R=ROOM;
+ if(!R){
+  const pre=(new URLSearchParams(location.search).get('salle')||'').toUpperCase();
+  el.innerHTML=`<b>🌐 Jouer avec des amis</b><span class="note" style="margin:0">Salle en ligne : chacun garde sa propre carrière et vous disputez les compétitions ensemble.</span><button class="btn small" id="crNew">Créer une salle</button><input id="crCode" maxlength="6" placeholder="CODE" value="${esc(pre)}" style="width:90px;text-transform:uppercase"><button class="btn small" id="crGo">Rejoindre</button>`;
+  $('#crNew').onclick=()=>roomCreate(true);$('#crGo').onclick=()=>roomJoin($('#crCode').value,true);return;
+ }
+ const i=crInfo(),cr=R.cr||{},mineR=cr[R.seat]&&!cr[R.seat].off;
+ let ready=[];
+ if(i)ready=Object.entries(cr).filter(([s,x])=>!x.off&&x.lv===i.lv&&x.cat===i.cat).map(([s,x])=>`${flagOf(x.h.nat)} ${esc(x.h.first)} ${esc(x.h.last.toUpperCase())}`);
+ const n=Object.keys(R.members).length;
+ el.innerHTML=`<b>🌐 Salle <span class="roomCode">${R.code}</span></b><span class="note" style="margin:0">${n} joueur${n>1?'s':''}${R.seat===0?' · tu es l’hôte':''}${R.playing?' · partie en cours':''}</span>
+ ${i?(i.ok?`<span class="note" style="margin:0">${esc(i.st.n)} : ${ready.length?ready.join(', ')+' prêt'+(ready.length>1?'s':''):'personne n’est prêt'}</span>
+ <button class="btn small ${mineR?'':'primary'}" id="crReady">${mineR?'Je ne suis plus prêt':'✋ Je suis prêt pour cette compétition'}</button>${R.seat===0?`<button class="btn small primary" id="crGo" ${mineR&&!R.playing?'':'disabled'}>▶ Lancer pour tous</button>`:'<span class="note" style="margin:0">L’hôte lance la compétition.</span>'}`:'<span class="note" style="margin:0">Tu n’as pas la qualification pour cette étape.</span>'):'<span class="note" style="margin:0">Prépare-toi : tu pourras te déclarer prêt à l’étape « compétition » du calendrier.</span>'}
+ <button class="btn small" id="crLeave">Quitter la salle</button>`;
+ const rb=$('#crReady');if(rb)rb.onclick=()=>roomCareerReady(!mineR);
+ const gb=$('#crGo');if(gb)gb.onclick=roomCareerGo;
+ $('#crLeave').onclick=()=>{if(confirm('Quitter la salle ?'))roomLeave();};
+}
+function renderRoomBox(){
+ const box=$('#roomBox');if(!box)return;
+ const R=ROOM,career=setup.mode==='career';
+ box.hidden=!onlineOn()||(!R&&career);
+ if(R&&career){/* en salle depuis la carrière : liste seulement */}
+ document.body.classList.toggle('inRoom',!!R);
+ if(!onlineOn())return;
+ if(R){
+  const hostU=R.seat===0;
+  ['cfgLevel','cfgCat','cfgAtt','cfgFree'].forEach(i=>{const e=$('#'+i);if(e)e.disabled=!hostU;});
+  ['modeFree','modeLegends'].forEach(i=>{const e=$('#'+i);if(e)e.disabled=!hostU;});
+  if(career){['cfgLevel','cfgCat','cfgAtt','cfgFree'].forEach(i=>{const e=$('#'+i);if(e)e.disabled=false;});$('#startBtn').hidden=false;}
+  else{
+  const sb_=$('#startBtn');sb_.hidden=!hostU;sb_.disabled=!hostU||R.playing;sb_.textContent='Lancer pour tous les joueurs';
+  if(!hostU)$('#startMsg').textContent='En attente de l’hôte…';
+  else if(R.playing)$('#startMsg').textContent='Partie en cours.';
+  else if(/^(Ajoute|Il reste|.* n'a pas la moyenne)/.test($('#startMsg').textContent))$('#startMsg').textContent='';
+  }
+ }else{['cfgLevel','cfgCat','cfgAtt','cfgFree','modeFree','modeLegends','modeCareer'].forEach(i=>{const e=$('#'+i);if(e)e.disabled=false;});$('#startBtn').hidden=false;}
+ if(!R){
+  const pre=(new URLSearchParams(location.search).get('salle')||'').toUpperCase();
+  const cur=$('#roomCode')?$('#roomCode').value:pre;
+  box.innerHTML=`<h3>🌐 Salle en ligne <small>jusqu’à ${ROOM_MAX} joueurs, chacun sur son écran</small></h3>
+  <p class="note" style="margin:0 0 8px">Crée une salle et envoie le code à tes amis : tout le monde voit le même stade et les mêmes résultats, chacun lance le d20 de son athlète. Compétition libre ou compétition des légendes, tous niveaux.</p>
+  <div class="cmRow"><button class="btn primary" id="roomNew">Créer une salle</button><span class="note">ou</span><input id="roomCode" maxlength="6" placeholder="CODE" value="${esc(cur)}" style="width:110px;text-transform:uppercase"><button class="btn" id="roomGo">Rejoindre</button></div>`;
+  $('#roomNew').onclick=roomCreate;$('#roomGo').onclick=()=>roomJoin($('#roomCode').value);
+  return;
+ }
+ const list=Object.values(R.members).sort((a,b)=>a.seat-b.seat);
+ const link=location.origin+location.pathname+'?salle='+R.code;
+ box.innerHTML=`<h3>🌐 Salle <span class="roomCode">${R.code}</span> <small>${list.length}/${ROOM_MAX} joueur${list.length>1?'s':''}${R.seat===0?' · tu es l’hôte':''}</small></h3>
+ <div class="roomList">${list.map(m=>`<span class="roomM" style="--c:${m.color}"><i class="dot" style="--c:${m.color}"></i>${flagOf(m.nat)} ${esc(m.first)} ${esc((m.last||'').toUpperCase())}${m.seat===0?' 👑':''}<em>${m.ready?'✓ prêt':'prépare son athlète'}</em></span>`).join('')||'<span class="note">En attente…</span>'}</div>
+ <p class="note" style="margin:8px 0">${R.seat===0?'Tu règles le niveau et la catégorie ci-dessous, puis tu lances quand tout le monde est prêt.':'L’hôte règle le niveau et lance la partie. Prépare ton athlète ci-dessous.'} Lien à partager : <a href="${esc(link)}">${esc(link)}</a></p>
+ ${R.err?`<p class="note" style="color:var(--bad)">Connexion : ${esc(R.err)}</p>`:''}
+ <div class="cmRow"><button class="btn small" id="roomLeave">Quitter la salle</button>${R.playing?'<span class="note">Partie en cours.</span>':''}</div>`;
+ $('#roomLeave').onclick=()=>{if(confirm('Quitter la salle ?'))roomLeave();};
+ /* synchronisation : mon athlète (tout le monde) et la configuration (hôte) */
+ const h=roomHuman();
+ if(h&&!R.playing){const j=JSON.stringify(h);if(j!==R.sentHello){R.sentHello=j;roomSend('hello',h);}}
+ if(R.seat===0&&!R.playing){const c=JSON.stringify({level:setup.cfg.level,cat:setup.cfg.cat,attempts:setup.cfg.attempts,free:!!setup.cfg.free});if(c!==R.sentCfg){R.sentCfg=c;roomSend('cfg',{cfg:JSON.parse(c)});}}
+}
+var roomPingT=null;
+function roomPing(){if(!ROOM)return;clearTimeout(roomPingT);roomPingT=setTimeout(renderRoomBox,600);}
+document.addEventListener('visibilitychange',()=>{if(ROOM&&!document.hidden){clearTimeout(ROOM.timer);ROOM.busy=false;roomPoll();}});
+{const pre=new URLSearchParams(location.search).get('salle');if(pre&&onlineOn())setTimeout(()=>{const i=$('#roomCode');if(i)i.value=pre.toUpperCase();},0);}
 
 renderSetup();
 
