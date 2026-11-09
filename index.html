@@ -1458,7 +1458,7 @@ const ST={
   this.indoor=ind;
   if(!this.LO)this.LO=this.L;
   this.L=ind?{...this.LO,sp:{cy:-9,k:.8}}:this.LO;
-  if(ind){this.R1=9.5;this.HL=12.7;this.NL=6;this.LAP=20;}else{this.R1=20.8;this.HL=24.5;this.NL=8;this.LAP=40;}
+  if(ind){this.R1=10.05;this.HL=12.1;this.NL=6;this.LAP=20;this.LW=1.7;}else{this.R1=20.8;this.HL=24.5;this.NL=8;this.LAP=40;this.LW=2.4;}
   this.geo();
   (this.stObjs||[]).forEach(o=>{this.s.remove(o);o.traverse&&o.traverse(m=>{if(m.geometry)m.geometry.dispose();});});
   const n0=this.s.children.length;this.buildStands();this.stObjs=this.s.children.slice(n0);
