@@ -2079,7 +2079,12 @@ const ST={
   const k=1-Math.exp(-dt*3.4);
   for(const f of ['tx','tz','d','yaw','pit'])cam[f]+=(g[f]-cam[f])*k;
   const c=this.c,cp=Math.cos(cam.pit);
-  c.position.set(cam.tx+Math.sin(cam.yaw)*cp*cam.d,Math.sin(cam.pit)*cam.d,cam.tz+Math.cos(cam.yaw)*cp*cam.d);
+  /* limites de vue : la caméra reste dans l'enceinte (jamais derrière les tribunes) et la cible reste sur le terrain */
+  const lim=(x,z,Rm)=>{const qz=Math.max(-this.HL,Math.min(this.HL,z)),dx=x,dz=z-qz,d=Math.hypot(dx,dz);return d>Rm?[dx*Rm/d,qz+dz*Rm/d]:[x,z];};
+  {const t=lim(cam.tx,cam.tz,this.RB-3);cam.tx=t[0];cam.tz=t[1];const t2=lim(g.tx,g.tz,this.RB-3);g.tx=t2[0];g.tz=t2[1];}
+  let px=cam.tx+Math.sin(cam.yaw)*cp*cam.d,py=Math.sin(cam.pit)*cam.d,pz=cam.tz+Math.cos(cam.yaw)*cp*cam.d;
+  {const q=lim(px,pz,this.RB+11);px=q[0];pz=q[1];py=Math.max(1.8,Math.min(this.indoor?28:70,py));}
+  c.position.set(px,py,pz);
   c.lookAt(cam.tx,0,cam.tz);
   if(this.halo.visible)this.halo.scale.setScalar(1+.08*Math.sin(now/180));
   this.r.render(this.s,c);
