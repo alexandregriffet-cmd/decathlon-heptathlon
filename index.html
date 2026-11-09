@@ -265,6 +265,10 @@ tr.rec td{background:#ffc83d1f;padding:8px 10px}tr.rec small{color:var(--mute)}
 .trCard i{font-style:normal;font-size:34px;line-height:1}.trCard b{font:600 12px Oswald;text-transform:uppercase;color:var(--gold)}
 .trCard.g{outline:1px solid var(--gold);background:#ffc83d14}.trCard.off{opacity:.45}
 .trY{display:flex;flex-direction:column;align-items:center;font-size:13px}.trY small{color:var(--mute);font-size:11px}
+.commBox h3{margin:0 0 8px}.cmRow{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:8px 0}.cmRow.col{flex-direction:column;align-items:flex-start}
+.cmRow select{max-width:100%}.cmList{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:6px;width:100%;max-height:300px;overflow:auto}
+.cmItem{display:flex;gap:8px;align-items:center;padding:6px 8px;border-radius:10px;background:#ffffff0a;cursor:pointer}.cmItem small{display:block;color:var(--mute);font-size:11.5px}
+.ath.lk .stat button,.ath.lk .tools,.ath.lk .colors,.ath.lk .grid2,.ath.lk .pleft{display:none}.ath.lk .rm{display:inline-block}
 </style>
 </head>
 <body>
@@ -289,6 +293,7 @@ tr.rec td{background:#ffc83d1f;padding:8px 10px}tr.rec small{color:var(--mute)}
  </div>
  <p class="info" id="cfgInfo"></p>
  <div id="careerBox" class="card careerBox"></div>
+ <div id="commBox" class="card commBox" hidden></div>
  <div id="athletes" class="athletes"></div>
  <div class="addRow"><button class="btn" id="addHuman">＋ Ajouter un athlète joueur</button></div>
  <div class="startRow"><button class="btn primary big" id="startBtn">Lancer la compétition</button><span id="startMsg"></span></div>
@@ -1938,8 +1943,8 @@ function renderSetup(){
  $('#cfgAge').value=String(cfg.age);
  $('#athletes').innerHTML=setup.players.map(a=>{
   const left=TOTAL_PCT-sumPct(a);
-  return `<div class="card ath" style="--c:${a.color}" data-uid="${a.uid}">
-  <div class="head"><span class="badge">Joueur</span><b>${esc(a.first||'Athlète')} ${esc(a.last.toUpperCase())}</b><button class="btn small rm" data-act="rm">✕</button></div>
+  return `<div class="card ath ${a.locked?'lk':''}" style="--c:${a.color}" data-uid="${a.uid}">
+  <div class="head"><span class="badge">${a.locked?'Ma carrière':'Joueur'}</span><b>${esc(a.first||'Athlète')} ${esc(a.last.toUpperCase())}</b><button class="btn small rm" data-act="rm">✕</button></div>
   <div class="grid2">
    <label>Prénom<input type="text" data-f="first" value="${esc(a.first)}" placeholder="Prénom" maxlength="20"></label>
    <label>Nom<input type="text" data-f="last" value="${esc(a.last)}" placeholder="Nom" maxlength="24"></label>
@@ -1947,7 +1952,7 @@ function renderSetup(){
    <label>Nationalité<select data-f="nat">${NATS.map(n=>`<option ${n[0]===a.nat?'selected':''} value="${esc(n[0])}">${n[1]} ${esc(n[0])}</option>`).join('')}</select></label>
   </div>
   <div class="colors">${COLORS.map(c=>`<i style="--c:${c}" data-act="color" data-v="${c}" class="${a.color===c?'on':''}"></i>`).join('')}</div>
-  <div class="pts"><span>Pourcentages à répartir</span><b class="${left===0?'zero':'left'}">${left} %</b></div>
+  <div class="pts pleft"><span>Pourcentages à répartir</span><b class="${left===0?'zero':'left'}">${left} %</b></div>
   ${STATS.map(s=>`<div class="stat"><span>${s.i}</span><span>${s.n}</span><div class="bar"><i style="width:${a.pct[s.k]/PCT_MAX*100}%"></i></div><b>${a.pct[s.k]}%</b>
    <button data-act="adj" data-k="${s.k}" data-d="-5">−5</button><button data-act="adj" data-k="${s.k}" data-d="-1">−1</button><button data-act="adj" data-k="${s.k}" data-d="1">+1</button><button data-act="adj" data-k="${s.k}" data-d="5">+5</button></div>`).join('')}
   <div class="pts"><span>Moyenne de capacité (qualification)</span><b class="${qualified(a,cfg.cat,lv)?'zero':'left'}">${fmt1c(avgCap(a,cfg.cat))}/20</b></div>
@@ -1955,13 +1960,14 @@ function renderSetup(){
   <div class="tools"><button class="btn small" data-act="even">Tout à 30 %</button><button class="btn small" data-act="rand">Aléatoire</button></div>
   </div>`;
  }).join('');
- const bad=setup.players.find(a=>TOTAL_PCT-sumPct(a)!==0);
+ const bad=setup.players.find(a=>!a.locked&&TOTAL_PCT-sumPct(a)!==0);
  const unq=(cfg.free||career)?null:setup.players.find(a=>!qualified(a,cfg.cat,lv));
  $('#startBtn').disabled=!setup.players.length||!!bad||!!unq;
  $('#startMsg').textContent=!setup.players.length?'Ajoute au moins un athlète.':bad?`Il reste des pourcentages à répartir : ${(bad.first||'Athlète')} ${bad.last}`:unq?`${unq.first||'Athlète'} n'a pas la moyenne minimale de ${lv.min}/20 pour ce niveau (actuellement ${fmt1c(avgCap(unq,cfg.cat))}/20). Redistribue tes pourcentages.`:'';
  $('#addHuman').disabled=setup.players.length>=6;
  $('#startBtn').textContent=career?'Commencer la carrière':'Lancer la compétition';
  if(typeof renderCareerBox==='function')renderCareerBox();
+ if(typeof renderCommBox==='function')renderCommBox();
 }
 function randPct(){
  const pct=Object.fromEntries(STATS.map(s=>[s.k,START_PCT]));
@@ -2006,9 +2012,10 @@ $('#cfgAge').onchange=e=>setup.cfg.age=+e.target.value;
 let G=null;
 function launch(){
  const cfg=setup.cfg;
- const humans=setup.players.map(a=>({first:(a.first||'').trim()||'Athlète',last:(a.last||'').trim()||String(a.uid),nat:a.nat,flag:flagOf(a.nat),color:a.color,pct:{...a.pct},age:ageOf(a.dob),sex:cfg.cat==='DEC'?'M':'F'}));
+ const humans=setup.players.map(a=>({first:(a.first||'').trim()||'Athlète',last:(a.last||'').trim()||String(a.uid),nat:a.nat,flag:flagOf(a.nat),color:a.color,pct:{...a.pct},age:a.age!=null?a.age:ageOf(a.dob),sex:cfg.cat==='DEC'?'M':'F'}));
  const C=buildCompetition(cfg.level,cfg.cat,humans);
  C.attempts=cfg.attempts;
+ if(typeof injectComm==='function')injectComm(C);
  startGame(C,{auto:cfg.auto,fast:cfg.fast});
 }
 function startGame(C,o){
@@ -2122,7 +2129,7 @@ function renderHeat(g,C){
 
 /* ---------- tableaux ---------- */
 const medal=i=>i===0?'🥇':i===1?'🥈':i===2?'🥉':String(i+1);
-const nameCell=p=>`${p.human?`<span class="dot" style="--c:${p.color}"></span>`:''}${p.flag||flagOf(p.nat)} <a class="pn" data-pid="${p.id}" title="Voir la fiche technique">${esc(fullName(p))}</a>`;
+const nameCell=p=>`${p.comm?'<span title="Personnage de la communauté">🌍</span> ':''}${p.human?`<span class="dot" style="--c:${p.color}"></span>`:''}${p.flag||flagOf(p.nat)} <a class="pn" data-pid="${p.id}" title="Voir la fiche technique">${esc(fullName(p))}</a>`;
 function evRank(C,r,p){
  const l=C.all.filter(x=>x.res[r]).sort((a,b)=>b.res[r].pts-a.res[r].pts);
  return l.indexOf(p)+1;
@@ -2375,6 +2382,7 @@ try{const s=localStorage.getItem(CAREER_KEY);if(s){const a=JSON.parse(s);if(Arra
 function persist(){
  if(K)K.saved=Date.now();
  try{localStorage.setItem(CAREER_KEY,JSON.stringify(careers));saveOK=true;}catch(e){saveOK=false;}
+ if(K&&K.online&&typeof scheduleSync==='function')scheduleSync();
 }
 const medalsTxt=m=>`${m[0]} 🥇 ${m[1]} 🥈 ${m[2]} 🥉`;
 const rankTxt=(r,of)=>r===1?'🥇 1er':r===2?'🥈 2e':r===3?'🥉 3e':`${r}e sur ${of}`;
@@ -2451,12 +2459,13 @@ function renderCareer(){
  window.scrollTo(0,0);
 }
 function renderHead(){
- const o=K.opt;
+ const o=K.opt,ol=onlineHeadHTML();
  $('#cHead').innerHTML=`<div class="cTop">
   <div class="who"><span class="dot" style="--c:${K.color};width:34px;height:34px"></span><div><b class="nm">${flagOf(K.nat)} ${esc(K.first)} ${esc(K.last.toUpperCase())}</b><small>${CATN[K.cat]} · Saison ${K.season} (${K.year}) · ${K.age} ans</small></div></div>
-  <div class="cStats"><span class="chip">Moyenne ${fmt1c(careerAvg(K))}/20</span><span class="chip">${medalsTxt(K.medals)}</span><span class="chip">${K.comps} ${plural(K.comps,'compétition')}</span><span class="chip ${K.tf>=2?'m':''}">Fatigue ${K.tf?'●'.repeat(K.tf):'○'}</span><span class="chip ${saveOK?'p':'m'}">${saveOK?'💾 Sauvegardé':'⚠️ Sauvegarde impossible : exporte !'}</span></div>
+  <div class="cStats"><span class="chip">Moyenne ${fmt1c(careerAvg(K))}/20</span><span class="chip">${medalsTxt(K.medals)}</span><span class="chip">${K.comps} ${plural(K.comps,'compétition')}</span><span class="chip ${K.tf>=2?'m':''}">Fatigue ${K.tf?'●'.repeat(K.tf):'○'}</span><span class="chip ${saveOK?'p':'m'}">${saveOK?'💾 Sauvegardé':'⚠️ Sauvegarde impossible : exporte !'}</span>${ol.chip}</div>
   <div class="cBtns"><label class="chk"><input type="checkbox" id="oAuto" ${o.auto?'checked':''}> Dés auto</label><label class="chk"><input type="checkbox" id="oFast" ${o.fast?'checked':''}> Virtuels rapides</label><label class="chk"><input type="checkbox" id="oQuick" ${o.quick?'checked':''}> Séances de discipline automatiques</label>
-  <button class="btn small" id="cExport">Exporter</button><button class="btn small" id="cRetire">Prendre sa retraite</button><button class="btn small" id="cMenu">Menu</button></div></div>`;
+  ${ol.btns}<button class="btn small" id="cExport">Exporter</button><button class="btn small" id="cRetire">Prendre sa retraite</button><button class="btn small" id="cMenu">Menu</button></div></div>`;
+ onlineHeadBind();
  $('#oAuto').onchange=e=>{K.opt.auto=e.target.checked;persist();};
  $('#oFast').onchange=e=>{K.opt.fast=e.target.checked;persist();};
  $('#oQuick').onchange=e=>{K.opt.quick=e.target.checked;persist();};
@@ -2696,6 +2705,139 @@ $('#homeBtn').onclick=()=>{
  if(K&&!$('#career').hidden){setup.mode='career';}
  show('setup');renderSetup();
 };
+
+/* ================= PERSONNAGES PARTAGÉS (base en ligne Supabase) ================= */
+/* à renseigner après la création du projet Supabase (voir supabase.sql) : adresse du projet et clé « anon » (publique) */
+var ONLINE={url:'',key:''};
+const onlineOn=()=>!!(ONLINE.url&&ONLINE.key);
+async function sb(fn,args){
+ const r=await fetch(ONLINE.url.replace(/\/$/,'')+'/rest/v1/rpc/'+fn,{method:'POST',headers:{apikey:ONLINE.key,Authorization:'Bearer '+ONLINE.key,'Content-Type':'application/json'},body:JSON.stringify(args)});
+ const t=await r.text();
+ if(!r.ok){let m=t;try{m=JSON.parse(t).message||t;}catch(e){}throw new Error(m);}
+ return t?JSON.parse(t):null;
+}
+const charPayload=k=>({first:k.first,last:k.last,nat:k.nat,color:k.color,age:k.age,season:k.season,year:k.year,pct:k.pct,medals:k.medals,bestTotal:k.bestTotal||0,comps:k.comps||0});
+const charName=k=>`${k.first} ${k.last}`.trim().slice(0,60);
+const errTxt=e=>/code incorrect/i.test(e.message)?'code secret incorrect':/Failed to fetch|NetworkError|load failed/i.test(e.message)?'hors ligne':e.message;
+
+/* ---------- publication / mise à jour automatique (carrière) ---------- */
+async function publishCareer(){
+ if(!onlineOn()||!K||K.online)return;
+ const code=prompt('Choisis un code secret pour ce personnage (4 caractères minimum).\nIl te servira à le modifier ou le retirer : garde-le précieusement, il ne peut pas être récupéré.');
+ if(!code)return;
+ if(code.length<4){alert('Le code doit faire au moins 4 caractères.');return;}
+ const k=K,pl=charPayload(k);
+ try{
+  const id=await sb('publish_character',{p_id:null,p_code:code,p_name:charName(k),p_cat:k.cat,p_data:pl});
+  k.online={id,code,sent:JSON.stringify(pl),at:Date.now()};persist();renderHead();
+ }catch(e){alert('Publication impossible : '+errTxt(e));}
+}
+var syncT=null;
+function scheduleSync(){
+ const k=K;if(!onlineOn()||!k||!k.online)return;
+ clearTimeout(syncT);syncT=setTimeout(()=>syncCareer(k),2500);
+}
+async function syncCareer(k,force){
+ if(!onlineOn()||!k.online)return;
+ const pl=charPayload(k),s=JSON.stringify(pl);
+ if(!force&&s===k.online.sent&&!k.online.err)return;
+ try{
+  await sb('publish_character',{p_id:k.online.id,p_code:k.online.code,p_name:charName(k),p_cat:k.cat,p_data:pl});
+  k.online.sent=s;k.online.err='';k.online.at=Date.now();persist();
+ }catch(e){k.online.err=errTxt(e);}
+ if(k===K&&!$('#career').hidden&&$('#cOnline'))renderOnlineChip();
+}
+async function unpublishCareer(){
+ if(!K||!K.online)return;
+ if(!confirm('Retirer ce personnage de la base en ligne ? Les autres joueurs ne pourront plus le rencontrer. Ta carrière reste intacte.'))return;
+ const k=K;
+ try{await sb('delete_character',{p_id:k.online.id,p_code:k.online.code});}
+ catch(e){if(!/code incorrect/i.test(e.message)&&!/hors ligne/.test(errTxt(e))){alert('Retrait impossible : '+errTxt(e));return;}if(/hors ligne/.test(errTxt(e))){alert('Hors ligne : réessaie plus tard.');return;}
+  if(!confirm('Le code enregistré ne correspond plus. Détacher quand même ce personnage de ta carrière ?'))return;}
+ delete k.online;persist();renderHead();
+}
+function renderOnlineChip(){
+ const el=$('#cOnline');if(!el)return;
+ const o=K.online;
+ el.className='chip '+(o&&!o.err?'p':'m');
+ el.textContent=o?(o.err?'🌍 En ligne · '+o.err:'🌍 En ligne · à jour'):'';
+ el.hidden=!o;
+}
+function onlineHeadHTML(){
+ if(!onlineOn())return{chip:'',btns:''};
+ return{chip:`<span id="cOnline" class="chip" hidden></span>`,btns:K.online?`<button class="btn small" id="cSync">Mettre à jour</button><button class="btn small" id="cUnpub">Retirer d’en ligne</button>`:`<button class="btn small" id="cPub">🌍 Publier mon personnage</button>`};
+}
+function onlineHeadBind(){
+ if(!onlineOn())return;
+ const a=$('#cPub'),b=$('#cSync'),c=$('#cUnpub');
+ if(a)a.onclick=publishCareer;
+ if(b)b.onclick=()=>syncCareer(K,true);
+ if(c)c.onclick=unpublishCareer;
+ renderOnlineChip();
+ if(K.online)scheduleSync();
+}
+
+/* ---------- compétition libre : mon personnage + personnages de la communauté ---------- */
+var COMM={list:[],cat:null,sel:new Set(),loading:false,err:'',loaded:false};
+function cleanChar(r){
+ const d=r.data||{},pct={};
+ STATS.forEach(s=>pct[s.k]=clamp(Math.round(+(d.pct&&d.pct[s.k])||START_PCT),PCT_MIN,PCT_MAX));
+ const nat=NATS.find(n=>n[0]===d.nat)||NATS[0];
+ return{id:r.id,first:String(d.first||'Athlète').slice(0,20),last:String(d.last||'').slice(0,24),nat:nat[0],flag:nat[1],
+  color:/^#[0-9a-f]{6}$/i.test(d.color||'')?d.color:'#5ec2ff',age:clamp(Math.round(+d.age||25),15,45),pct,
+  season:+d.season||1,medals:Array.isArray(d.medals)?d.medals.slice(0,3).map(x=>+x||0):[0,0,0],best:+d.bestTotal||0};
+}
+async function loadComm(){
+ const cat=setup.cfg.cat;COMM.loading=true;COMM.err='';renderCommBox();
+ try{const rows=await sb('list_characters',{p_cat:cat});COMM.list=(rows||[]).map(cleanChar);COMM.cat=cat;COMM.loaded=true;COMM.sel=new Set([...COMM.sel].filter(id=>COMM.list.some(c=>c.id===id)));}
+ catch(e){COMM.err=errTxt(e);}
+ COMM.loading=false;renderCommBox();
+}
+const commPicked=()=>COMM.list.filter(c=>COMM.sel.has(c.id)&&COMM.cat===setup.cfg.cat);
+function commSlots(){const lv=LEVELS.find(l=>l.id===setup.cfg.level),nh=setup.players.length;return Math.max(0,Math.max(lv.parts,nh)-nh);}
+function renderCommBox(){
+ if(!COMM)return;
+ const box=$('#commBox');if(!box)return;
+ const cfg=setup.cfg,free=setup.mode!=='career';
+ box.hidden=!free;if(!free)return;
+ if(COMM.cat&&COMM.cat!==cfg.cat){COMM.list=[];COMM.sel=new Set();COMM.loaded=false;COMM.cat=null;}
+ setup.players=setup.players.filter(a=>!a.locked||a.cat===cfg.cat);
+ const mine=careers.filter(c=>c.cat===cfg.cat);
+ const taken=new Set(setup.players.filter(a=>a.locked).map(a=>a.fromCareer));
+ const mineHTML=mine.length?`<select id="cmMineSel">${mine.map(c=>`<option value="${c.id}">${esc(c.first)} ${esc(c.last.toUpperCase())} · saison ${c.season} · ${c.age} ans · ${fmt1c(careerAvg(c))}/20</option>`).join('')}</select><button class="btn small" id="cmMine" ${setup.players.length>=6?'disabled':''}>Ajouter comme joueur</button>`:`<span class="note">Aucune carrière ${CATN[cfg.cat]} : crée-en une dans l’onglet « Mode carrière ».</span>`;
+ let comm;
+ if(!onlineOn())comm=`<span class="note">La base en ligne n’est pas encore activée.</span>`;
+ else{
+  const slots=commSlots(),n=COMM.sel.size;
+  comm=`<div class="cmRow"><button class="btn small" id="cmLoad" ${COMM.loading?'disabled':''}>${COMM.loading?'Chargement…':COMM.loaded?'↻ Actualiser':'Voir les personnages de la communauté'}</button>${COMM.loaded?`<span class="note">${COMM.list.length} personnage${COMM.list.length>1?'s':''} · ${n}/${slots} sélectionné${n>1?'s':''}</span>`:''}</div>`+
+  (COMM.err?`<p class="note" style="color:var(--bad)">${esc(COMM.err)}</p>`:'')+
+  (COMM.loaded?(COMM.list.length?`<div class="cmList">${COMM.list.map(c=>`<label class="cmItem"><input type="checkbox" data-cid="${c.id}" ${COMM.sel.has(c.id)?'checked':''}><span class="dot" style="--c:${c.color}"></span><span>${c.flag} <b>${esc(c.first)} ${esc(c.last.toUpperCase())}</b><small>${c.age} ans · saison ${c.season} · moyenne ${fmt1c(avgCap(c,cfg.cat))}/20${c.medals[0]+c.medals[1]+c.medals[2]?` · ${medalsTxt(c.medals)}`:''}${c.best?` · record ${nf(c.best)} pts`:''}</small></span></label>`).join('')}</div>`:'<p class="note">Aucun personnage publié pour cette discipline pour l’instant.</p>'):'');
+ }
+ box.innerHTML=`<h3>👥 Personnages</h3><div class="cmRow"><b>Mon personnage de carrière</b>${mineHTML}</div><div class="cmRow col"><b>Adversaires de la communauté</b>${comm}</div>`;
+ const m=$('#cmMine');if(m)m.onclick=()=>{
+  const c=careers.find(x=>x.id===$('#cmMineSel').value);if(!c)return;
+  if(taken.has(c.id)){return;}
+  const pr={};Object.keys(c.pb||{}).forEach(k=>{if(c.pb[k]&&c.pb[k].perf!=null)pr[k]=c.pb[k].perf;});
+  setup.players.push({uid:++setup.uid,first:c.first,last:c.last,dob:'2000-01-01',age:c.age,nat:c.nat,color:c.color,pct:{...c.pct},locked:true,cat:c.cat,fromCareer:c.id,pr});
+  renderSetup();
+ };
+ const l=$('#cmLoad');if(l)l.onclick=loadComm;
+ box.querySelectorAll('[data-cid]').forEach(i=>i.onchange=()=>{
+  if(i.checked){if(COMM.sel.size>=commSlots()){i.checked=false;return;}COMM.sel.add(i.dataset.cid);}else COMM.sel.delete(i.dataset.cid);
+  renderCommBox();
+ });
+}
+/* insère les personnages choisis à la place d'athlètes virtuels */
+function injectComm(C){
+ const sel=commPicked();if(!sel.length)return;
+ const bots=C.all.filter(p=>!p.human);
+ sel.slice(0,bots.length).forEach((c,i)=>{
+  const b=bots[bots.length-1-i];
+  Object.assign(b,{first:c.first,last:c.last,nat:c.nat,flag:c.flag,pct:{...c.pct},color:c.color,age:c.age,comm:true});
+ });
+}
+
+renderSetup();
 
 </script>
 </body>
