@@ -59,6 +59,7 @@ select,input[type=text],input[type=date]{font:600 15px Nunito,sans-serif;backgro
 .cp b{color:var(--gold);font-family:Oswald}
 .tools{display:flex;gap:6px;margin-top:10px}
 .addRow{display:flex;gap:10px;margin:16px 0;flex-wrap:wrap}
+.realBox{margin:0 0 14px}.realBox select{flex:1;min-width:220px}
 .startRow{display:flex;align-items:center;gap:16px;flex-wrap:wrap;margin-top:8px}
 #startMsg{color:var(--gold);font-weight:700}
 .note{color:var(--mute);font-size:13px;margin-top:14px}
@@ -327,6 +328,7 @@ tr.rec td{background:#ffc83d1f;padding:8px 10px}tr.rec small{color:var(--mute)}
  <div id="careerBox" class="card careerBox"></div>
  <div id="roomBox" class="card roomBox" hidden></div>
  <div id="commBox" class="card commBox" hidden></div>
+ <div id="realBox" class="card realBox"></div>
  <div id="athletes" class="athletes"></div>
  <div class="addRow"><button class="btn" id="addHuman">＋ Ajouter un athlète joueur</button></div>
  <div class="startRow"><button class="btn primary big" id="startBtn">Lancer la compétition</button><span id="startMsg"></span></div>
@@ -1778,7 +1780,7 @@ const ST={
  bind(){
   const cv=this.canvas,P=new Map();let g0=null,lastTap=0;
   const G=()=>{const q=[...P.values()];return{d:Math.hypot(q[0].x-q[1].x,q[0].y-q[1].y),mx:(q[0].x+q[1].x)/2,my:(q[0].y+q[1].y)/2,a:Math.atan2(q[1].y-q[0].y,q[1].x-q[0].x)};};
-  const zoom=f=>{this.goal.d=Math.max(5,Math.min(320,this.goal.d*f));this.manual=true;this.follow=false;};
+  const zoom=f=>{this.goal.d=Math.max(5,Math.min(200,this.goal.d*f));this.manual=true;this.follow=false;};
   /* déplacement latéral : la cible glisse sur le sol dans le plan de l'écran */
   const pan=(dx,dy)=>{const g=this.goal,k=.75*g.d/Math.max(300,cv.clientHeight||500),sy=Math.sin(g.yaw),cy=Math.cos(g.yaw);
    g.tx+=-dx*k*cy+dy*k*sy/Math.max(.35,Math.sin(g.pit));g.tz+=dx*k*sy+dy*k*cy/Math.max(.35,Math.sin(g.pit));this.manual=true;this.follow=false;};
@@ -2435,9 +2437,9 @@ const ST={
   const c=this.c,cp=Math.cos(cam.pit);
   /* limites de vue : la caméra reste dans l'enceinte (jamais derrière les tribunes) et la cible reste sur le terrain */
   const lim=(x,z,Rm)=>{const qz=Math.max(-this.HL,Math.min(this.HL,z)),dx=x,dz=z-qz,d=Math.hypot(dx,dz);return d>Rm?[dx*Rm/d,qz+dz*Rm/d]:[x,z];};
-  {const t=lim(cam.tx,cam.tz,this.RB+6);cam.tx=t[0];cam.tz=t[1];const t2=lim(g.tx,g.tz,this.RB+6);g.tx=t2[0];g.tz=t2[1];}
+  {const t=lim(cam.tx,cam.tz,this.RB-3);cam.tx=t[0];cam.tz=t[1];const t2=lim(g.tx,g.tz,this.RB-3);g.tx=t2[0];g.tz=t2[1];}
   let px=cam.tx+Math.sin(cam.yaw)*cp*cam.d,py=Math.sin(cam.pit)*cam.d,pz=cam.tz+Math.cos(cam.yaw)*cp*cam.d;
-  {const q=lim(px,pz,this.RB+120);px=q[0];pz=q[1];py=Math.max(.9,Math.min(this.indoor?(this.chute?110:90):190,py));}
+  {const q=lim(px,pz,this.RB+11);px=q[0];pz=q[1];py=Math.max(.9,Math.min(this.indoor?(this.chute?52:28):70,py));}
   c.position.set(px,py,pz);
   c.lookAt(cam.tx,0,cam.tz);
   if(this.halo.visible)this.halo.scale.setScalar(1+.08*Math.sin(now/180));
@@ -2658,6 +2660,12 @@ function applyReal(a,cat,val){
  Object.assign(a,{first:r[0],last:r[1],nat:r[2],real:r[0]+' '+r[1],locked:true,cat:oc,age:p.age,pct:{...p.pct},rec:p.rec,cm:p.cm,evT:p.evT?{...p.evT}:undefined});
  if(!NATS.some(n=>n[0]===r[2]))a.flagX=r[3];
 }
+function renderRealBox(){
+ const b=$('#realBox');if(!b)return;const cat=setup.cfg.cat,L=realList(cat);
+ b.innerHTML=`<h3>👤 Jouer avec un athlète existant</h3><p class="note" style="margin:0 0 8px">Kevin Mayer, Ashton Eaton, Damian Warner, Nafi Thiam… Choisis un champion : il prend la place de ton athlète en jeu libre, en compétition des légendes ou en carrière.</p>
+ <div class="startRow"><select id="realPick"><option value="">— Choisir un athlète —</option>${L.map((g,gi)=>`<optgroup label="${g[0]}">${g[1].map((r,i)=>`<option value="${gi}:${i}">${r[3]} ${r[0]} ${r[1].toUpperCase()} · ${nf(r[4])} pts</option>`).join('')}</optgroup>`).join('')}</select><button class="btn primary" id="realGo">Choisir</button></div>`;
+ $('#realGo').onclick=()=>{const v=$('#realPick').value;if(!v)return;if(!setup.players.length)setup.players.push(newHuman());applyReal(setup.players[0],setup.cfg.cat,v);renderSetup();window.scrollTo({top:$('#athletes').offsetTop-20,behavior:'smooth'});};
+}
 function renderSetup(){
  const cfg=setup.cfg;
  const career=setup.mode==='career';
@@ -2709,6 +2717,7 @@ function renderSetup(){
  $('#addHuman').disabled=setup.players.length>=6;
  if(ROOM&&setup.players.length>1)setup.players.length=1;
  $('#startBtn').textContent=career?'Commencer la carrière':'Lancer la compétition';
+  renderRealBox();
  if(typeof renderCareerBox==='function')renderCareerBox();
  if(typeof renderCommBox==='function')renderCommBox();
  try{renderRoomBox();}catch(e){if(!(e instanceof ReferenceError))throw e;}
