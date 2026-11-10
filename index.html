@@ -37,6 +37,7 @@ select,input[type=text],input[type=date]{font:600 15px Nunito,sans-serif;backgro
 .athletes{display:grid;grid-template-columns:repeat(auto-fill,minmax(380px,1fr));gap:14px}
 .ath{position:relative;border-top:5px solid var(--c)}
 .ath .head{display:flex;gap:8px;align-items:center;margin-bottom:10px}
+.realSel{display:block;margin:0 0 10px;font-size:13px;color:var(--mut,#9fb0d4)}.realSel select{width:100%;margin-top:4px}
 .badge{font:700 11px Nunito;padding:3px 8px;border-radius:99px;background:#ffffff1c;color:var(--mute);text-transform:uppercase;letter-spacing:.06em}
 .rm{margin-left:auto}
 .grid2{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px}
@@ -1577,7 +1578,7 @@ function injectPros(C){
 function buildLegendsComp(cat,humans){
  const C=buildCompetition('jo',cat,humans);
  const hs=C.all.filter(p=>p.human);
- const leg=REAL_LEG[cat].map((r,i)=>{const p=makePro(cat,hs.length+i,r);initRuntime(p);return p;});
+ const leg=REAL_LEG[cat].filter(r=>!hs.some(h=>h.first===r[0]&&h.last===r[1])).map((r,i)=>{const p=makePro(cat,hs.length+i,r);initRuntime(p);return p;});
  C.all=[...hs,...leg];
  C.level={...C.level,id:'leg',n:'Compétition des légendes',s:'Légendes',parts:C.all.length};
  return C;
@@ -1823,7 +1824,7 @@ const ST={
   const seat=['#22337a','#59627f','#8a2335','#22337a'];
   for(let b=0;b<4;b++){x.fillStyle=seat[b];x.fillRect(b*256,0,256,256);}
   const shirts=['#b4233f','#c98a1a','#3b6fc4','#cfd3dc','#2f9b5b','#7d6bc4','#c95a6e','#3c93b8','#c9b53a','#1a2030','#c9692a'],skins=['#f1c9a0','#d9a679','#a8744f','#7b4d33','#f6d9b9'];
-  const tier=this.tier==null?4:this.tier,dens=[.09,.2,.38,.62,.82,.93,1][tier],df=[0,0,.6,.75,.9,1,1.12][tier];
+  const tier=this.tier==null?4:this.tier,dens=[.2,.3,.45,.62,.82,.93,1][tier],df=[0,0,.6,.75,.9,1,1.12][tier];
   const rows=10,rh=256/rows;
   for(let r=0;r<rows;r++){
    const y=r*rh;
@@ -1840,7 +1841,7 @@ const ST={
   const tex=new T.CanvasTexture(cv);tex.wrapS=tex.wrapT=T.RepeatWrapping;tex.anisotropy=8;
   /* ouverture dans les tribunes pour le couloir de départ du 100 m / 110 m haies */
   const nx0=this.R1-3.5,nx1=Ro+11,notch=(a,b)=>{const mx=(a[0]+b[0])/2,my=(a[1]+b[1])/2;return mx>nx0&&mx<nx1&&my<-this.HL-3;};
-  const HLn=this.HL,vfLow=(a,b)=>{const mx=(a[0]+b[0])/2,my=(a[1]+b[1])/2;return tier>=3||(tier===2?my>-HLn-3:tier===1?Math.abs(my)<HLn+4:(mx>0&&Math.abs(my)<HLn+2));};
+  const HLn=this.HL,vfLow=(a,b)=>{const mx=(a[0]+b[0])/2,my=(a[1]+b[1])/2;return tier>=3||(tier===2?my>-HLn-3:tier===1?Math.abs(my)<HLn+4:(mx>0&&Math.abs(my)<HLn+9));};
   const vfUp=(a,b)=>{const my=(a[1]+b[1])/2;return tier>=3||Math.abs(my)<HLn;};
   const ring=(ra,ha,rb,hb,uDiv,vS,vis)=>{
    const A=this.contour(ra,28),B=this.contour(rb,28),pos=[],uv=[];let len=0;const N=A.length;
@@ -2045,7 +2046,7 @@ const ST={
   this.chuteFill(ctx,ev);
   /* pelouse intérieure */
   ctx.save();this.stad(ctx,R1);ctx.clip();stripes(...(this.indoor?['#9bd6f2','#92d1ef']:['#237a43','#1f6e3c']));
-  if(!this.indoor)this.drawRings(ctx);
+  if(this.tier===6&&!this.indoor)this.drawRings(ctx);
   else{this.txt(ctx,'DÉCA · HEPTA',0,-1,this.indoor?6.2:3.6,this.indoor?'rgba(15,45,92,.16)':'rgba(255,255,255,.12)',Math.PI/2,null,true);
   if(C)this.txt(ctx,C.level.s.toUpperCase(),0,this.indoor?-11:16,this.indoor?2.2:1.5,this.indoor?'rgba(15,45,92,.2)':'rgba(255,255,255,.14)',Math.PI/2,null,true);}
   if(!ev||ev.mech==='race')this.decor(ctx,ev);
@@ -2627,6 +2628,18 @@ function show(v){
  $('#homeBtn').hidden=v==='setup';window.scrollTo(0,0);
 }
 const fmt1c=v=>v.toFixed(1).replace('.',',');
+/* choix d'un athlète existant (légendes et athlètes en activité) pour le jeu libre, les légendes et la carrière */
+const realList=cat=>{const oc=OUTC[cat];return[['Légendes',REAL_LEG[oc]||[]],['En activité',(REAL_ACT[oc]||[]).filter(r=>!(REAL_LEG[oc]||[]).some(l=>l[0]===r[0]&&l[1]===r[1]))]];};
+function realSelHTML(a,cat){
+ const L=realList(cat);
+ return `<label class="realSel">👤 Athlète existant<select data-real="1"><option value="">Mon athlète (personnalisé)</option>${L.map((g,gi)=>`<optgroup label="${g[0]}">${g[1].map((r,i)=>`<option value="${gi}:${i}" ${a.real===r[0]+' '+r[1]?'selected':''}>${r[3]} ${r[0]} ${r[1].toUpperCase()} · ${nf(r[4])} pts</option>`).join('')}</optgroup>`).join('')}</select></label>`;
+}
+function applyReal(a,cat,val){
+ if(!val){a.real=null;a.locked=false;delete a.evT;delete a.rec;delete a.cm;a.pct=Object.fromEntries(STATS.map(s=>[s.k,START_PCT]));a.first='';a.last='';a.cat=null;return;}
+ const [gi,i]=val.split(':').map(Number),r=realList(cat)[gi][1][i],oc=OUTC[cat],p=makePro(oc,0,r,true);
+ Object.assign(a,{first:r[0],last:r[1],nat:r[2],real:r[0]+' '+r[1],locked:true,cat:oc,age:p.age,pct:{...p.pct},rec:p.rec,cm:p.cm,evT:p.evT?{...p.evT}:undefined});
+ if(!NATS.some(n=>n[0]===r[2]))a.flagX=r[3];
+}
 function renderSetup(){
  const cfg=setup.cfg;
  const career=setup.mode==='career';
@@ -2651,7 +2664,8 @@ function renderSetup(){
  $('#athletes').innerHTML=setup.players.map(a=>{
   const left=TOTAL_PCT-sumPct(a);
   return `<div class="card ath ${a.locked?'lk':''}" style="--c:${a.color}" data-uid="${a.uid}">
-  <div class="head"><span class="badge">${a.locked?'Ma carrière':'Joueur'}</span><b>${esc(a.first||'Athlète')} ${esc(a.last.toUpperCase())}</b><button class="btn small rm" data-act="rm">✕</button></div>
+  <div class="head"><span class="badge">${a.real?'Athlète réel':a.locked?'Ma carrière':'Joueur'}</span><b>${esc(a.first||'Athlète')} ${esc(a.last.toUpperCase())}</b><button class="btn small rm" data-act="rm">✕</button></div>
+  ${a.locked&&!a.real?'':realSelHTML(a,cfg.cat)}
   <div class="grid2">
    <label>Prénom<input type="text" data-f="first" value="${esc(a.first)}" placeholder="Prénom" maxlength="20"></label>
    <label>Nom<input type="text" data-f="last" value="${esc(a.last)}" placeholder="Nom" maxlength="24"></label>
@@ -2708,7 +2722,7 @@ $('#athletes').addEventListener('input',e=>{
  const a=setup.players.find(x=>x.uid==e.target.closest('.ath').dataset.uid);a[f]=e.target.value;if(typeof roomPing==='function')roomPing();
  if(f==='first'||f==='last')e.target.closest('.ath').querySelector('.head b').textContent=(a.first||'Athlète')+' '+a.last.toUpperCase();
 });
-$('#athletes').addEventListener('change',e=>{if(!e.target.dataset.m)return;const a=setup.players.find(x=>x.uid==e.target.closest('.ath').dataset.uid);a[e.target.dataset.m]=+e.target.value;renderSetup();});
+$('#athletes').addEventListener('change',e=>{if(e.target.dataset.real){const a=setup.players.find(x=>x.uid==e.target.closest('.ath').dataset.uid);applyReal(a,setup.cfg.cat,e.target.value);renderSetup();return;}if(!e.target.dataset.m)return;const a=setup.players.find(x=>x.uid==e.target.closest('.ath').dataset.uid);a[e.target.dataset.m]=+e.target.value;renderSetup();});
 $('#cfgLevel').onchange=e=>{setup.cfg.level=e.target.value;renderSetup();};
 $('#cfgCat').onchange=e=>{setup.cfg.cat=e.target.value;renderSetup();};
 $('#cfgAtt').onchange=e=>setup.cfg.attempts=+e.target.value;
@@ -2728,7 +2742,7 @@ $('#cfgAge').onchange=e=>setup.cfg.age=+e.target.value;
 let G=null;
 function launch(){
  const cfg=setup.cfg;
- const humans=setup.players.map(a=>({first:(a.first||'').trim()||'Athlète',last:(a.last||'').trim()||String(a.uid),nat:a.nat,flag:flagOf(a.nat),color:a.color,pct:{...a.pct},h:a.h,w:a.w,age:a.age!=null?a.age:ageOf(a.dob),sex:sexOf(cfg.cat)}));
+ const humans=setup.players.map(a=>({first:(a.first||'').trim()||'Athlète',last:(a.last||'').trim()||String(a.uid),nat:a.nat,flag:flagOf(a.nat),color:a.color,pct:{...a.pct},h:a.h,w:a.w,age:a.age!=null?a.age:ageOf(a.dob),sex:sexOf(cfg.cat),...(a.real?{real:true,rec:a.rec,cm:a.cm,evT:a.evT,flag:a.flagX||flagOf(a.nat)}:{})}));
  const C=cfg.level==='legends'?buildLegendsComp(cfg.cat,humans):buildCompetition(cfg.level,cfg.cat,humans);
  C.attempts=cfg.attempts;
  if(typeof injectComm==='function')injectComm(C);
@@ -3201,7 +3215,9 @@ function exportCareer(c){
 function createCareer(){
  const a=setup.players[0],cfg=setup.cfg;if(!a)return;
  const h={first:(a.first||'').trim()||'Athlète',last:(a.last||'').trim()||'Anonyme',nat:a.nat,color:a.color,pct:{...a.pct},h:a.h,w:a.w};
- K=newCareer(h,cfg.cat,cfg.age,cfg.attempts);
+ if(a.real){STATS.forEach(s=>{h.pct[s.k]=Math.max(30,Math.min(100,Math.round(h.pct[s.k]/10)*10));});if(!h.h||!h.w){const m=morphOf(0,.1,sexOf(cfg.cat));h.h=m.h;h.w=m.w;}}
+ K=newCareer(h,cfg.cat,a.real?Math.max(22,Math.min(34,a.age||28)):cfg.age,cfg.attempts);
+ if(a.real)EV[cfg.cat].forEach(e=>{const sk=evSkills(e);K.comp[e.id]=Math.max(0,Math.min(100,Math.round(sk.reduce((t,k)=>t+K.pct[k],0)/sk.length)));});
  K.opt={auto:cfg.auto,fast:cfg.fast,quick:false};
  careers.unshift(K);persist();
  cNote=`<div class="card cnote"><h3>🏅 Début de carrière</h3><p>${esc(K.first)} a ${K.age} ans et rêve des Jeux. Saison ${K.season} (${K.year}) : avant chaque compétition, tu disposes de <b>3 séances d’entraînement</b>. Il faut atteindre la moyenne de capacité minimale (6/20 en départementaux, 8 en régionaux, 10 en interrégionaux, 13 aux France Élite, 15 à l’international) pour participer.</p></div>`;
