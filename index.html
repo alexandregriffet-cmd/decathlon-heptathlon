@@ -951,9 +951,9 @@ let _PE=null;
 function paperEng(){if(!_PE)_PE=PaperEngine.create(PAPER_DATA,{ptsOf:(id,sex,v)=>{const ev=(EV[sex==='M'?'HEPI':'PENI'].find(e=>e.id===id))||EV[sex==='M'?'DEC':'HEP'].find(e=>e.id===id);return ptsOf(ev,ev.u==='cm'?Math.round(v*100):v);}});return _PE;}
 const paperOn=(ev,p)=>typeof PaperEngine!=='undefined'&&typeof PAPER_DATA!=='undefined'&&p.cat&&PAPER_DATA.TABLES[sexOf(p.cat)]&&PAPER_DATA.TABLES[sexOf(p.cat)][ev.id]&&PAPER_DATA.EV[p.cat];
 function paperChars(p){const CH={};STATS.forEach(s=>CH[s.k]=Math.max(1,Math.min(20,Math.round(13+(effPct(p,s.k)-30)*.1))));return CH;}   /* 30 % = 13/20 (départ du livre), 100 % = 20/20 */
-/* plafond de compétence jouée : le niveau 4 (100 %) donnerait ~10 800 points, bien au-dessus du record du monde (9 126). On reste au niveau 3 : ~8 400 en moyenne, 9 000 et plus avec de la chance */
-const CMAX=99;
-function paperEvPct(p,ev){if(p.comp)return Math.max(0,Math.min(CMAX,p.comp[ev.id]||0));const sk=ev.sk||evAllSk(ev);const m=sk.reduce((a,k)=>a+effPct(p,k),0)/sk.length;return Math.max(0,Math.min(CMAX,(m-30)/.7));}   /* compétence du livre : 0 % au départ, 100 % au maximum */
+/* plafond de compétence par épreuve selon le profil : moyenne des plafonds des 3 qualités de l'épreuve (technique, mental, tactique non plafonnés = 20/20). 20 → 100 % (niveau 4), 19 → 90 %, 18 → 80 %, 17 → 70 %... Chaque profil n'atteint le niveau 4 que dans les épreuves qui lui correspondent */
+function profCeil(p,ev){const t=PAPER_DATA.TRIO[ev.id];if(!t)return 100;const cat=p.cat||(p.sex==='F'?'HEP':'DEC');const A=t.reduce((s,k)=>s+plafOf(p,k,cat),0)/3;return Math.max(0,Math.min(100,Math.round(100-(20-A)*10)));}
+function paperEvPct(p,ev){if(p.comp)return Math.max(0,Math.min(profCeil(p,ev),p.comp[ev.id]||0));const sk=ev.sk||evAllSk(ev);const m=sk.reduce((a,k)=>a+effPct(p,k),0)/sk.length;return Math.max(0,Math.min(profCeil(p,ev),(m-30)/.7));}   /* compétence du livre : 0 % au départ, 100 % au maximum */
 function paperCtx(ev,p,io,extra){
  const E=paperEng(),sex=sexOf(p.cat),N=(PAPER_DATA.GEO[ev.id]||{}).N;
  if(!p.pe){p.pe={CH:paperChars(p),COMP:{},sex,cat:p.cat,dayBreak:DB[p.cat]};E.newState(p.pe);}
