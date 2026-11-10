@@ -1960,7 +1960,6 @@ const ST={
    fillR(-27.2,-3*LWc,27.2,3*LWc,TA,'#fff',.12);
    ctx.strokeStyle='#fff';ctx.lineWidth=.07;for(let k=1;k<6;k++){ctx.beginPath();ctx.moveTo(-3*LWc+k*LWc,-27.2);ctx.lineTo(-3*LWc+k*LWc,27.2);ctx.stroke();}
    ctx.strokeStyle='rgba(255,255,255,.55)';ctx.lineWidth=.05;for(let i=1;i<6;i++){ctx.beginPath();ctx.moveTo(-3*LWc,X0+i*cs);ctx.lineTo(3*LWc,X0+i*cs);ctx.stroke();}
-   if(!this.chute)for(let i=0;i<6;i++)for(let k=0;k<6;k++)this.txt(ctx,String(i+1),-3*LWc+(k+.5)*LWc,X0+(i+.5)*cs,.8,'rgba(255,255,255,.6)',0);
    fillR(X0-.9,-3*LWc,X0-.8,3*LWc,'#fff');ctx.fillStyle='rgba(0,0,0,.16)';ctx.fillRect(-3*LWc,X0-1.9,6*LWc,1);
    for(let k=0;k<6;k++)this.txt(ctx,String(k+1),-3*LWc+(k+.5)*LWc,-26,1.1,'#fff',0);
    fillR(X1,-3*LWc,X1+.08,3*LWc,'#fff');
@@ -2144,13 +2143,6 @@ const ST={
     const t2=this.posR(R1+LW*1.0,s0);this.txt(ctx,'À LA CORDE · COULOIRS 1 ET 2',0,-3,1.7,'rgba(255,255,255,.6)',Math.PI/2,null,true);
    }
    if(!this.chute){const t=this.posR(Ro+2.6,s0);this.txt(ctx,'DÉPART '+ev.m+' m',t.x,t.y,1.5,'#fff',0);}
-   if(D<=40){
-    for(let k=0;k<this.NL;k++)for(let c=1;c<=D;c++){
-     const q=this.posR(R1+(k+.5)*LW,s0+c-.5);
-     if(c===D&&D<=40)continue;
-     this.txt(ctx,String(c),q.x,q.y,1.15,'rgba(255,255,255,.5)',q.a,null,true);
-    }
-   }
    if(D>40&&!this.indoor){
     const q=this.posR(Ro+2.6,0);this.txt(ctx,Math.round(D/this.LAP*100)/100+' tours',q.x+3.2,q.y,1.3,'#fff',0);
    }
@@ -2164,7 +2156,6 @@ const ST={
    const n=Math.round(len/cell);
    ctx.strokeStyle='rgba(255,255,255,.55)';ctx.lineWidth=.07;
    for(let i=1;i<n;i++){ctx.beginPath();ctx.moveTo(x0,y0+i*cell);ctx.lineTo(x0+w,y0+i*cell);ctx.stroke();}
-   for(let i=0;i<n;i++)this.txt(ctx,String(i+1),x0+w/2,y0+(i+.5)*cell,Math.min(1.4,cell*.5),'rgba(255,255,255,.6)',0);
    ctx.fillStyle='rgba(0,0,0,.15)';ctx.fillRect(x0,y0-.9,w,.9);
   };
   const arcs=(cx,cy,half,from,to,step,k,unit,lab)=>{
