@@ -402,7 +402,7 @@ dialog.rulesD{max-width:860px;max-height:90vh;overflow:auto}
 <section id="setup" hidden>
  <div class="modeTabs"><button class="btn big on" id="modeFree">🏟️ Compétition libre</button><button class="btn big" id="modeLegends">⭐ Compétition des légendes</button><button class="btn big" id="modeCareer">🏅 Mode carrière</button></div>
  <div class="hero"><h1>Crée ton athlète. Lance les dés.</h1>
- <p>Chaque athlète démarre avec 30 % dans chaque qualité et répartit ses pourcentages. Chaque épreuve se joue en plusieurs lancers de d20 sur un plateau à cases, puis le résultat est converti en secondes, mètres ou centimètres et en points selon le barème officiel.</p></div>
+ <p>Chaque athlète démarre avec 30 % dans chacune de ses 9 qualités (soit 13/20) et répartit 160 points de pourcentage où il veut, jusqu'à 100 % (20/20). Chaque épreuve se joue en plusieurs lancers de d20 sur un plateau à cases, puis le résultat est converti en secondes, mètres ou centimètres et en points selon le barème officiel.</p></div>
  <div class="card cfg">
   <label class="lf">Compétition<select id="cfgLevel"></select></label>
   <label class="cf">Âge de départ<select id="cfgAge"><option>15</option><option>16</option><option>17</option><option>18</option><option>19</option></select></label>
@@ -2870,7 +2870,7 @@ function renderSetup(){
  $('#cfgLevel').innerHTML=(career||isInd(cfg.cat)?'':`<option value="legends" ${legM?'selected':''}>⭐ Compétition des légendes · les 25 meilleurs de l’histoire</option>`)+(isInd(cfg.cat)?LEVELS_I:[...LEVELS,...STARS]).map(l=>`<option value="${l.id}" ${l.id===cfg.level?'selected':''} ${okLv(l)?'':'disabled'}>${l.star?'⭐ ':''}${l.n} · min ${l.min} %${okLv(l)?'':' · non qualifié'}</option>`).join('');
  $('#cfgFree').checked=cfg.free;$('#cfgCat').value=cfg.cat;[...$('#cfgCat').options].forEach(o=>{if(isInd(o.value))o.disabled=career;});$('#cfgAtt').value=String(cfg.attempts);$('#cfgAuto').checked=cfg.auto;$('#cfgFast').checked=cfg.fast;
  const nh=(typeof ROOM!=='undefined'&&ROOM&&!career&&Object.keys(ROOM.members).length)||setup.players.length;
- $('#cfgInfo').textContent=career?`Carrière ${CATN[cfg.cat]} : tu débutes à ${cfg.age} ans avec 30 % partout à répartir (270 points), puis tu enchaînes les saisons du calendrier FFA.`:(legM?`${CATN[cfg.cat]} · ${lv.n} : tu affrontes les 25 meilleurs ${cfg.cat==='DEC'?'décathloniens':'heptathloniennes'} de l’histoire (records personnels réels), avec ${nh} joueur${nh>1?'s':''}.`:`${CATN[cfg.cat]} · ${lv.n} : ${Math.max(lv.parts,nh)} participants, dont ${nh} joueur${nh>1?'s':''} et ${Math.max(lv.parts,nh)-nh} athlètes virtuels.`);
+ $('#cfgInfo').textContent=career?`Carrière ${CATN[cfg.cat]} : tu débutes à ${cfg.age} ans avec 9 qualités à 30 % (13/20) et 160 points de pourcentage à répartir, puis tu enchaînes les saisons du calendrier FFA.`:(legM?`${CATN[cfg.cat]} · ${lv.n} : tu affrontes les 25 meilleurs ${cfg.cat==='DEC'?'décathloniens':'heptathloniennes'} de l’histoire (records personnels réels), avec ${nh} joueur${nh>1?'s':''}.`:`${CATN[cfg.cat]} · ${lv.n} : ${Math.max(lv.parts,nh)} participants, dont ${nh} joueur${nh>1?'s':''} et ${Math.max(lv.parts,nh)-nh} athlètes virtuels.`);
  $('#cfgAge').value=String(cfg.age);
  $('#athletes').innerHTML=setup.players.map(a=>{
   const left=TOTAL_PCT-sumPct(a);
