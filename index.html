@@ -176,7 +176,7 @@ dialog p,dialog li{color:#dfe5f7;font-size:14px;line-height:1.5;margin:4px 0}
 .scene{position:relative;height:min(64vh,540px);min-height:300px;border-radius:14px;overflow:hidden;background:#0a1330}
 .scene canvas{width:100%;height:100%;display:block;touch-action:none;cursor:grab}
 .hud{position:absolute;left:0;right:0;top:0;display:flex;justify-content:space-between;align-items:center;gap:8px;padding:8px 10px;pointer-events:none;background:linear-gradient(#0a1330cc,#0a133000);color:#fff;font-size:14px}
-.hud small{color:#c8d3f5;margin-left:6px}.hudBtns{display:flex;gap:6px;pointer-events:auto}
+.hud small{color:#c8d3f5;margin-left:6px}.hudBtns{display:flex;gap:6px;pointer-events:auto;flex-wrap:wrap;justify-content:flex-end}
 .pg{height:9px;background:#ffffff22;border-radius:5px;overflow:hidden}.pg i{display:block;height:100%;background:var(--c,#fff);transition:width .2s}
 #botSpeed{background:#ffffff14;color:var(--ink);border:1px solid var(--line);border-radius:8px;padding:3px 6px}
 
@@ -339,7 +339,7 @@ tr.rec td{background:#ffc83d1f;padding:8px 10px}tr.rec small{color:var(--mute)}
   <div class="left">
    <div class="card" id="stageCard">
     <div id="stageHead" class="stageHead"></div>
-    <div id="scene" class="scene"><canvas id="stadium"></canvas><div class="hud"><span><b id="hudTitle"></b> <small id="hudSub"></small></span><span class="hudBtns"><button class="btn small" id="vOver" title="Vue d'ensemble">🏟️ Ensemble</button><button class="btn small" id="vZin" title="Zoom +">＋</button><button class="btn small" id="vZout" title="Zoom −">－</button><button class="btn small" id="vReset" title="Recentrer la caméra">🎥 Recentrer</button></span></div>
+    <div id="scene" class="scene"><canvas id="stadium"></canvas><div class="hud"><span><b id="hudTitle"></b> <small id="hudSub"></small></span><span class="hudBtns"><button class="btn small" id="vOver" title="Vue d'ensemble">🏟️ Ensemble</button><button class="btn small" id="vL" title="Tourner à gauche">⟲</button><button class="btn small" id="vR" title="Tourner à droite">⟳</button><button class="btn small" id="vUp" title="Vue plus haute">⤒</button><button class="btn small" id="vDn" title="Vue plus basse">⤓</button><button class="btn small" id="vZin" title="Zoom +">＋</button><button class="btn small" id="vZout" title="Zoom −">－</button><button class="btn small" id="vReset" title="Recentrer la caméra">🎥 Recentrer</button></span></div>
     <div class="dieOver"><div class="dieBox"><canvas id="die3d" width="200" height="200"></canvas><div class="die2d" id="die2d">20</div></div>
      <div class="dieCtl"><div id="dieMsg" class="dieMsg"></div><div class="dieBtns"><button class="btn primary big" id="actBtn" hidden></button><button class="btn" id="turboBtn" hidden>⏩ Finir la course automatiquement</button><button class="btn" id="passBtn" hidden></button></div></div></div></div>
     <div id="ticker" class="ticker"></div>
@@ -1776,18 +1776,36 @@ const ST={
   }catch(e){this.ok=false;console.warn('stade 3D indisponible',e&&e.message);}
  },
  bind(){
-  const cv=this.canvas,P=new Map();let pd=0;
-  const dist=()=>{const q=[...P.values()];return Math.hypot(q[0].x-q[1].x,q[0].y-q[1].y);};
-  const zoom=f=>{this.goal.d=Math.max(12,Math.min(200,this.goal.d*f));this.manual=true;this.follow=false;};
-  this.zoom=zoom;
-  cv.addEventListener('pointerdown',e=>{P.set(e.pointerId,{x:e.clientX,y:e.clientY});try{cv.setPointerCapture(e.pointerId);}catch(_){}if(P.size===2)pd=dist();});
-  cv.addEventListener('pointermove',e=>{
-   const o=P.get(e.pointerId);if(!o)return;const dx=e.clientX-o.x,dy=e.clientY-o.y;o.x=e.clientX;o.y=e.clientY;
-   if(P.size>=2){const d=dist();if(pd>0&&d>0)zoom(pd/d);pd=d;return;}
-   this.goal.yaw-=dx*.006;this.goal.pit=Math.max(.2,Math.min(1.45,this.goal.pit+dy*.006));this.manual=true;this.follow=false;
+  const cv=this.canvas,P=new Map();let g0=null,lastTap=0;
+  const G=()=>{const q=[...P.values()];return{d:Math.hypot(q[0].x-q[1].x,q[0].y-q[1].y),mx:(q[0].x+q[1].x)/2,my:(q[0].y+q[1].y)/2,a:Math.atan2(q[1].y-q[0].y,q[1].x-q[0].x)};};
+  const zoom=f=>{this.goal.d=Math.max(5,Math.min(320,this.goal.d*f));this.manual=true;this.follow=false;};
+  /* déplacement latéral : la cible glisse sur le sol dans le plan de l'écran */
+  const pan=(dx,dy)=>{const g=this.goal,k=.75*g.d/Math.max(300,cv.clientHeight||500),sy=Math.sin(g.yaw),cy=Math.cos(g.yaw);
+   g.tx+=-dx*k*cy+dy*k*sy/Math.max(.35,Math.sin(g.pit));g.tz+=dx*k*sy+dy*k*cy/Math.max(.35,Math.sin(g.pit));this.manual=true;this.follow=false;};
+  const turn=(dyaw,dpit)=>{const g=this.goal;g.yaw+=dyaw;g.pit=Math.max(.04,Math.min(1.55,g.pit+dpit));this.manual=true;this.follow=false;};
+  this.zoom=zoom;this.turn=turn;this.pan=pan;
+  cv.addEventListener('contextmenu',e=>e.preventDefault());
+  cv.title='Glisser : tourner · Maj ou clic droit : déplacer · molette : zoom · double-clic : recentrer · deux doigts : zoom, déplacement, rotation';
+  cv.addEventListener('pointerdown',e=>{
+   P.set(e.pointerId,{x:e.clientX,y:e.clientY,b:e.button,sh:e.shiftKey||e.ctrlKey||e.metaKey});try{cv.setPointerCapture(e.pointerId);}catch(_){}
+   if(P.size===2)g0=G();
+   P.get(e.pointerId).t0=Date.now();P.get(e.pointerId).mv=0;P.get(e.pointerId).alone=P.size===1;
   });
-  const up=e=>{P.delete(e.pointerId);pd=0;};cv.addEventListener('pointerup',up);cv.addEventListener('pointercancel',up);
-  cv.addEventListener('wheel',e=>{e.preventDefault();zoom(1+Math.sign(e.deltaY)*.08);},{passive:false});
+  cv.addEventListener('pointermove',e=>{
+   const o=P.get(e.pointerId);if(!o)return;const dx=e.clientX-o.x,dy=e.clientY-o.y;o.x=e.clientX;o.y=e.clientY;o.mv+=Math.abs(dx)+Math.abs(dy);
+   if(P.size>=2){const n=G();if(g0){if(g0.d>0&&n.d>0)zoom(g0.d/n.d);pan(n.mx-g0.mx,n.my-g0.my);let da=n.a-g0.a;if(da>Math.PI)da-=2*Math.PI;if(da<-Math.PI)da+=2*Math.PI;turn(-da,0);}g0=n;return;}
+   if(o.b===2||o.b===1||o.sh)pan(dx,dy);else turn(-dx*.007,dy*.006);
+  });
+  const up=e=>{const o=P.get(e.pointerId);if(o&&e.type==='pointerup'&&e.pointerType!=='mouse'&&o.alone&&o.mv<8&&Date.now()-o.t0<300&&P.size===1){const t=Date.now();if(t-lastTap<350){this.manual=false;this.applyPre(false);lastTap=0;}else lastTap=t;}P.delete(e.pointerId);g0=P.size===2?G():null;};cv.addEventListener('pointerup',up);cv.addEventListener('pointercancel',up);
+  cv.addEventListener('dblclick',()=>{this.manual=false;this.applyPre(false);});
+  cv.addEventListener('wheel',e=>{e.preventDefault();if(e.shiftKey||e.ctrlKey&&false)pan(-e.deltaX,-e.deltaY);else zoom(Math.exp(Math.max(-60,Math.min(60,e.deltaY))*.0016));},{passive:false});
+  window.addEventListener('keydown',e=>{
+   if(!this.active||/INPUT|SELECT|TEXTAREA/.test((e.target&&e.target.tagName)||''))return;
+   const k=e.key;let h=true;
+   if(k==='ArrowLeft')turn(.12,0);else if(k==='ArrowRight')turn(-.12,0);else if(k==='ArrowUp')turn(0,-.08);else if(k==='ArrowDown')turn(0,.08);
+   else if(k==='+'||k==='=')zoom(.85);else if(k==='-'||k==='_')zoom(1.18);else if(k==='0')this.manual=false,this.applyPre(false);else h=false;
+   if(h)e.preventDefault();
+  });
   window.addEventListener('resize',()=>this.resize());
  },
  resize(){
@@ -2417,9 +2435,9 @@ const ST={
   const c=this.c,cp=Math.cos(cam.pit);
   /* limites de vue : la caméra reste dans l'enceinte (jamais derrière les tribunes) et la cible reste sur le terrain */
   const lim=(x,z,Rm)=>{const qz=Math.max(-this.HL,Math.min(this.HL,z)),dx=x,dz=z-qz,d=Math.hypot(dx,dz);return d>Rm?[dx*Rm/d,qz+dz*Rm/d]:[x,z];};
-  {const t=lim(cam.tx,cam.tz,this.RB-3);cam.tx=t[0];cam.tz=t[1];const t2=lim(g.tx,g.tz,this.RB-3);g.tx=t2[0];g.tz=t2[1];}
+  {const t=lim(cam.tx,cam.tz,this.RB+6);cam.tx=t[0];cam.tz=t[1];const t2=lim(g.tx,g.tz,this.RB+6);g.tx=t2[0];g.tz=t2[1];}
   let px=cam.tx+Math.sin(cam.yaw)*cp*cam.d,py=Math.sin(cam.pit)*cam.d,pz=cam.tz+Math.cos(cam.yaw)*cp*cam.d;
-  {const q=lim(px,pz,this.RB+11);px=q[0];pz=q[1];py=Math.max(1.8,Math.min(this.indoor?(this.chute?52:28):70,py));}
+  {const q=lim(px,pz,this.RB+120);px=q[0];pz=q[1];py=Math.max(.9,Math.min(this.indoor?(this.chute?110:90):190,py));}
   c.position.set(px,py,pz);
   c.lookAt(cam.tx,0,cam.tz);
   if(this.halo.visible)this.halo.scale.setScalar(1+.08*Math.sin(now/180));
@@ -2798,6 +2816,7 @@ function openRanks(C,sel){
 $('#ranksBtn').onclick=()=>{if(G&&G.C){const C=G.C,r=C.cur?C.cur.r:0;const d=C.all.some(p=>p.res[r])&&C.all.filter(p=>!p.dnf).every(p=>p.res[r]);openRanks(C,d?r:(r>0?r-1:'all'));}};
 $('#evbar').onclick=e=>{const c=e.target.closest('.evc.done');if(c&&G&&G.C)openRanks(G.C,+c.dataset.i);};
 $('#botSpeed').onchange=e=>{if(G&&!G.fast)G.lvl=+e.target.value;};
+$('#vL').onclick=()=>ST.turn&&ST.turn(.4,0);$('#vR').onclick=()=>ST.turn&&ST.turn(-.4,0);$('#vUp').onclick=()=>ST.turn&&ST.turn(0,.25);$('#vDn').onclick=()=>ST.turn&&ST.turn(0,-.25);
 $('#vZin').onclick=()=>ST.zoom&&ST.zoom(.8);$('#vZout').onclick=()=>ST.zoom&&ST.zoom(1.25);
 $('#vReset').onclick=()=>{ST.manual=false;ST.applyPre(false);};
 $('#vOver').onclick=()=>{ST.overview();};
