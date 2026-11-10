@@ -2160,6 +2160,10 @@ const ST={
    }
    if(D>40&&!this.indoor){ /* 800 m et 1 500 m : tout le monde court à la corde, couloirs 1 et 2 */
     for(let k=2;k<this.NL;k++){const E=this.laneLen(k)-this.S;for(let i=-Math.ceil(this.S);i<E;i++){this.qL(ctx,k,Math.max(i,-this.S),Math.min(i+1,E));ctx.fillStyle=this.indoor?'#2455a8':'#a93a27';ctx.fill();}}
+    /* les cases assombries recouvrent les traits : on les retrace (lignes de couloirs et traits de cases) */
+    ctx.strokeStyle='rgba(255,255,255,.42)';ctx.lineWidth=.07;
+    for(let k=2;k<this.NL;k++){const E=this.laneLen(k)-this.S,r=this.laneR(k);for(let i=-Math.floor(this.S);i<E;i++){const q=this.posR(r,i),dx=Math.sin(q.a)*this.LW/2,dy=-Math.cos(q.a)*this.LW/2;ctx.beginPath();ctx.moveTo(q.x-dx,q.y-dy);ctx.lineTo(q.x+dx,q.y+dy);ctx.stroke();}}
+    ctx.strokeStyle='rgba(255,255,255,.95)';for(let k=0;k<=this.NL;k++){ctx.lineWidth=(k===0||k===this.NL)?.26:.12;this.stad(ctx,R1+k*LW);ctx.stroke();}
     const t2=this.posR(R1+LW*1.0,s0);this.txt(ctx,'À LA CORDE · COULOIRS 1 ET 2',0,-3,1.7,'rgba(255,255,255,.6)',Math.PI/2,null,true);
    }
    if(!this.chute){const t=this.posR(Ro+2.6,s0);this.txt(ctx,'DÉPART '+ev.m+' m',t.x,t.y,1.5,'#fff',0);}
