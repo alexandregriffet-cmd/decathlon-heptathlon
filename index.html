@@ -302,6 +302,50 @@ tr.rec td{background:#ffc83d1f;padding:8px 10px}tr.rec small{color:var(--mute)}
 .barPick{margin-top:8px;font-size:13px;color:var(--mute,#8fa0c4)}.barPick input{width:74px;padding:4px 6px;border-radius:6px;border:1px solid #3a4a73;background:#0f1a33;color:#fff;font-weight:700}
 
 .morph{margin:6px 0;padding:6px 8px;border:1px solid var(--line,#2b3a5e);border-radius:8px}.mrow{display:flex;gap:10px;flex-wrap:wrap}.mrow label{flex:1;min-width:130px;font-size:12px}.mrow input{width:100%}.cp small.mp{color:#4ade80;font-weight:700}.cp small.mm{color:#f87171;font-weight:700}
+/* ---- accueil ---- */
+#home{padding-bottom:10px}
+.hHero{position:relative;overflow:hidden;border:1px solid var(--line);border-radius:22px;padding:34px 26px 26px;margin:0 0 26px;background:linear-gradient(115deg,#1a2a63 0,#13204f 55%,#3a1f2a 100%)}
+.hHero:before{content:"";position:absolute;right:-60px;top:-40px;bottom:-40px;width:46%;background:repeating-linear-gradient(105deg,#c8502d 0 38px,#b8451f 38px 40px,#c8502d 40px 78px,#e8d9c7 78px 80px);opacity:.9;transform:skewX(-12deg);border-radius:30px}
+.hHero:after{content:"";position:absolute;inset:0;background:linear-gradient(90deg,#13204f 38%,#13204f00 78%)}
+.hHero>*{position:relative;z-index:1}
+.hKick{margin:0 0 6px;color:var(--gold);font:700 13px Nunito,sans-serif;letter-spacing:.14em;text-transform:uppercase}
+.hHero h1{font-size:54px;line-height:1.02;text-transform:uppercase}
+.hHero h1 em{font-style:normal;color:var(--gold)}
+.hLead{max-width:620px;color:#dfe5f7;font-size:16.5px;line-height:1.55;margin:14px 0 20px}
+.hCta{display:flex;gap:12px;flex-wrap:wrap}
+.hStats{display:flex;gap:10px;flex-wrap:wrap;margin-top:22px}
+.hStats span{background:#0b1226cc;border:1px solid var(--line);border-radius:999px;padding:6px 13px;font-size:13px;color:var(--mute)}
+.hStats b{color:var(--gold);font:700 17px Oswald,sans-serif;margin-right:3px}
+.hH{font-size:26px;margin:30px 0 14px;text-transform:uppercase}
+.hH:after{content:"";display:block;width:54px;height:4px;border-radius:2px;background:var(--track);margin-top:6px}
+.hModes{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}
+.hCard{display:flex;flex-direction:column;gap:6px;text-align:left;font:inherit;color:inherit;background:linear-gradient(180deg,var(--card2),var(--card));border:1px solid var(--line);border-radius:16px;padding:18px;cursor:pointer;transition:.18s}
+.hCard:hover{transform:translateY(-3px);border-color:var(--gold);box-shadow:0 10px 26px #0007}
+.hCard i{font-style:normal;font-size:34px;line-height:1}
+.hCard b{font:700 20px Oswald,sans-serif;letter-spacing:.02em}
+.hCard span{color:#c9d2ee;font-size:14px;line-height:1.45;flex:1}
+.hCard em{font-style:normal;font-weight:800;color:var(--gold);margin-top:6px}
+.hSteps{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px}
+.hSteps>div{background:#ffffff0a;border:1px solid var(--line);border-radius:16px;padding:16px}
+.hSteps b{display:inline-flex;width:34px;height:34px;align-items:center;justify-content:center;border-radius:50%;background:var(--gold);color:#241a00;font:700 18px Oswald,sans-serif}
+.hSteps h3{margin:10px 0 4px;font-size:18px}.hSteps p{margin:0;color:#c9d2ee;font-size:14px;line-height:1.45}
+.hBrief{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+.hBrief p{margin:0;color:#c9d2ee;font-size:14.5px;line-height:1.5}
+.hFoot{text-align:center;margin:22px 0 4px}.hFoot p{color:var(--mute);margin:12px 0 0;font-size:14px}
+@media(max-width:1000px){.hModes{grid-template-columns:repeat(2,minmax(0,1fr))}.hSteps{grid-template-columns:repeat(2,minmax(0,1fr))}.hHero h1{font-size:44px}}
+@media(max-width:640px){.hHero{padding:24px 18px 20px}.hHero:before{width:70%;right:-40%;opacity:.55}.hHero:after{background:linear-gradient(90deg,#13204f 50%,#13204f66 100%)}.hHero h1{font-size:36px}.hLead{font-size:15px}.hModes,.hBrief,.hSteps{grid-template-columns:minmax(0,1fr)}.hH{font-size:22px}.hCta .btn{flex:1;text-align:center}}
+/* règles */
+dialog.rulesD{max-width:860px;max-height:90vh;overflow:auto}
+.rulesD h2{font-size:30px}.rIntro{color:var(--gold)!important;font-weight:700}
+.rNav{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0 4px;position:sticky;top:-20px;background:var(--card);padding:8px 0;z-index:2}
+.rNav a{font-size:12.5px;font-weight:700;color:var(--ink);text-decoration:none;border:1px solid var(--line);border-radius:999px;padding:4px 10px;background:#ffffff0d}
+.rulesD h4{font-size:20px;margin:22px 0 6px;scroll-margin-top:60px}
+.rulesD ul,.rulesD ol{margin:6px 0;padding-left:22px}
+.rulesD table.rt{width:100%;border-collapse:collapse;margin:8px 0 10px;font-size:13.5px}
+.rulesD .rt th{text-align:left;color:var(--gold);font-weight:800;border-bottom:1px solid var(--line);padding:5px 8px}
+.rulesD .rt td{border-bottom:1px solid #ffffff12;padding:5px 8px;color:#dfe5f7}
+.rulesD .rt tr:nth-child(even) td{background:#ffffff08}
+.rulesD .rt td,.rulesD .rt th{text-align:left}
 </style>
 </head>
 <body>
@@ -311,7 +355,44 @@ tr.rec td{background:#ffc83d1f;padding:8px 10px}tr.rec small{color:var(--mute)}
  <div><button class="btn" id="rulesBtn">📖 Règles</button> <button class="btn" id="homeBtn" hidden>⟲ Accueil</button></div>
 </header>
 <main>
-<section id="setup">
+<section id="home">
+ <div class="hHero">
+  <p class="hKick">Le jeu de plateau de l’athlétisme</p>
+  <h1>Dix épreuves.<br>Deux jours.<br><em>Un seul d20.</em></h1>
+  <p class="hLead">Décathlon et heptathlon, version dés. Tu crées ton athlète, tu répartis tes qualités, puis tu t’alignes dans un vrai stade en 3D : huit couloirs, sautoirs, aires de lancer et des tribunes qui se remplissent à mesure que tu montes de niveau. Chaque course, chaque saut, chaque lancer se joue au d20, et ta performance est convertie en secondes, en mètres et en points avec le barème officiel, pour te mesurer aux plus grands, record du monde de Kevin Mayer compris.</p>
+  <div class="hCta"><button class="btn primary big" id="hPlay">🏟️ Jouer maintenant</button><button class="btn big" id="hRules">📖 Lire les règles</button></div>
+  <div class="hStats"><span><b>10</b> épreuves au décathlon</span><span><b>7</b> à l’heptathlon</span><span><b>7</b> niveaux, du département aux Jeux</span><span><b>16</b> joueurs en ligne</span></div>
+ </div>
+
+ <h2 class="hH">Choisis ton jeu</h2>
+ <div class="hModes">
+  <button class="hCard" id="hFree"><i>🏟️</i><b>Compétition libre</b><span>Crée ton athlète et choisis ton niveau, du championnat départemental aux Jeux olympiques. Seul contre des virtuels ou à plusieurs sur le même écran.</span><em>Jouer →</em></button>
+  <button class="hCard" id="hLeg"><i>⭐</i><b>Compétition des légendes</b><span>Mesure-toi aux 25 meilleurs décathloniens ou heptathloniennes de l’histoire, sur la même piste, au même moment.</span><em>Défier les légendes →</em></button>
+  <button class="hCard" id="hCar"><i>🏅</i><b>Mode carrière</b><span>Plusieurs saisons : entraînements, jauges, podiums, records, blessures, vieillissement. Ta carrière est sauvegardée et tu la reprends quand tu veux.</span><em>Commencer une carrière →</em></button>
+  <button class="hCard" id="hReal"><i>👤</i><b>Athlète existant</b><span>Kevin Mayer, Ashton Eaton, Damian Warner, Nafi Thiam… Prends leur place en jeu libre, en légendes ou en carrière.</span><em>Choisir un champion →</em></button>
+  <button class="hCard" id="hRoom"><i>🌐</i><b>Salle en ligne</b><span>Jusqu’à 16 joueurs, chacun sur son écran : même stade, mêmes adversaires, mêmes résultats. Envoie le code à tes amis.</span><em>Créer une salle →</em></button>
+  <button class="hCard" id="hInd"><i>❄️</i><b>En salle</b><span>Heptathlon (hommes) et pentathlon (femmes) en salle : 60 m, haies, perche, 1 000 m, sur la piste couverte de 6 couloirs.</span><em>Jouer en salle →</em></button>
+ </div>
+
+ <h2 class="hH">Comment ça marche</h2>
+ <div class="hSteps">
+  <div><b>1</b><h3>Crée ton athlète</h3><p>9 qualités à 30 % au départ, 160 points de pourcentage à répartir, une taille et un poids qui dessinent ton profil.</p></div>
+  <div><b>2</b><h3>Qualifie-toi</h3><p>Chaque niveau demande une compétence moyenne minimale : 30 % en interrégional, 45 % à France Élite, 60 % de l’Europe aux Jeux.</p></div>
+  <div><b>3</b><h3>Lance le d20</h3><p>Forme du jour, aléa, conditions, Mental, puis les jets de l’épreuve. Chaque dé compte, et chaque dé se voit sur la piste.</p></div>
+  <div><b>4</b><h3>Lis ton score</h3><p>Une table donne ta performance, convertie en points World Athletics. Compare-toi aux records et grimpe au classement.</p></div>
+ </div>
+
+ <h2 class="hH">Les règles en bref</h2>
+ <div class="hBrief">
+  <div class="card"><h3>🎲 Le d20</h3><p>Dé sous le seuil : réussite. Dé égal au seuil : réussite parfaite. Au-dessus : échec. Un 20 : échec critique, avec parfois un incident à la clé.</p></div>
+  <div class="card"><h3>🏃 Les courses</h3><p>Un départ, quelques jets pour avancer case après case, puis la rage de vaincre. Moins de jets, meilleur chrono, lu dans une table au centième de seconde.</p></div>
+  <div class="card"><h3>🦘 Sauts et lancers</h3><p>Chaque essai : élan, saut ou lancer, rage de vaincre. À la hauteur et à la perche, tout le monde saute la même barre, et trois échecs de suite t’éliminent.</p></div>
+  <div class="card"><h3>🌤️ La journée</h3><p>Chaque matin, ta forme du jour et un aléa tirés au dé. Avant chaque épreuve, les conditions du moment et ton Mental modifient tous tes seuils.</p></div>
+ </div>
+ <div class="hFoot"><button class="btn big" id="hRules2">📖 Toutes les règles</button><p>Le jeu existe aussi en version papier : mêmes règles, mêmes tables, mêmes résultats.</p></div>
+</section>
+
+<section id="setup" hidden>
  <div class="modeTabs"><button class="btn big on" id="modeFree">🏟️ Compétition libre</button><button class="btn big" id="modeLegends">⭐ Compétition des légendes</button><button class="btn big" id="modeCareer">🏅 Mode carrière</button></div>
  <div class="hero"><h1>Crée ton athlète. Lance les dés.</h1>
  <p>Chaque athlète démarre avec 30 % dans chaque qualité et répartit ses pourcentages. Chaque épreuve se joue en plusieurs lancers de d20 sur un plateau à cases, puis le résultat est converti en secondes, mètres ou centimètres et en points selon le barème officiel.</p></div>
@@ -374,36 +455,116 @@ tr.rec td{background:#ffc83d1f;padding:8px 10px}tr.rec small{color:var(--mute)}
 </main>
 </div>
 
-<dialog id="rules">
+<dialog id="rules" class="rulesD">
  <h2>Règles du jeu</h2>
- <h4>La qualification</h4>
- <p><b>Blessures (carrière)</b> : après une compétition ou une séance, surtout si tu es fatigué, tu peux te blesser (luxation de l’épaule, ischio-jambiers, cheville, tendon d’Achille…). Elle peut survenir en pleine compétition : tu abandonnes alors les épreuves restantes. Tu manques ensuite des étapes du calendrier : 1 mois pour une entorse ou un claquage, 3 mois pour une lésion musculaire, jusqu’à 9 mois pour une rupture du ligament croisé du genou. Chaque mois d’arrêt, les qualités touchées perdent environ 5 % de leur valeur (4 points à 80 %). Ces points ne reviennent ni par l’entraînement ni par les points à répartir : seulement par le repos et la kiné (d20 : +1 %, +2 % si parfait), pendant l’arrêt comme après.</p>
- <p><b>Salle en ligne (jusqu’à 16 joueurs)</b> : un joueur crée une salle et envoie le code (ou le lien) aux autres. Chacun joue sur son propre écran : même stade, mêmes adversaires, mêmes résultats, chacun lance le d20 de son athlète. L’hôte choisit le niveau et lance la partie. En mode carrière, chaque joueur garde sa propre carrière : sur une même étape du calendrier, tous se déclarent prêts, l’hôte lance, et chacun voit le résultat entrer dans sa carrière.</p>
-<p><b>En salle</b> : l’heptathlon en salle (hommes : 60 m, longueur, poids, hauteur, 60 m haies, perche, 1 000 m) et le pentathlon en salle (femmes : 60 m haies, hauteur, poids, longueur, 800 m) se jouent en mode libre, avec les mêmes niveaux jusqu’aux championnats du monde en salle. En carrière, la saison en salle suit chaque été : régionaux en salle, France Élite en salle, puis Europe ou Monde en salle, avec tes records de salle à part.</p>
-<p>Pour entrer dans une compétition, ta compétence moyenne sur toutes les épreuves doit atteindre un minimum : départementaux et régionaux libres, interrégionaux 30 %, France Élite 45 %, Europe, Monde et Jeux 60 % (décathlon comme heptathlon). Sans le minimum, le niveau reste verrouillé.</p>
- <h4>Les qualités</h4>
- <p>9 qualités en pourcentage : vitesse, force, puissance, détente, endurance, dextérité, technique, mental, tactique. Tout le monde démarre à 30 % partout et déplace ses pourcentages comme il veut (maximum 100 %). Tu choisis aussi ta <b>taille</b> et ton <b>poids</b> : ils donnent un profil (sprinteur, cardio, léger, lanceur, grand gabarit, complet) et un <b>bonus ou malus de −2 à +2 par épreuve</b>.</p>
- <h4>La capacité sur 20</h4>
- <p>Chaque lancer combine plusieurs qualités. La moyenne des pourcentages, divisée par 5 et arrondie au supérieur, donne une capacité sur 20, jamais plus de 18 : le 19 reste un échec et le 20 un échec critique. La forme du jour se joue au dé en début de journée : un d20 contre ta capacité de la première épreuve (échec critique −1, échec 0, réussite +1, réussite parfaite +2). Elle s'ajoute aux conditions du moment (pluie, vent de face −1 ; temps neutre 0 ; soirée idéale +1) pour donner le seuil.</p>
- <h4>Le d20</h4>
- <p>Dé sous le seuil : réussite. Dé égal au seuil : réussite parfaite. Dé au-dessus : échec. 20 : échec critique.</p>
- <h4>Le 1er jet de toute épreuve : le Mental</h4>
- <p>Un jet de Mental avant l'épreuve (une seule fois, tous les essais en profitent). Réussite simple : +1 au seuil de tous les jets de l'épreuve. Réussite critique (jet = seuil) : +2. Échec simple : 0. Échec critique (20) : −1.</p>
- <h4>Bonus et malus entre les jets</h4>
- <p>Pendant l'épreuve, seule une réussite critique (jet = seuil) donne +1 au jet suivant, et seul un échec critique (20) donne −1 au jet suivant. Le jet d'après n'est plus concerné.</p>
- <h4>Les courses</h4>
- <p>Après le Mental, un jet de départ (parfait +2 cases, réussi +1, échec critique : faux départ, le second est éliminatoire). Puis un jet fait avancer : échec critique 1 case, échec 2, réussite 3, parfaite 4. Plus tu arrives vite, plus le temps est bon : le nombre de jets compte, puis un dernier jet de <b>rage de vaincre</b> après la ligne d'arrivée affine ton chrono (son rang, du 20 critique au meilleur, se lit dans le tableau croisé niveau × jets) (10 cases au 100 m, 11 au 110 m haies, 20 au 200 m, 40 au 400 m, 80 au 800 m, 150 au 1 500 m). Jusqu'au 400 m, les cases ont la même taille et le même nombre dans tous les couloirs : les départs sont décalés et tout le monde arrive sur la même ligne. Au 800 m et au 1 500 m, tout le monde court à la corde, dans les couloirs 1 et 2. Dans une série (8 athlètes au maximum), chacun lance le dé à tour de rôle ; les temps de toutes les séries sont ensuite classés ensemble.</p>
- <h4>Sauts et lancers</h4>
- <p>Avant l'épreuve, un jet de Mental (une fois). Chaque essai compte ensuite 3 jets : 1) prise d'élan, 2) saut ou lancer, 3) <b>rage de vaincre</b>, qui affine la performance (classe du saut ou du lancer croisée avec le rang de la rage). Le dernier jet donne la distance ; un 20 dessus = essai nul (pied mordu, engin hors secteur). Tout le monde joue son essai 1, puis tout le monde son essai 2, puis son essai 3. À la hauteur et à la perche, le dernier jet décide si la barre est passée, et chaque athlète a une barre facile selon son niveau (par exemple 1,66 m à 14/20 au saut en hauteur) et le seuil perd 1 point tous les 3 cm au-dessus (tous les 20 cm à la perche sous 4,60 m, puis plus vite) ; trois essais par hauteur, trois échecs consécutifs et c'est terminé. Tu peux passer une hauteur, ou <b>régler toi-même la barre au cm près</b> au moment de passer ; le dernier athlète en lice règle aussi sa barre au cm près pour tenter des records. Les adversaires jouent sous tes yeux, à la vitesse que tu choisis.</p>
- <h4>Les points</h4>
- <p>La performance est recalculée avec les formules officielles pour pouvoir te comparer aux vrais athlètes, dont le record du monde (Kevin Mayer, 9 126 points ; Jackie Joyner-Kersee, 7 291 points).</p>
- <h4>Mode carrière</h4>
- <p>Tu pars à 15–19 ans avec 270 points à répartir. Chaque saison suit le calendrier FFA : départementaux, régionaux, interrégionaux, France Élite, Europe/Monde/JO (selon l'année), meeting de fin de saison. Il faut la moyenne de capacité minimale du niveau pour participer.</p>
- <p>Avant chaque compétition : 3 séances. Salle (musculation, cardio, explosivité, technique, mental) : un d20 par qualité, +1 % (+2 % sous 45 %), parfait +1 de plus. Séance de discipline : l'épreuve se joue sur le plateau ; si les échecs restent tolérés, chaque qualité de l'épreuve gagne +1 %, et chaque lancer parfait donne un point bonus (3 max). Le repos remet la fatigue d'entraînement à zéro (elle ne pénalise que les séances de salle).</p>
- <p>Après une compétition : record personnel +3 points (qualités de l'épreuve, 4 max), podium selon le niveau de la compétition (1re / 2e / 3e place) : départementaux 6 / 3 / 1, régionaux et interrégionaux 10 / 5 / 2, France Élite et Europe 14 / 7 / 3, Monde et Jeux olympiques 20 / 10 / 5 points à répartir librement. À partir de 75 %, un point coûte deux points, à partir de 85 % trois points ; les séances de discipline ne font plus progresser au-delà de 85 %. Si tes adversaires sont nettement plus faibles que toi, les points de podium sont réduits (×0,75, ×0,5 ou ×0,25). À chaque fin de saison : croissance jusqu'à 22 ans, déclin dès 29 ans. La carrière est sauvegardée dans le navigateur et exportable.</p>
- <h4>Écarts de résultats</h4>
- <p>Le résultat ne dépend pas que des dés : le niveau réel de l'athlète (la moyenne exacte de ses pourcentages sur l'épreuve) pèse aussi. À jets de dés équivalents, un athlète à 80 % fait mieux qu'un athlète à 70 %. En course, les cases restant à parcourir avant la dernière relance comptent : arriver à la case d'arrivée avec moins de cases à franchir donne un meilleur temps. Les temps sont au centième de seconde, les sauts et les lancers au centimètre : chaque valeur est atteignable, avec un plafond propre à chaque niveau.</p>
- <p>Chaque épreuve a aussi un plafond selon le niveau de l'athlète dans la discipline (la moyenne de ses qualités sur l'épreuve) : même avec que des réussites critiques, on ne court pas plus vite, on ne saute pas plus haut et on ne lance pas plus loin que ce niveau le permet. Ce plafond monte graduellement avec le niveau, et les <b>records du monde de chaque épreuve</b> (9,58 s au 100 m, 8,95 m en longueur, 6,30 m à la perche…) ne sont à portée que dans une discipline où ta capacité atteint 18/20. L'entraînement plafonne la capacité d'une épreuve à <b>16/20</b> (80 % de moyenne sur ses qualités) ; ta morphologie ajoute ensuite −2 à +2 (18 au maximum). Il faut donc un profil parfaitement adapté à l'épreuve (+2), au moins 80 % dans ses qualités et des jets tous parfaits pour battre le record : le grand sauteur mince bat le record en hauteur, pas au poids, et inversement pour le lanceur.</p>
+ <p class="rIntro">Les règles du jeu en ligne sont celles du jeu papier : mêmes qualités, mêmes jets, mêmes tables de lecture, mêmes résultats.</p>
+ <nav class="rNav"><a href="#r1">Principe</a><a href="#r2">Athlète</a><a href="#r3">Le d20</a><a href="#r4">Journée</a><a href="#r5">Courses</a><a href="#r6">Sauts et lancers</a><a href="#r7">Points</a><a href="#r8">Niveaux</a><a href="#r9">Modes</a><a href="#r10">Carrière</a></nav>
+
+ <h4 id="r1">1. Le principe</h4>
+ <p>Tu incarnes un décathlonien (10 épreuves en 2 jours) ou une heptathlonienne (7 épreuves en 2 jours), ou tu joues l’heptathlon et le pentathlon en salle. Chaque épreuve se joue avec un dé à 20 faces : quelques jets, puis une lecture dans une table qui donne ta performance (secondes, mètres ou centimètres). Cette performance est convertie en points avec le barème officiel de World Athletics. Le meilleur total gagne la compétition.</p>
+
+ <h4 id="r2">2. Ton athlète</h4>
+ <p><b>9 qualités</b>, chacune en pourcentage : vitesse, force, puissance, détente, endurance, dextérité, technique, mental, tactique. Tout le monde démarre à 30 % partout (13/20) et répartit <b>160 points de pourcentage</b> comme il veut, sans dépasser 100 % (20/20). La note sur 20 d’une qualité vaut 13 + (% − 30) ÷ 10.</p>
+ <p>Tu choisis aussi ta <b>taille</b> et ton <b>poids</b> : ils donnent un profil (sprinteur, cardio, léger, lanceur, grand gabarit ou complet) qui plafonne tes qualités selon ta morphologie.</p>
+ <p><b>L’aptitude</b> d’une épreuve est la moyenne de trois qualités, arrondie, entre 13 et 18. Elle sert de seuil à la forme du jour et choisit la colonne de la table de lecture.</p>
+ <table class="rt"><tr><th>Épreuve</th><th>Qualités croisées</th></tr>
+  <tr><td>100 m</td><td>Vitesse, puissance, technique</td></tr>
+  <tr><td>200 m</td><td>Vitesse, puissance, endurance</td></tr>
+  <tr><td>400 m</td><td>Vitesse, endurance, puissance</td></tr>
+  <tr><td>800 m</td><td>Endurance, vitesse, tactique</td></tr>
+  <tr><td>1 500 m</td><td>Endurance, tactique, mental</td></tr>
+  <tr><td>Haies (100 m, 110 m)</td><td>Vitesse, technique, dextérité</td></tr>
+  <tr><td>Longueur</td><td>Vitesse, détente, technique</td></tr>
+  <tr><td>Hauteur</td><td>Détente, technique, dextérité</td></tr>
+  <tr><td>Perche</td><td>Vitesse, dextérité, force</td></tr>
+  <tr><td>Poids</td><td>Force, puissance, technique</td></tr>
+  <tr><td>Disque</td><td>Puissance, force, dextérité</td></tr>
+  <tr><td>Javelot</td><td>Puissance, dextérité, technique</td></tr></table>
+ <p><b>La compétence</b> est ton niveau, en pourcentage, dans chaque épreuve (0 à 100 %). En jeu libre, elle se déduit de tes qualités : 30 % de moyenne donne 0 %, 100 % donne 100 %. En carrière, elle monte avec les séances de discipline et les compétitions. Elle fixe ton niveau dans l’épreuve :</p>
+ <table class="rt"><tr><th>Compétence</th><th>Niveau</th><th>Seuil de base</th></tr>
+  <tr><td>moins de 60 %</td><td>1</td><td>6</td></tr><tr><td>60 à 79 %</td><td>2</td><td>9</td></tr><tr><td>80 à 99 %</td><td>3</td><td>12</td></tr><tr><td>100 %</td><td>4</td><td>15</td></tr></table>
+ <p>Plus le niveau est haut, plus tu accèdes aux meilleurs blocs de la table de lecture et aux meilleures performances.</p>
+
+ <h4 id="r3">3. Le d20</h4>
+ <p>Chaque jet se lance contre un <b>seuil</b> (de 1 à 18) :</p>
+ <ul><li>dé <b>inférieur</b> au seuil : <b>réussite</b> ;</li><li>dé <b>égal</b> au seuil : <b>réussite parfaite</b> ;</li><li>dé supérieur au seuil, ou 19 : <b>échec</b> ;</li><li><b>20</b> : <b>échec critique</b>.</li></ul>
+ <p>Le seuil d’un jet est : <b>seuil de base</b> (selon ta compétence) + <b>forme du jour</b> + <b>conditions</b> + <b>Mental</b> + éventuels bonus ou malus d’aléa ou d’enchaînement. Quelques jets n’ont pas de seuil (aléa, conditions, rage de vaincre) : on lit simplement le chiffre dans une table.</p>
+
+ <h4 id="r4">4. Une journée de compétition</h4>
+ <p><b>La forme du jour</b> se joue au début de chaque journée : un d20 contre l’aptitude de la première épreuve. Parfaite +2, réussie +1, échec 0, critique −1.</p>
+ <p><b>L’aléa du jour</b> suit, d20 sans seuil :</p>
+ <table class="rt"><tr><th>d20</th><th>Effet</th></tr>
+  <tr><td>1</td><td>Nuit blanche : forme −1</td></tr>
+  <tr><td>2</td><td>Échauffement bâclé : −1 au premier jet</td></tr>
+  <tr><td>3 à 4</td><td>Stress de la chambre d’appel : Mental −1 à la prochaine épreuve</td></tr>
+  <tr><td>5</td><td>Genou qui tire : fatigue +1</td></tr>
+  <tr><td>6 à 14</td><td>Journée normale</td></tr>
+  <tr><td>15</td><td>Bon échauffement : +1 au premier jet</td></tr>
+  <tr><td>16 à 17</td><td>Dernier conseil du coach : +1 au rang de la prochaine rage de vaincre</td></tr>
+  <tr><td>18</td><td>Public chaud : Mental +1 à la prochaine épreuve</td></tr>
+  <tr><td>19</td><td>Excellente nuit : forme +1</td></tr>
+  <tr><td>20</td><td>Jour de grâce : forme +1 et +1 au premier jet</td></tr></table>
+ <p><b>Les conditions</b> se tirent à chaque épreuve, d20 sans seuil :</p>
+ <table class="rt"><tr><th>d20</th><th>Effet</th></tr>
+  <tr><td>6 à 7</td><td>Vent arrière : +1 (100 m, 110 m haies, longueur)</td></tr>
+  <tr><td>8 à 9</td><td>Vent de face : −1 (100 m, 110 m haies, longueur)</td></tr>
+  <tr><td>10</td><td>Pluie fine : −1</td></tr>
+  <tr><td>11</td><td>Chaleur écrasante : −1 (100 m, 400 m, 110 m haies, 1 500 m)</td></tr>
+  <tr><td>12</td><td>Rafales : −1 (poids, disque, javelot)</td></tr>
+  <tr><td>13 à 14</td><td>Le public s’enflamme : +1 (+2 si Mental 14/20 ou plus)</td></tr>
+  <tr><td>15 à 16</td><td>Stade silencieux : −1 (0 si Mental 14/20 ou plus)</td></tr>
+  <tr><td>17</td><td>Soirée idéale : +1</td></tr>
+  <tr><td>autres</td><td>Conditions neutres : 0</td></tr></table>
+ <p><b>Le Mental</b> se joue une fois avant chaque épreuve, contre ta note de Mental : parfait +2, réussi +1, échec 0, critique −1. Ce modificateur profite à tous les jets de l’épreuve.</p>
+
+ <h4 id="r5">5. Les courses</h4>
+ <p>La piste est découpée en cases de même taille dans tous les couloirs : <b>60 m 9 cases, 60 m haies 10, 100 m 15, 100 m haies 15, 110 m haies 17, 200 m 20, 400 m 40, 800 m 80, 1 000 m 100, 1 500 m 150</b>. Les départs sont décalés sur les épreuves en virage, tout le monde arrive sur la même ligne.</p>
+ <ol><li><b>Le départ</b> : parfait +2 cases, réussi +1, échec 0. Un <b>20</b> est un faux départ : on relance avec −2 (sprints et haies).</li>
+ <li><b>Les jets de course</b> : chaque jet fait avancer. Critique 1 pas, échec 2, réussite 3, parfaite 4. Un pas vaut 2 cases au 60 m, au 100 m, au 200 m, au 400 m et aux haies, 3 cases au 800 m et au 1 000 m, 4 cases au 1 500 m. Après un jet parfait, le jet suivant gagne +1 ; après un critique, il perd 1. Sur les courses longues, la fatigue grignote ton seuil au fil de la course, d’autant moins que ton endurance est élevée.</li>
+ <li><b>Le résultat n.r</b> : n est le nombre de jets, r le nombre de cases restantes au dernier jet. Moins tu as de jets, meilleur est le temps.</li>
+ <li><b>La rage de vaincre</b> : un dernier d20 sans seuil. Plus il est haut, meilleur est ton rang. Ton rang vaut le dé + la moyenne de Mental et Tactique (sur 20) − 10, entre 2 et 19 ; un 1 donne le rang 1, un 20 le rang 20.</li>
+ <li><b>La lecture</b> : la table croise ta capacité (niveau de l’épreuve), le résultat n.r, le rang de la rage et ton aptitude. Elle donne le chrono, au centième.</li></ol>
+
+ <h4 id="r6">6. Sauts et lancers</h4>
+ <p>Tout le monde joue son essai 1, puis son essai 2, puis son essai 3 (ou un seul essai selon l’option). Le meilleur essai est retenu. Chaque essai compte trois jets :</p>
+ <ol><li><b>L’élan</b> : parfait, le jet suivant gagne +1 ; critique, il perd 1.</li>
+ <li><b>Le saut ou le lancer</b> : un <b>20</b> est un essai nul. Dé égal au seuil ou inférieur au tiers du seuil : tu montes d’un bloc dans la table. Dé sous le seuil : bloc normal. Dé au-dessus : tu descends d’un bloc.</li>
+ <li><b>La rage de vaincre</b> : comme en course, d20 sans seuil, rang calculé de la même façon. La table croise le bloc, le rang et l’aptitude pour donner la performance au centimètre.</li></ol>
+ <p><b>Hauteur et perche</b> : tous les athlètes sautent la même barre, qui monte par paliers. À chaque hauteur, un jet d’élan puis un jet de saut : réussite ou parfaite, la barre est passée. Trois échecs de suite et c’est terminé ; ta meilleure barre franchie est ton résultat. Les barres trop basses pour ton niveau sont franchies d’office, les barres hors de portée sont refusées.</p>
+ <p><b>Incident</b> : chaque 20 naturel sorti pendant une épreuve déclenche un d20 d’incident. 1 à 10 : rien. 11 à 13 : crampe (fatigue +1, −1 au premier jet de l’épreuve suivante). 14 à 16 : mauvais appui (−1 au premier jet de l’épreuve suivante). 17 à 19 : douleur (−1 sur une qualité de l’épreuve jusqu’à la fin de la compétition). 20 : relance ; à 16 ou plus, blessure et abandon, sinon simple forfait pour l’épreuve.</p>
+
+ <h4 id="r7">7. Les points et les records</h4>
+ <p>Chaque performance est convertie avec les formules du barème World Athletics, pour te comparer aux vrais athlètes : record du monde du décathlon (Kevin Mayer, 9 126 points) et de l’heptathlon (Jackie Joyner-Kersee, 7 291 points). Les records du monde de chaque épreuve ne sont à portée que dans le meilleur des cas : compétence de 100 %, aptitude maximale et tirages exceptionnels. Temps au centième, sauts et lancers au centimètre.</p>
+
+ <h4 id="r8">8. Niveaux et qualification</h4>
+ <table class="rt"><tr><th>Niveau</th><th>Participants</th><th>Compétence moyenne minimale</th></tr>
+  <tr><td>Départementaux</td><td>16</td><td>libre</td></tr>
+  <tr><td>Régionaux</td><td>16</td><td>libre</td></tr>
+  <tr><td>Interrégionaux</td><td>18</td><td>30 %</td></tr>
+  <tr><td>France Élite</td><td>20</td><td>45 %</td></tr>
+  <tr><td>Europe</td><td>22</td><td>60 %</td></tr>
+  <tr><td>Monde</td><td>24</td><td>60 %</td></tr>
+  <tr><td>Jeux olympiques</td><td>28</td><td>60 %</td></tr></table>
+ <p>La compétence moyenne est calculée sur toutes les épreuves. Sans le minimum, le niveau reste verrouillé, sauf en <b>mode libre</b> (case à cocher). Les athlètes virtuels complètent le plateau. Le stade s’agrandit avec le niveau : petite tribune au départemental, tribunes pleines et drapeaux à l’international, anneaux olympiques aux Jeux.</p>
+
+ <h4 id="r9">9. Les modes de jeu</h4>
+ <p><b>Compétition libre</b> : tu crées un ou plusieurs athlètes (même écran) et tu choisis le niveau.</p>
+ <p><b>Compétition des légendes</b> : tu affrontes les 25 meilleurs de l’histoire dans ta discipline.</p>
+ <p><b>Athlète existant</b> : Kevin Mayer, Ashton Eaton, Damian Warner, Nafi Thiam et bien d’autres peuvent prendre la place de ton athlète, en libre, en légendes ou en carrière.</p>
+ <p><b>En salle</b> : l’heptathlon en salle (hommes : 60 m, longueur, poids, hauteur, 60 m haies, perche, 1 000 m) et le pentathlon en salle (femmes : 60 m haies, hauteur, poids, longueur, 800 m), avec les mêmes règles.</p>
+ <p><b>Salle en ligne</b> (jusqu’à 16 joueurs) : un joueur crée une salle et partage le code ou le lien. Chacun joue sur son écran : même stade, mêmes adversaires, mêmes résultats, et chacun lance le d20 de son athlète. L’hôte choisit le niveau et lance la partie. En carrière, chacun garde sa carrière : sur une même étape, tous se déclarent prêts, l’hôte lance et le résultat entre dans chaque carrière.</p>
+
+ <h4 id="r10">10. Le mode carrière</h4>
+ <p><b>Départ</b> à 15 à 19 ans. Chaque saison suit le calendrier FFA : départementaux, régionaux, interrégionaux, France Élite, puis Europe, Monde ou Jeux selon l’année, et meeting de fin de saison. Une saison en salle suit chaque été (régionaux, France Élite, puis Europe ou Monde en salle), avec tes records de salle à part. Il faut la compétence moyenne minimale du niveau pour participer. La carrière est sauvegardée.</p>
+ <p><b>Avant chaque compétition : 3 séances.</b></p>
+ <ul><li><b>Séances de salle</b> (musculation, cardio, explosivité, technique, mental) : un seul jet. Parfait 2 points, réussi 1, échec 0, critique 0 et +1 fatigue (3 au maximum). Les points remplissent la <b>jauge</b> d’une qualité de la séance : quand elle est pleine (3 à 6 points selon le niveau de la qualité, un de moins avant 20 ans), la qualité gagne +10 %. La morphologie plafonne la progression.</li>
+ <li><b>Séance de discipline</b> : l’épreuve se joue seul sur le plateau. Elle est réussie si les échecs restent tolérés (un échec tous les 5 jets, un critique en vaut deux). Ta compétence dans la discipline monte alors de 3 points en dessous de 40 %, 2 jusqu’à 80 %, 1 au-delà (×1,25 avant 20 ans). Deux jets parfaits ou plus doublent le gain et ajoutent un point de jauge.</li>
+ <li><b>Repos</b> : la fatigue d’entraînement retombe à zéro. <b>Kiné</b> : récupère les pourcentages perdus après une blessure (d20 : +1 %, +2 % si parfait).</li></ul>
+ <p><b>Après une compétition</b> : dans chaque épreuve, la compétence gagne 4 points si tu es dans les 3 premiers de l’épreuve, 3 jusqu’à la 8e place, 2 sinon, et 1 de plus en cas de record personnel. Le podium rapporte des points à répartir : départementaux 6 / 3 / 1, régionaux et interrégionaux 10 / 5 / 2, France Élite et Europe 14 / 7 / 3, Monde et Jeux 20 / 10 / 5. Si tes adversaires sont nettement plus faibles que toi, ces points sont réduits (×0,75, ×0,5 ou ×0,25).</p>
+ <p><b>Blessures</b> : après une compétition ou une séance, surtout si tu es fatigué, tu peux te blesser (épaule, ischio-jambiers, cheville, tendon d’Achille, ligaments…). Elle peut survenir en pleine compétition : tu abandonnes alors les épreuves restantes. L’arrêt dure de 1 mois (entorse, claquage) à 9 mois (ligament croisé). Chaque mois d’arrêt, les qualités touchées perdent environ 5 % de leur valeur ; ces points ne reviennent que par le repos et la kiné.</p>
+ <p><b>Les années passent</b> : croissance rapide jusqu’à 19 ans, pleine force de l’âge ensuite, puis usure à partir de 30 ans : −10 % sur 2 qualités physiques (vitesse, détente, puissance, dextérité), 3 qualités à partir de 35 ans. Il faut alors compenser par la tête.</p>
+
+ <p class="rIntro" style="margin-top:14px">Une version papier du jeu existe : plateaux, fiches athlète, feuilles d’arbitre et livrets de résultats, avec exactement ces règles.</p>
  <p style="margin-top:14px"><button class="btn" onclick="document.getElementById('rules').close()">Fermer</button></p>
 </dialog>
 <dialog id="fiche"><div class="fbody"></div></dialog>
@@ -2660,8 +2821,8 @@ function newHuman(){
  return{uid:++setup.uid,first:'',last:'',dob:'2008-04-12',nat:'France',color:COLORS.find(c=>!used.includes(c))||COLORS[0],pct:Object.fromEntries(STATS.map(s=>[s.k,START_PCT])),h:HM.M,w:Math.round(MBMI.M*HM.M*HM.M/10000+.5)};
 }
 function show(v){
- ['setup','game','final','career'].forEach(id=>$('#'+id).hidden=id!==v);
- $('#homeBtn').hidden=v==='setup';window.scrollTo(0,0);
+ ['home','setup','game','final','career'].forEach(id=>$('#'+id).hidden=id!==v);
+ $('#homeBtn').hidden=v==='home';window.scrollTo(0,0);
 }
 const fmt1c=v=>v.toFixed(1).replace('.',',');
 /* choix d'un athlète existant (légendes et athlètes en activité) pour le jeu libre, les légendes et la carrière */
@@ -2698,7 +2859,7 @@ function renderSetup(){
   const best=[...(isInd(cfg.cat)?LEVELS_I:LEVELS)].reverse().find(okLv);cfg.level=best?best.id:(isInd(cfg.cat)?'dep_i':'dep');
  }
  const lv=levelOf(cfg.level),legM=cfg.level==='legends';
- $('#cfgLevel').innerHTML=(career||isInd(cfg.cat)?'':`<option value="legends" ${legM?'selected':''}>⭐ Compétition des légendes · les 25 meilleurs de l’histoire</option>`)+(isInd(cfg.cat)?LEVELS_I:[...LEVELS,...STARS]).map(l=>`<option value="${l.id}" ${l.id===cfg.level?'selected':''} ${okLv(l)?'':'disabled'}>${l.star?'⭐ ':''}${l.n} · min ${l.min}/20${okLv(l)?'':' · non qualifié'}</option>`).join('');
+ $('#cfgLevel').innerHTML=(career||isInd(cfg.cat)?'':`<option value="legends" ${legM?'selected':''}>⭐ Compétition des légendes · les 25 meilleurs de l’histoire</option>`)+(isInd(cfg.cat)?LEVELS_I:[...LEVELS,...STARS]).map(l=>`<option value="${l.id}" ${l.id===cfg.level?'selected':''} ${okLv(l)?'':'disabled'}>${l.star?'⭐ ':''}${l.n} · min ${l.min} %${okLv(l)?'':' · non qualifié'}</option>`).join('');
  $('#cfgFree').checked=cfg.free;$('#cfgCat').value=cfg.cat;[...$('#cfgCat').options].forEach(o=>{if(isInd(o.value))o.disabled=career;});$('#cfgAtt').value=String(cfg.attempts);$('#cfgAuto').checked=cfg.auto;$('#cfgFast').checked=cfg.fast;
  const nh=(typeof ROOM!=='undefined'&&ROOM&&!career&&Object.keys(ROOM.members).length)||setup.players.length;
  $('#cfgInfo').textContent=career?`Carrière ${CATN[cfg.cat]} : tu débutes à ${cfg.age} ans avec 30 % partout à répartir (270 points), puis tu enchaînes les saisons du calendrier FFA.`:(legM?`${CATN[cfg.cat]} · ${lv.n} : tu affrontes les 25 meilleurs ${cfg.cat==='DEC'?'décathloniens':'heptathloniennes'} de l’histoire (records personnels réels), avec ${nh} joueur${nh>1?'s':''}.`:`${CATN[cfg.cat]} · ${lv.n} : ${Math.max(lv.parts,nh)} participants, dont ${nh} joueur${nh>1?'s':''} et ${Math.max(lv.parts,nh)-nh} athlètes virtuels.`);
@@ -2774,11 +2935,21 @@ $('#cfgFree').onchange=e=>{setup.cfg.free=e.target.checked;renderSetup();};
 $('#cfgFast').onchange=e=>setup.cfg.fast=e.target.checked;
 $('#addHuman').onclick=()=>{setup.players.push(newHuman());renderSetup();};
 $('#rulesBtn').onclick=()=>$('#rules').showModal();
-$('#homeBtn').onclick=()=>{if(typeof ROOM!=='undefined'&&ROOM&&ROOM.playing){if(!confirm('Quitter la partie en ligne ?'))return;roomLeave();return;}if(G)G.abort=true;show('setup');renderSetup();};
+$('#homeBtn').onclick=()=>{if(!$('#setup').hidden){show('home');return;}if(typeof ROOM!=='undefined'&&ROOM&&ROOM.playing){if(!confirm('Quitter la partie en ligne ?'))return;roomLeave();return;}if(G)G.abort=true;show('setup');renderSetup();};
 $('#startBtn').onclick=()=>{if(ROOM&&setup.mode!=='career'){roomStart();return;}if(setup.mode==='career'&&typeof createCareer==='function')createCareer();else launch();};
 $('#modeFree').onclick=()=>{setup.mode='free';if(setup.cfg.level==='legends')setup.cfg.level='dep';renderSetup();};
 $('#modeLegends').onclick=()=>{setup.mode='free';if(isInd(setup.cfg.cat))setup.cfg.cat=OUTC[setup.cfg.cat];setup.cfg.level='legends';renderSetup();};
 $('#modeCareer').onclick=()=>{setup.mode='career';renderSetup();};
+/* page d'accueil : chaque carte ouvre la préparation avec le bon mode */
+{const go=(fn,target)=>()=>{fn();show('setup');renderSetup();if(target){const e=$(target);if(e&&!e.hidden)window.scrollTo({top:e.offsetTop-20,behavior:'smooth'});}};
+ const free=()=>{setup.mode='free';if(setup.cfg.level==='legends')setup.cfg.level='dep';if(isInd(setup.cfg.cat)&&setup.cfg.level.slice(-2)!=='_i')setup.cfg.level='dep';};
+ $('#hPlay').onclick=$('#hFree').onclick=go(()=>{if(isInd(setup.cfg.cat))setup.cfg.cat=OUTC[setup.cfg.cat];free();});
+ $('#hLeg').onclick=go(()=>{setup.mode='free';if(isInd(setup.cfg.cat))setup.cfg.cat=OUTC[setup.cfg.cat];setup.cfg.level='legends';});
+ $('#hCar').onclick=go(()=>{setup.mode='career';});
+ $('#hReal').onclick=go(()=>{if(isInd(setup.cfg.cat))setup.cfg.cat=OUTC[setup.cfg.cat];free();},'#realBox');
+ $('#hRoom').onclick=go(()=>{if(isInd(setup.cfg.cat))setup.cfg.cat=OUTC[setup.cfg.cat];free();},'#roomBox');
+ $('#hInd').onclick=go(()=>{setup.mode='free';if(!isInd(setup.cfg.cat))setup.cfg.cat=IND[setup.cfg.cat]||'HEPI';});
+ $('#hRules').onclick=$('#hRules2').onclick=()=>$('#rules').showModal();}
 $('#cfgAge').onchange=e=>setup.cfg.age=+e.target.value;
 
 /* ---------- lancement ---------- */
@@ -3575,6 +3746,7 @@ function careerHome(){
  return false;
 }
 $('#homeBtn').onclick=()=>{
+ if(!$('#setup').hidden){show('home');return;}
  if(typeof ROOM!=='undefined'&&ROOM&&ROOM.playing&&G&&G.room&&!inCareerGame){if(!confirm('Quitter la partie en ligne ?'))return;roomLeave();return;}
  if(careerHome())return;
  if(G){G.abort=true;G.cancel&&G.cancel();}
@@ -3942,6 +4114,7 @@ document.addEventListener('visibilitychange',()=>{if(ROOM&&!document.hidden){cle
 {const pre=new URLSearchParams(location.search).get('salle');if(pre&&onlineOn())setTimeout(()=>{const i=$('#roomCode');if(i)i.value=pre.toUpperCase();},0);}
 
 renderSetup();
+show(new URLSearchParams(location.search).get('salle')?'setup':'home');
 
 </script>
 </body>
