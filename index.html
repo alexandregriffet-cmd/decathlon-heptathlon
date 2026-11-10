@@ -489,13 +489,13 @@ const RECS={
 
 /* niveaux de compétition (calendrier FFA) : nb de participants et niveau moyen des adversaires (en %) */
 const LEVELS=[
- {id:'dep',n:'Championnats départementaux',s:'Départementaux',parts:16,avg:30,min:6,intl:0,bars:0},
- {id:'reg',n:'Championnats régionaux',s:'Régionaux',parts:16,avg:46,min:8,intl:0,bars:1},
- {id:'inter',n:'Championnats interrégionaux',s:'Interrégionaux',parts:18,avg:63,min:10,intl:0,bars:2},
- {id:'fra',n:'Championnats de France Élite',s:'France Élite',parts:20,avg:74,min:13,intl:.1,bars:3},
- {id:'eur',n:'Championnats d’Europe',s:'Europe',parts:22,avg:75,ps:{DEC:.40,HEP:.40},min:15,intl:1,bars:4},
- {id:'mon',n:'Championnats du monde',s:'Monde',parts:24,avg:75,ps:{DEC:.7,HEP:.55},min:15,intl:1,bars:5},
- {id:'jo',n:'Jeux olympiques',s:'Jeux olympiques',parts:28,avg:75,ps:{DEC:.85,HEP:.85},min:15,intl:1,bars:6}
+ {id:'dep',n:'Championnats départementaux',s:'Départementaux',parts:16,avg:30,min:0,intl:0,bars:0},
+ {id:'reg',n:'Championnats régionaux',s:'Régionaux',parts:16,avg:46,min:0,intl:0,bars:1},
+ {id:'inter',n:'Championnats interrégionaux',s:'Interrégionaux',parts:18,avg:63,min:30,intl:0,bars:2},
+ {id:'fra',n:'Championnats de France Élite',s:'France Élite',parts:20,avg:74,min:45,intl:.1,bars:3},
+ {id:'eur',n:'Championnats d’Europe',s:'Europe',parts:22,avg:75,ps:{DEC:.40,HEP:.40},min:60,intl:1,bars:4},
+ {id:'mon',n:'Championnats du monde',s:'Monde',parts:24,avg:75,ps:{DEC:.7,HEP:.55},min:60,intl:1,bars:5},
+ {id:'jo',n:'Jeux olympiques',s:'Jeux olympiques',parts:28,avg:75,ps:{DEC:.85,HEP:.85},min:60,intl:1,bars:6}
 ];
 /* niveaux en salle : mêmes adversaires que leurs équivalents en plein air, sans les Jeux olympiques */
 const INDOOR_N={dep:['Championnats départementaux en salle','Départ. salle'],reg:['Championnats régionaux en salle','Régionaux salle'],inter:['Championnats interrégionaux en salle','Interrég. salle'],fra:['Championnats de France Élite en salle','France Élite salle'],eur:['Championnats d’Europe en salle','Europe salle'],mon:['Championnats du monde en salle','Monde salle']};
@@ -510,8 +510,8 @@ const lvById=id=>LEVELS.find(l=>l.id===id)||STARS.find(l=>l.id===id)||LEVELS_I.f
 const BAR_START={DEC:{hj:[145,150,160,170,175,180,185],pv:[260,300,340,380,420,440,460]},HEP:{hj:[120,125,135,145,150,155,160]}};
 BAR_START.HEPI=BAR_START.DEC;BAR_START.PENI=BAR_START.HEP;
 /* moyenne des capacités sur les épreuves : niveau minimum pour être qualifié */
-function avgCap(p,cat){const evs=EV[cat];return evs.reduce((s,e)=>s+capOf(p,e.sk||evAllSk(e),e,cat),0)/evs.length;}
-function qualified(p,cat,level){return avgCap(p,cat)>=level.min-.001;}
+function avgCap(p,cat){const evs=EV[cat];return evs.reduce((s,e)=>s+(typeof paperEvPct==='function'?paperEvPct(p,e):0),0)/evs.length;}   /* compétence moyenne en % */
+function qualified(p,cat,level){return avgCap(p,cat)>=level.min-.001;}   /* level.min : compétence moyenne minimale, en % */
 function barList(cat,ev,li){
  const st=BAR_START[cat][ev.id][li],out=[];let h=st;
  while(h<=(ev.id==='pv'?640:250)&&out.length<80){
@@ -549,6 +549,12 @@ function recPts(cat,ri,upto){let s=0;const r=RECS[cat][ri];for(let i=0;i<upto;i+
 
 /* ---------- capacités et dés ---------- */
 const effPct=(p,k)=>Math.max(0,p.pct[k]-((p.inj&&p.inj[k])||0));
+/* modèle du livre : le pourcentage stocké d'une qualité se lit comme une caractéristique sur 20 (30 % = 13/20, 10 % = 1 point) */
+const PH=['vit','for','pui','det','end','dex'];
+const carOf=v=>Math.max(1,Math.min(20,Math.round(13+(v-30)/10)));
+const pctOfCar=c=>30+(c-13)*10;
+const carShow=(p,k)=>carOf(effPct(p,k));
+function plafOf(p,k,cat){const i=PH.indexOf(k);if(i<0)return 20;const pr=morphProfile(p,cat||p.cat);const ix=pr?PROFILES.findIndex(q=>q.id===pr.id):5;return PAPER_DATA.PLAF[ix<0?5:ix][1][i];}
 /* morphologie : taille et poids donnent un bonus ou un malus de -2 à +2 par épreuve ; l'entraînement plafonne la capacité d'une épreuve à 16/20 (80 %), le bonus s'ajoute ensuite (18/20 maximum) */
 const HM={M:181,F:169},MUNIT={M:6.5,F:5.5},MBMI={M:22.5,F:21};
 function morphSM(h,w,sex){const S=(h-HM[sex])/6.5,M=(w-MBMI[sex]*Math.pow(h/100,2))/MUNIT[sex];return[S,M];}
@@ -766,11 +772,11 @@ let _PE=null;
 function paperEng(){if(!_PE)_PE=PaperEngine.create(PAPER_DATA,{ptsOf:(id,sex,v)=>{const ev=EV[sex==='M'?'DEC':'HEP'].find(e=>e.id===id);return ptsOf(ev,ev.u==='cm'?Math.round(v*100):v);}});return _PE;}
 const paperOn=(ev,p)=>typeof PaperEngine!=='undefined'&&typeof PAPER_DATA!=='undefined'&&!ev.indoor&&p.cat&&PAPER_DATA.TABLES[sexOf(p.cat)]&&PAPER_DATA.TABLES[sexOf(p.cat)][ev.id]&&PAPER_DATA.EV[p.cat];
 function paperChars(p){const CH={};STATS.forEach(s=>CH[s.k]=Math.max(1,Math.min(20,Math.round(13+(effPct(p,s.k)-30)*.1))));return CH;}   /* 30 % = 13/20 (départ du livre), 100 % = 20/20 */
-function paperEvPct(p,ev){const sk=ev.sk||evAllSk(ev);const m=sk.reduce((a,k)=>a+effPct(p,k),0)/sk.length;return Math.max(0,Math.min(100,(m-30)/.7));}   /* compétence du livre : 0 % au départ, 100 % au maximum */
+function paperEvPct(p,ev){if(p.comp)return Math.max(0,Math.min(100,p.comp[ev.id]||0));const sk=ev.sk||evAllSk(ev);const m=sk.reduce((a,k)=>a+effPct(p,k),0)/sk.length;return Math.max(0,Math.min(100,(m-30)/.7));}   /* compétence du livre : 0 % au départ, 100 % au maximum */
 function paperCtx(ev,p,io,extra){
  const E=paperEng(),sex=sexOf(p.cat),N=(PAPER_DATA.GEO[ev.id]||{}).N;
  if(!p.pe){p.pe={CH:paperChars(p),COMP:{},sex,cat:p.cat,dayBreak:DB[p.cat]};E.newState(p.pe);}
- const c=p.pe;c.COMP[ev.id]=paperEvPct(p,ev);
+ const c=p.pe;c.COMP[ev.id]=paperEvPct(p,ev);if(p.nextMent&&!c.nmDone){c.st.nextMent=(c.st.nextMent||0)+p.nextMent;c.nmDone=true;}
  c.dayInfo=j=>({forme:(p.form[j]||{mod:0}).mod});
  c.roll=async info=>{const st=c.st,cap=E.capOf(ev.id,c.COMP[ev.id]);
   const stage=info.k==='elan'||info.k==='throw'||info.k==='jump';
@@ -1155,7 +1161,15 @@ async function runCompetition(C,H){
   C.all.forEach(p=>{p.fat+=ev.f*(p.age>=34?1.25:1);});
   /* blessure en pleine compétition (mode carrière) : le joueur abandonne les épreuves suivantes */
   if(removed.length){C.all=all0;removed.forEach(p=>{setRes(p,r,null,0,false);});removed=[];}
-  if((C.hurtRisk||C.all.some(x=>x.hurtRisk))&&typeof pickInjury==='function'){
+  /* blessure sur un 20 naturel (règle du livre) : abandon de la compétition */
+  if(PP&&typeof pickInjury==='function'){
+   for(const p of C.all){
+    if(p.dnf||!p.pe||!p.pe.st.stopped)continue;
+    if(r<C.evs.length-1)p.dnf=true;
+    if(p.human){p.hurt=pickInjury(null,ev);p.hurt.where=ev.n;if(p.dnf)p.hurt.dnf=true;await call(H,'injured',C,p,p.hurt,ev);}
+   }
+  }
+  if(!PP&&(C.hurtRisk||C.all.some(x=>x.hurtRisk))&&typeof pickInjury==='function'){
    for(const p of C.all){
     if(!p.human||p.dnf||!(p.hurtRisk||C.hurtRisk))continue;
     const hit=Object.keys(p.inj||{}).length>(p.injN||0);p.injN=Object.keys(p.inj||{}).length;
@@ -1198,13 +1212,13 @@ function seasonSteps(year){
 /* types de séances */
 const SESS=[
  {id:'mus',n:'Musculation',i:'🏋️',sk:['for','pui','end'],d:'Salle : force, puissance, endurance musculaire.'},
- {id:'car',n:'Cardio',i:'🫁',sk:['end','vit','men'],d:'Fractionné et footing : endurance, vitesse, mental.'},
+ {id:'car',n:'Cardio',i:'🫁',sk:['end','vit','dex'],d:'Fractionné et footing : endurance, vitesse, dextérité.'},
  {id:'exp',n:'Explosivité',i:'🦘',sk:['det','pui','vit'],d:'Pliométrie et sprints courts : détente, puissance, vitesse.'},
- {id:'tec',n:'Technique',i:'🎯',sk:['tec','dex','tac'],d:'Gestes et coordination : technique, dextérité, tactique.'},
- {id:'men',n:'Préparation mentale',i:'🧠',sk:['men','tac','tec'],d:'Visualisation et gestion du stress : mental, tactique, technique.'},
+ {id:'tec',n:'Technique',i:'🎯',sk:['tec','dex'],d:'Gestes et coordination : technique, dextérité.'},
+ {id:'men',n:'Préparation mentale',i:'🧠',sk:['men','tac'],d:'Visualisation et gestion du stress : mental, tactique.'},
  {id:'rep',n:'Repos / vacances',i:'🏖️',sk:[],d:'Aucun gain, mais la fatigue d’entraînement retombe à zéro.'},
  {id:'kin',n:'Kiné / rééducation',i:'🩺',sk:[],d:'Rééducation : récupère les % perdus à cause d’une blessure (d20 : +1 %, +2 % si parfait).'},
- {id:'dis',n:'Séance de discipline',i:'🏟️',sk:[],d:'Une épreuve complète sur le plateau : chaque qualité de l’épreuve gagne +1 % si la séance est réussie.'}
+ {id:'dis',n:'Séance de discipline',i:'🏟️',sk:[],d:'Une épreuve complète sur le plateau : si la séance est réussie, la compétence de la discipline gagne du %.'}
 ];
 const SESSX={};SESS.forEach(s=>SESSX[s.id]=s);
 
@@ -1220,33 +1234,33 @@ function newCareer(h,cat,startAge,att){
  return{v:1,id:'c'+Date.now().toString(36)+Math.floor(Math.random()*1e4),
   first:h.first,last:h.last,nat:h.nat,color:h.color,cat,att:att||3,
   cal2:1,inj:null,regain:{},age:startAge,year:START_YEAR,season:1,step:0,phase:'train',
-  pct:{...h.pct},h:h.h,w:h.w,tf:0,slots:[null,null,null],sessDone:0,pools:[],
+  pct:{...h.pct},comp:{},gauge:{},nextMent:0,h:h.h,w:h.w,tf:0,slots:[null,null,null],sessDone:0,pools:[],
   pb:{},hist:[],medals:[0,0,0],comps:0,bestTotal:0,log:[],created:Date.now(),saved:Date.now()};
 }
 const careerAvg=K=>avgCap(K,K.cat);
 const careerQualified=(K,lvId)=>qualified(K,K.cat,lvById(lvId));
 
 /* ---------- séances de salle : un d20 par qualité contre la capacité moyenne de la séance ---------- */
+const GEN_EVS={mus:['sp','dt','jt'],car:['400','800','1000','1500'],exp:['lj','hj','pv','100','200','60','100h','110h','60h'],tec:null,men:[]};
 function gymThreshold(K,sess){
- const avg=sess.sk.reduce((a,k)=>a+K.pct[k],0)/sess.sk.length;
- const coach=clamp(4-Math.floor(avg/20),0,4);   /* l'encadrement aide surtout les débutants */
- return clampT(capOf(K,sess.sk)+coach+(K.age<=20?2:0)-Math.floor(K.tf));
+ const evs=EV[K.cat],E=paperEng();K.comp=K.comp||{};
+ const avg=evs.reduce((a,e)=>a+E.capOf(e.id,K.comp[e.id]||0),0)/evs.length;
+ const mc=evs.reduce((a,e)=>a+(K.comp[e.id]||0),0)/evs.length;
+ const coach=clamp(4-Math.floor(mc/20),0,4);   /* l'encadrement aide surtout les débutants */
+ return clampT(Math.round(avg)+coach+(K.age<=20?2:0)-Math.floor(K.tf));
 }
-/* plus on est haut, plus chaque point coûte cher */
-const gainChance=pct=>clamp((82-pct)/40,.05,1);
+/* séance générale : un seul jet. Parfait = 2 points, réussi = 1, échec = 0, 20 = 0 point et +1 fatigue. Les points vont dans la jauge d'une caractéristique de la séance (au choix). */
 function gymSession(K,sess,rollFn){
- const T=gymThreshold(K,sess),rows=[];let crit=false;
- sess.sk.forEach(k=>{
-  const roll=rollFn?rollFn():rnd(20),out=mkOut(T,roll);
-  const pc=K.pct[k],lo=pc<45?1:0;   /* les débutants progressent plus vite */
-  let g=out==='perfect'?(pc<60?2:1)+lo:out==='ok'?(RNG()<gainChance(pc)?1+lo:0):0;
-  if(hurtSk(K,k))g=0;   /* qualité en rééducation : seul le repos et la kiné la font remonter */
-  g=Math.min(g,PCT_MAX-K.pct[k]);K.pct[k]+=g;
-  if(out==='crit')crit=true;
-  rows.push({k,roll,out,gain:g,T});
- });
- K.tf=Math.min(3,K.tf+1+(crit?1:0));
- return{rows,crit,T};
+ const T=gymThreshold(K,sess),roll=rollFn?rollFn():rnd(20),out=mkOut(T,roll);
+ const pts=out==='perfect'?2:out==='ok'?1:0,crit=out==='crit';
+ if(crit)K.tf=Math.min(3,K.tf+1);
+ if(pts)K.pools.push({n:pts,sk:sess.sk.slice(),why:`${sess.n}`});
+ /* effets en plus */
+ K.comp=K.comp||{};const evs=EV[K.cat];let ids=GEN_EVS[sess.id];
+ if(ids===null){ids=evs.map(e=>e.id).sort((a,b)=>(K.comp[a]||0)-(K.comp[b]||0)).slice(0,3);}
+ if(ids)evs.filter(e=>ids.includes(e.id)).forEach(e=>{K.comp[e.id]=Math.min(100,(K.comp[e.id]||0)+1);});
+ if(sess.id==='men')K.nextMent=(K.nextMent||0)+1;
+ return{rows:[{k:sess.sk[0],roll,out,gain:pts,T}],crit,T,pts};
 }
 /* ---------- blessures : arrêt, perte de % par mois, rééducation ---------- */
 const INJURIES=[
@@ -1319,15 +1333,16 @@ function trainingOutcome(t){
  return{ok,allowed,score,bonus:ok?Math.min(3,t.perfect):0};
 }
 function applyDisciplineGain(K,ev,t){
- const o=trainingOutcome(t),sk=trainSk(ev),gains={};
- if(o.ok)sk.forEach(k=>{const v=K.pct[k],g=hurtSk(K,k)?0:v>=95?0:(v>=85&&RNG()<.75)?0:(v>=75&&RNG()<.5)?0:Math.min(1,PCT_MAX-v);K.pct[k]+=g;gains[k]=g;});
- K.tf=Math.min(3,K.tf+1+(t.crit?1:0));
- if(o.bonus>0)K.pools.push({n:o.bonus,sk:sk.slice(),why:`Séance ${ev.s} : ${o.bonus} lancer${o.bonus>1?'s':''} parfait${o.bonus>1?'s':''}`});
- return{...o,sk,gains};
+ const o=trainingOutcome(t),sk=trainSk(ev),gains={};K.comp=K.comp||{};
+ const pts=o.ok?(o.bonus>=2?2:1):0,cur=K.comp[ev.id]||0;
+ if(pts){const rate=cur<40?3:cur<80?2:1;let g=pts*rate;if(K.age<=19)g=Math.ceil(g*1.25);g=Math.min(g,100-cur);K.comp[ev.id]=cur+g;gains[ev.id]=g;}
+ K.tf=Math.min(3,K.tf+(t.crit?1:0));
+ if(pts>=2)K.pools.push({n:1,sk:(PAPER_DATA.TRIO[ev.id]||sk).slice(),why:`Séance ${ev.s} : lancers parfaits`});
+ return{...o,sk,gains,pts,comp:K.comp[ev.id]||0};
 }
 /* une séance de discipline complète pour un athlète : même moteur que la compétition, seul sur le plateau */
 function buildTrainingC(K,ev){
- const C=buildCompetition('dep',K.cat,[{first:K.first,last:K.last,nat:K.nat,color:K.color,pct:{...K.pct},h:K.h,w:K.w,age:K.age,sex:sexOf(K.cat)}]);
+ const C=buildCompetition('dep',K.cat,[{first:K.first,last:K.last,nat:K.nat,color:K.color,pct:{...K.pct},comp:{...(K.comp||{})},nextMent:K.nextMent||0,h:K.h,w:K.w,age:K.age,sex:sexOf(K.cat)}]);
  C.all=[C.all[0]];C.evs=[ev];C.dayBreak=99;C.noForm=true;C.attempts=ev.mech==='bar'?3:2;
  C.level={...C.level,n:'Entraînement · '+ev.n,parts:1};
  const p=C.all[0];p.fat=K.tf*2.5;p.form={1:{d:10,out:'ok',mod:0,T:10,ev:ev.s},2:{d:10,out:'ok',mod:0,T:10,ev:ev.s}};
@@ -1355,11 +1370,11 @@ function silentHooks(tally,isTrain){
 /* athlète de carrière pour une salle en ligne (les écrans reconstruisent tous la même compétition) */
 function careerHumanPayload(K){
  const pr={};['hj','pv'].forEach(id=>{if(K.pb[id]&&K.pb[id].perf!=null)pr[id]=K.pb[id].perf;});
- return{first:K.first,last:K.last,nat:K.nat,color:K.color,pct:{...K.pct},h:K.h,w:K.w,age:K.age,fatI:K.tf*2.5,hr:1+K.tf*.4,pr};
+ return{first:K.first,last:K.last,nat:K.nat,color:K.color,pct:{...K.pct},comp:{...(K.comp||{})},nextMent:K.nextMent||0,h:K.h,w:K.w,age:K.age,fatI:K.tf*2.5,hr:1+K.tf*.4,pr};
 }
 function buildCareerComp(K,lvId){
  const lvl=lvById(lvId),cat=lvl&&lvl.indoor?IND[K.cat]:K.cat;
- const C=buildCompetition(lvId,cat,[{first:K.first,last:K.last,nat:K.nat,color:K.color,pct:{...K.pct},h:K.h,w:K.w,age:K.age,sex:sexOf(K.cat)}]);
+ const C=buildCompetition(lvId,cat,[{first:K.first,last:K.last,nat:K.nat,color:K.color,pct:{...K.pct},comp:{...(K.comp||{})},nextMent:K.nextMent||0,h:K.h,w:K.w,age:K.age,sex:sexOf(K.cat)}]);
  C.attempts=K.att;C.all[0].fat=K.tf*2.5;C.hurtRisk=1+K.tf*.4+(K.inj?0:0);
  C.all[0].pr={};['hj','pv'].forEach(id=>{if(K.pb[id]&&K.pb[id].perf!=null)C.all[0].pr[id]=K.pb[id].perf;});
  return C;
@@ -1378,27 +1393,28 @@ function settleCompetition(K,C,step){
   if(old&&r.pts>old.pts&&pbs.length<4)pbs.push(ev);
   if(!old||r.pts>old.pts)K.pb[pk]={pts:r.pts,perf:r.perf,year:K.year+(C.indoor?1:0)};
  });
- pbs.forEach(ev=>K.pools.push({n:3,sk:trainSk(ev).slice(),why:`Record personnel${C.indoor?' en salle':''} : ${ev.s} ${fmtPerf(ev,K.pb[(C.indoor?'i:':'')+ev.id].perf)}`}));
+ K.comp=K.comp||{};const compGain=[];
+ C.evs.forEach((ev,i)=>{const r=p.res[i];if(!r||r.dq||!(r.pts>0))return;
+  const evRank=[...C.all].filter(x=>x.res[i]&&x.res[i].pts>0).sort((a,b)=>b.res[i].pts-a.res[i].pts).indexOf(p)+1;
+  let g=evRank<=3?4:evRank<=8?3:2;if(pbs.includes(ev))g+=1;
+  K.comp[ev.id]=Math.min(100,(K.comp[ev.id]||0)+g);compGain.push({ev,g});});
  const mAll=x=>STATS.reduce((a,t)=>a+x.pct[t.k],0)/STATS.length,fld=C.all.filter(x=>!x.human),fAvg=fld.length?fld.reduce((a,x)=>a+mAll(x),0)/fld.length:0,gap=mAll(p)-fAvg,wk=gap>=25?.25:gap>=15?.5:gap>=8?.75:1;
  let pod=podPts(step.lv,rank);if(pod&&wk<1)pod=Math.max(1,Math.round(pod*wk));
- if(pod){K.pools.push({n:pod,sk:null,why:`${['','Victoire','2e place','3e place'][rank]} : ${step.n}${wk<1?' (adversaires plus faibles que toi)':''}`});K.medals[rank-1]++;}
+ if(pod){K.medals[rank-1]++;}
  K.comps++;K.bestTotal=Math.max(K.bestTotal,p.total);
  K.hist.push({year:K.year,age:K.age,name:step.n,lv:step.lv,rank,of:list.length,total:p.total,pbs:pbs.length,tl:lvById(step.lv).s});
  let hurt=null;
  if(!K.inj&&p.hurt){hurt=p.hurt;K.inj=hurt;}
  else if(!K.inj&&RNG()<injChance(K,false)){hurt=pickInjury(K);K.inj=hurt;}
- K.tf=0;
- return{rank,total:p.total,pbs,pod,of:list.length,hurt};
+ K.tf=0;K.nextMent=0;
+ return{rank,total:p.total,pbs,pod,of:list.length,hurt,compGain};
 }
 
 /* ---------- vieillissement ---------- */
 function agePlan(newAge){
- if(newAge<=19)return{gain:4,txt:'Croissance : ton corps se développe vite.'};
- if(newAge<=22)return{gain:2,txt:'Tu progresses encore physiquement.'};
- if(newAge<=28)return{txt:'Tu es dans la force de l’âge.'};
- if(newAge<=31)return{loss:{n:3,d:2,from:['vit','det','pui','dex']},txt:'Les premières usures se font sentir.'};
- if(newAge<=34)return{loss:{n:4,d:3,from:['vit','det','pui','dex','end','for']},txt:'Le corps accuse les saisons.'};
- return{loss:{n:5,d:4,from:['vit','det','pui','dex','end','for','tec']},txt:'La vétérance : il faut compenser par la tête.'};
+ if(newAge<=29)return{txt:newAge<=19?'Les jeunes progressent plus vite : gains de % ×1,25.':'Tu es dans la force de l’âge.'};
+ const n=newAge>=35?3:2;
+ return{loss:{n,d:10,from:['vit','det','pui','dex']},txt:newAge>=35?'La vétérance : il faut compenser par la tête.':'Les premières usures se font sentir.'};
 }
 function applyAging(K){
  const nw=K.age+1,plan=agePlan(nw),lost=[];
@@ -1415,10 +1431,14 @@ function applyAging(K){
 }
 
 /* ---------- répartition des points gagnés ---------- */
-const poolCost=(K,k)=>K.pct[k]>=85?3:K.pct[k]>=75?2:1;   /* 75 % et plus : un point coûte 2 points à répartir ; 85 % et plus : 3 points */
-function poolOk(K,pool,k){return(!pool.sk||pool.sk.includes(k))&&!hurtSk(K,k)&&K.pct[k]<PCT_MAX&&pool.n>=poolCost(K,k);}
-function poolAdd(K,pool,k){if(!poolOk(K,pool,k))return false;pool.n-=poolCost(K,k);K.pct[k]++;pool.got=pool.got||{};pool.got[k]=(pool.got[k]||0)+1;return true;}
-function poolSub(K,pool,k){if(!pool.got||!pool.got[k])return false;K.pct[k]--;pool.n+=poolCost(K,k);pool.got[k]--;return true;}
+const poolCost=(K,k)=>1;
+const gaugeNeed=(K,k)=>{const v=carOf(K.pct[k]),n=v<15?3:v<17?4:v<19?5:6;return K.age<=19?Math.max(1,n-1):n;};
+function poolOk(K,pool,k){return(!pool.sk||pool.sk.includes(k))&&!hurtSk(K,k)&&carOf(K.pct[k])<Math.min(20,plafOf(K,k,K.cat))&&pool.n>=1;}
+function poolAdd(K,pool,k){if(!poolOk(K,pool,k))return false;K.gauge=K.gauge||{};pool.n-=1;K.gauge[k]=(K.gauge[k]||0)+1;let up=false;
+ if(K.gauge[k]>=gaugeNeed(K,k)){K.gauge[k]=0;K.pct[k]+=10;up=true;}
+ pool.got=pool.got||{};pool.got[k]=(pool.got[k]||0)+1;pool.hist=pool.hist||[];pool.hist.push({k,up});return true;}
+function poolSub(K,pool,k){if(!pool.got||!pool.got[k])return false;const i=pool.hist.map(x=>x.k).lastIndexOf(k);if(i<0)return false;const x=pool.hist.splice(i,1)[0];
+ K.gauge=K.gauge||{};if(x.up){K.pct[k]-=10;K.gauge[k]=gaugeNeed(K,k)-1;}else K.gauge[k]=Math.max(0,(K.gauge[k]||0)-1);pool.n+=1;pool.got[k]--;return true;}
 function poolAuto(K,pool){
  /* répartit au plus bas pourcentage éligible */
  while(pool.n>0){
@@ -2595,7 +2615,7 @@ const ST={
 const setup={cfg:{level:'dep',cat:'DEC',attempts:3,auto:false,fast:false,free:false,age:16},players:[],uid:0,mode:'free'};
 const LEG_LV={id:'leg',n:'Compétition des légendes',s:'Légendes',parts:25,avg:90,min:0,intl:1,bars:6};
 const levelOf=id=>id==='legends'?LEG_LV:lvById(id);
-const TOTAL_PCT=STATS.length*START_PCT;
+const TOTAL_PCT=STATS.length*START_PCT+160;   /* 13/20 partout + 16 points à répartir */
 const sumPct=a=>STATS.reduce((s,x)=>s+a.pct[x.k],0);
 function ageOf(dob){
  const d=new Date(dob);if(isNaN(d))return 20;
@@ -2647,12 +2667,12 @@ function renderSetup(){
   ${(()=>{const sx=sexOf(cfg.cat);if(!a.h||sx==='M'&&a.h<150||!a.w){const m=morphOf(0,.1,sx);a.h=a.h||m.h;a.w=a.w||m.w;}const pr=morphProfile(a,cfg.cat);return `<div class="morph"><div class="pts"><span>Morphologie · profil <b>${pr?pr.n:'?'}</b></span><b class="zero">${a.h} cm · ${a.w} kg</b></div>
   <div class="mrow"><label>Taille <input type="range" min="${sx==='M'?160:150}" max="${sx==='M'?210:195}" value="${a.h}" data-m="h"> </label><label>Poids <input type="range" min="${sx==='M'?55:42}" max="${sx==='M'?135:100}" value="${a.w}" data-m="w"> </label></div>
   <div class="tools">${PROFILES.map(q=>`<button class="btn small" data-act="prof" data-p="${q.id}">${q.n}</button>`).join('')}</div></div>`;})()}
-  <div class="pts pleft"><span>Pourcentages à répartir</span><b class="${left===0?'zero':'left'}">${left} %</b></div>
-  ${STATS.map(s=>`<div class="stat"><span>${s.i}</span><span>${s.n}</span><div class="bar"><i style="width:${a.pct[s.k]/PCT_MAX*100}%"></i></div><b>${a.pct[s.k]}%</b>
-   <button data-act="adj" data-k="${s.k}" data-d="-5">−5</button><button data-act="adj" data-k="${s.k}" data-d="-1">−1</button><button data-act="adj" data-k="${s.k}" data-d="1">+1</button><button data-act="adj" data-k="${s.k}" data-d="5">+5</button></div>`).join('')}
-  <div class="pts"><span>Moyenne de capacité (qualification)</span><b class="${qualified(a,cfg.cat,lv)?'zero':'left'}">${fmt1c(avgCap(a,cfg.cat))}/20</b></div>
-  <div class="caps">${EV[cfg.cat].map(e=>`<span class="cp">${e.i} ${e.s} <b>${capOf(a,evSkills(e),e,cfg.cat)}/20</b>${(()=>{const d=morphMod(a,e,cfg.cat);return d?` <small class="${d>0?'mp':'mm'}">${d>0?'+':''}${d}</small>`:'';})()}</span>`).join('')}</div>
-  <div class="tools"><button class="btn small" data-act="even">Tout à 30 %</button><button class="btn small" data-act="rand">Aléatoire</button></div>
+  <div class="pts pleft"><span>Points à répartir (13 au départ, plafond de morphologie)</span><b class="${left===0?'zero':'left'}">${left/10}</b></div>
+  ${STATS.map(s=>`<div class="stat"><span>${s.i}</span><span>${s.n}</span><div class="bar"><i style="width:${carOf(a.pct[s.k])/20*100}%"></i></div><b>${carOf(a.pct[s.k])}/20</b>
+   <button data-act="adj" data-k="${s.k}" data-d="-10">−1</button><button data-act="adj" data-k="${s.k}" data-d="10">+1</button></div>`).join('')}
+  <div class="pts"><span>Compétence moyenne (qualification : ${lv.min} % minimum)</span><b class="${qualified(a,cfg.cat,lv)?'zero':'left'}">${Math.round(avgCap(a,cfg.cat))} %</b></div>
+  <div class="caps">${EV[cfg.cat].map(e=>`<span class="cp">${e.i} ${e.s} <b>${Math.round(paperEvPct(a,e))} %</b> · apt. ${paperEng().aptOf(paperChars(a),e.id)}</span>`).join('')}</div>
+  <div class="tools"><button class="btn small" data-act="even">Tout à 13</button><button class="btn small" data-act="rand">Aléatoire</button></div>
   </div>`;
  }).join('');
  const bad=setup.players.find(a=>!a.locked&&TOTAL_PCT-sumPct(a)!==0);
@@ -2668,7 +2688,7 @@ function renderSetup(){
 }
 function randPct(){
  const pct=Object.fromEntries(STATS.map(s=>[s.k,START_PCT]));
- for(let i=0;i<90;i++){const a=pick(STATS).k,b=pick(STATS).k;if(a!==b&&pct[a]>5&&pct[b]<PCT_MAX-3){pct[a]-=3;pct[b]+=3;}}
+ for(let i=0;i<16;i++){const b=pick(STATS).k;if(pct[b]<pctOfCar(18))pct[b]+=10;}
  return pct;
 }
 $('#athletes').addEventListener('click',e=>{
@@ -2679,7 +2699,7 @@ $('#athletes').addEventListener('click',e=>{
  else if(act==='adj'){
   const k=b.dataset.k,d=+b.dataset.d,left=TOTAL_PCT-sumPct(a);
   let nd=d;
-  if(d>0)nd=Math.min(d,left,PCT_MAX-a.pct[k]);else nd=-Math.min(-d,a.pct[k]-PCT_MIN);
+  {const cap=pctOfCar(Math.min(20,plafOf(a,k,setup.cfg.cat)));if(d>0)nd=Math.min(d,left,cap-a.pct[k]);else nd=-Math.min(-d,a.pct[k]-START_PCT);if(nd<0&&-nd>a.pct[k]-START_PCT)nd=0;}
   a.pct[k]+=nd;
  }
  else if(act==='even')a.pct=Object.fromEntries(STATS.map(s=>[s.k,START_PCT]));
@@ -2802,7 +2822,7 @@ function setStatus(C,p,o){
  const T=o.T,pc=(T-1)*5,pf=(19-T)*5;
  const extra=o.D?` · case ${o.cum}/${o.D}`:'';
  $('#status').innerHTML=`<h4>${esc(o.label)}${extra}</h4>
- <div class="sk">${o.sk.map(k=>`<span class="chip">${SX[k].i} ${SX[k].n} ${effPct(p,k)} %</span>`).join('')}</div>
+ <div class="sk">${o.sk.map(k=>`<span class="chip">${SX[k].i} ${SX[k].n} ${carShow(p,k)}/20</span>`).join('')}</div>
  <div class="sk">${ch.join('')}</div>
  <div class="thr"><b>${T}</b><span>seuil sur 20 (capacité ${o.cap} + bonus et malus, 18 maximum)</span></div>
  <div class="prob">Chances : parfait 5 % · réussite ${pc} % · échec ${pf+5} % dont critique 5 %</div>`;
@@ -3112,7 +3132,7 @@ function ficheHTML(C,p){
   return `<div class="fk"><span>${s.i} ${s.n}</span><div class="fb"><i style="width:${Math.min(100,v/PCT_MAX*100)}%;background:${v===best.v?'#fbbf24':col}"></i></div><b>${v} %${inj?` <small class="m">(−${inj} blessure)</small>`:''}</b></div>`;}).join('');
  const evRows=C.evs.map((ev,i)=>{
   const sk=ev.sk||evAllSk(ev),cap=capOf(p,sk,ev),pc=(cap-1)*5,r=p.res[i];
-  const skc=sk.map(k=>`<span class="chip">${SX[k].i} ${effPct(p,k)}</span>`).join('');
+  const skc=sk.map(k=>`<span class="chip">${SX[k].i} ${carShow(p,k)}</span>`).join('');
   const res=r?(r.dq?'<span class="nul">nul / disqualifié</span>':`<b>${fmtPerf(ev,r.perf)}</b> · ${nf(r.pts)} pts · ${evRank(C,i,p)}e`):'<span style="color:var(--mute)">à venir</span>';
   return `<tr><td>${ev.i} ${ev.s}</td><td><b>${cap}</b>/18<div class="fb sm"><i style="width:${cap/18*100}%;background:${col}"></i></div></td><td class="fch">${skc}</td><td>${pc} %</td><td>${fmtPerf(ev,perfOf(ev,ptsCeil(p,ev)))}</td><td>${res}</td></tr>`;
  }).join('');
@@ -3137,7 +3157,7 @@ document.addEventListener('click',e=>{
 
 /* ================= MODE CARRIÈRE : interface ================= */
 let careers=[],K=null,cNote='',inCareerGame=false,saveOK=true;
-try{const s=localStorage.getItem(CAREER_KEY);if(s){const a=JSON.parse(s);if(Array.isArray(a))careers=a.filter(c=>c&&c.pct&&c.cat);}}catch(e){careers=[];}
+try{const s=localStorage.getItem(CAREER_KEY);if(s){const a=JSON.parse(s);if(Array.isArray(a))careers=a.filter(c=>c&&c.pct&&c.cat);careers.forEach(c=>{c.comp=c.comp||{};c.gauge=c.gauge||{};c.pools=c.pools||[];c.slots=c.slots||[null,null,null];c.regain=c.regain||{};c.tf=c.tf||0;c.pb=c.pb||{};});}}catch(e){careers=[];}
 function persist(){
  if(K)K.saved=Date.now();
  try{localStorage.setItem(CAREER_KEY,JSON.stringify(careers));saveOK=true;}catch(e){saveOK=false;}
@@ -3151,7 +3171,7 @@ const plural=(n,s,p)=>n>1?(p||s+'s'):s;
 function renderCareerBox(){
  const b=$('#careerBox'),on=setup.mode==='career';
  b.hidden=!on;if(!on)return;
- b.innerHTML=`<h3>Mes carrières</h3>`+(careers.length?careers.map(c=>`<div class="cRow"><div><b>${flagOf(c.nat)} ${esc(c.first)} ${esc(c.last.toUpperCase())}</b><small>${CATN[c.cat]} · saison ${c.season} (${c.year}) · ${c.age} ans · moyenne ${fmt1c(careerAvg(c))}/20 · ${medalsTxt(c.medals)}${c.phase==='retired'?' · retraité':''}</small></div>
+ b.innerHTML=`<h3>Mes carrières</h3>`+(careers.length?careers.map(c=>`<div class="cRow"><div><b>${flagOf(c.nat)} ${esc(c.first)} ${esc(c.last.toUpperCase())}</b><small>${CATN[c.cat]} · saison ${c.season} (${c.year}) · ${c.age} ans · compétence ${Math.round(careerAvg(c))} % · ${medalsTxt(c.medals)}${c.phase==='retired'?' · retraité':''}</small></div>
   <div class="cBtn"><button class="btn primary" data-cact="open" data-id="${c.id}">${c.phase==='retired'?'Voir':'Continuer'}</button><button class="btn small" data-cact="exp" data-id="${c.id}">Exporter</button><button class="btn small" data-cact="del" data-id="${c.id}">Supprimer</button></div></div>`).join(''):
   '<p class="note" style="margin:0 0 10px">Aucune carrière enregistrée sur cet appareil : crée ton athlète juste en dessous.</p>')+
   `<div class="startRow"><label class="btn small">📥 Importer une sauvegarde<input type="file" id="cImport" accept=".json,application/json" hidden></label><span class="note" style="margin:0">Sauvegarde automatique dans ce navigateur. Exporte ta carrière pour la reprendre sur un autre appareil.</span></div>`;
@@ -3170,7 +3190,7 @@ $('#careerBox').addEventListener('change',e=>{
   try{
    const c=JSON.parse(rd.result);
    if(!c||!c.pct||!c.cat||!c.id||!STATS.every(s=>typeof c.pct[s.k]==='number'))throw new Error('format');
-   const i=careers.findIndex(x=>x.id===c.id);if(i>=0)careers[i]=c;else careers.unshift(c);
+   c.comp=c.comp||{};c.gauge=c.gauge||{};c.pools=c.pools||[];c.slots=c.slots||[null,null,null];c.regain=c.regain||{};c.pb=c.pb||{};const i=careers.findIndex(x=>x.id===c.id);if(i>=0)careers[i]=c;else careers.unshift(c);
    persist();renderCareerBox();
   }catch(err){alert('Fichier de sauvegarde non reconnu.');}
  };
@@ -3223,7 +3243,7 @@ function renderHead(){
  const o=K.opt,ol=onlineHeadHTML();
  $('#cHead').innerHTML=`<div class="cTop">
   <div class="who"><span class="dot" style="--c:${K.color};width:34px;height:34px"></span><div><b class="nm">${flagOf(K.nat)} ${esc(K.first)} ${esc(K.last.toUpperCase())}</b><small>${CATN[K.cat]} · Saison ${K.season} (${K.year}) · ${K.age} ans</small></div></div>
-  <div class="cStats"><span class="chip">Moyenne ${fmt1c(careerAvg(K))}/20</span><span class="chip">${medalsTxt(K.medals)}</span><span class="chip">${K.comps} ${plural(K.comps,'compétition')}</span>${K.inj?`<span class="chip m">🩹 Blessé · ${esc(K.inj.n)} · ${K.inj.left} mois</span>`:''}<span class="chip ${K.tf>=2?'m':''}">Fatigue ${K.tf?'●'.repeat(K.tf):'○'}</span><span class="chip ${saveOK?'p':'m'}">${saveOK?'💾 Sauvegardé':'⚠️ Sauvegarde impossible : exporte !'}</span>${ol.chip}</div>
+  <div class="cStats"><span class="chip">Compétence moyenne ${Math.round(careerAvg(K))} %</span><span class="chip">${medalsTxt(K.medals)}</span><span class="chip">${K.comps} ${plural(K.comps,'compétition')}</span>${K.inj?`<span class="chip m">🩹 Blessé · ${esc(K.inj.n)} · ${K.inj.left} mois</span>`:''}<span class="chip ${K.tf>=2?'m':''}">Fatigue ${K.tf?'●'.repeat(K.tf):'○'}</span><span class="chip ${saveOK?'p':'m'}">${saveOK?'💾 Sauvegardé':'⚠️ Sauvegarde impossible : exporte !'}</span>${ol.chip}</div>
   <div class="cBtns"><label class="chk"><input type="checkbox" id="oAuto" ${o.auto?'checked':''}> Dés auto</label><label class="chk"><input type="checkbox" id="oFast" ${o.fast?'checked':''}> Virtuels rapides</label><label class="chk"><input type="checkbox" id="oQuick" ${o.quick?'checked':''}> Séances de discipline automatiques</label>
   ${ol.btns}<button class="btn small" id="cExport">Exporter</button><button class="btn small" id="cRetire">Prendre sa retraite</button><button class="btn small" id="cMenu">Menu</button></div></div>`;
  onlineHeadBind();
@@ -3331,7 +3351,7 @@ function trainHTML(){
  const slots=K.slots.map((s,i)=>`<div class="slot ${i<K.sessDone?'done':i===K.sessDone&&full?'cur':''}"><span class="sn">${i+1}</span><div>${slotLabel(s)}</div>${s&&i>=K.sessDone?`<button class="btn small" data-a="unslot" data-i="${i}">✕</button>`:i<K.sessDone?'<span class="chip p">fait</span>':''}</div>`).join('');
  let body;
  if(!full){
-  body=`<p class="note" style="margin:0 0 8px">Choisis ${K.slots.filter(x=>!x).length} séance${K.slots.filter(x=>!x).length>1?'s':''} pour préparer : <b>${esc(st.n)}</b> (${st.m}). Chaque séance de salle ajoute de la fatigue (−1 au seuil par séance déjà faite) : termine par du repos si tu veux arriver frais.</p>
+  body=`<p class="note" style="margin:0 0 8px">Choisis ${K.slots.filter(x=>!x).length} séance${K.slots.filter(x=>!x).length>1?'s':''} pour préparer : <b>${esc(st.n)}</b> (${st.m}). Un 20 au dé ajoute de la fatigue (−1 au seuil) ; le repos la fait retomber.</p>
   <div class="palette">${SESS.filter(s=>s.id!=='dis'&&(s.id!=='kin'||hasRegain(K))).map(s=>`<button class="pal" data-a="slot" data-t="${s.id}"><b>${s.i} ${s.n}</b><small>${s.d}</small>${s.sk.length?`<span class="chips">${s.sk.map(k=>`<span class="chip">${SX[k].i} ${K.pct[k]} %</span>`).join('')}</span><span class="th">d20 ≤ ${gymThreshold(K,s)}</span>`:''}</button>`).join('')}
   <div class="pal dis"><b>🏟️ Séance de discipline</b><small>${SESSX.dis.d}</small><select id="cDisEv">${EV[K.cat].map(e=>`<option value="${e.id}">${e.i} ${e.n}</option>`).join('')}${EV[IND[K.cat]].filter(e=>!EV[K.cat].some(x=>x.id===e.id)).map(e=>`<option value="${e.id}">${e.i} ${e.n} (salle)</option>`).join('')}</select><button class="btn small primary" data-a="slotDis">Ajouter</button></div></div>`;
  }else if(K.sessDone<3){
@@ -3339,7 +3359,7 @@ function trainHTML(){
   body=`<div class="startRow"><button class="btn primary big" data-a="run">▶ Séance ${K.sessDone+1}/3 : ${slotLabel(sl)}</button></div>`;
  }
  return `<div class="card"><h3>🏋️ Préparation · ${esc(st.n)}</h3>
-  <p class="note" style="margin:0 0 10px">${K.tf>=2?'Tu es fatigué. ':''}Niveau visé : ${L.s}, minimum ${L.min}/20 — ta moyenne : <b style="color:${q?'var(--ok)':'var(--bad)'}">${fmt1c(careerAvg(K))}/20</b>.</p>
+  <p class="note" style="margin:0 0 10px">${K.tf>=2?'Tu es fatigué. ':''}Niveau visé : ${L.s}, compétence moyenne minimale ${L.min} % — la tienne : <b style="color:${q?'var(--ok)':'var(--bad)'}">${Math.round(careerAvg(K))} %</b>.</p>
   <div class="slots">${slots}</div>${body}${K.sessDone<3?`<p style="margin:10px 0 0"><button class="btn small" data-a="skipPrep">Sauter la préparation →</button></p>`:''}</div>`;
 }
 /* ---------- blessure : mois d'arrêt, soins et rééducation ---------- */
@@ -3388,9 +3408,9 @@ async function gymFlow(sess){
  if(res.crit&&!K.inj&&Math.random()<injChance(K,false)+.1)K.inj=pickInjury(K);
  persist();
  $('#cMain').innerHTML=`<div class="card gym"><h3>${sess.i} ${sess.n}</h3>
- <p class="note" style="margin:0 0 10px">${sess.d}<br>Seuil du d20 : <b>${T}</b>. Réussite : +1 % (+2 % sous 45 %) · parfait : +2 % (+3 % sous 45 %) · échec : 0 · échec critique : fatigue en plus.</p>
- <div class="gymRows">${sess.sk.map(k=>`<div class="gr"><span>${SX[k].i} ${SX[k].n}</span><b>${before[k]} %</b><div class="cdie" id="cd_${k}">?</div><span class="gres" id="gx_${k}"></span></div>`).join('')}</div>
- <div class="startRow"><button class="btn primary big" id="gymGo">🎲 Lancer les ${sess.sk.length} dés</button></div></div>`;
+ <p class="note" style="margin:0 0 10px">${sess.d}<br>Seuil du d20 : <b>${T}</b>. Réussite : <b>1 point</b> · parfait (dé = seuil) : <b>2 points</b> · échec : 0 · 20 : 0 point et +1 fatigue. Les points vont dans la jauge d’une des caractéristiques de la séance, à ton choix.</p>
+ <div class="gymRows">${sess.sk.slice(0,1).map(k=>`<div class="gr"><span>🎲 Jet de la séance (${sess.sk.map(q=>SX[q].n).join(', ')})</span><b>seuil ${T}</b><div class="cdie" id="cd_${k}">?</div><span class="gres" id="gx_${k}"></span></div>`).join('')}</div>
+ <div class="startRow"><button class="btn primary big" id="gymGo">🎲 Lancer le d20</button></div></div>`;
  const go=$('#gymGo');
  const play=async()=>{
   go.hidden=true;
@@ -3398,12 +3418,12 @@ async function gymFlow(sess){
    const d=$('#cd_'+r.k);
    for(let i=0;i<10;i++){d.textContent=rnd(20);await sleep(55);}
    d.textContent=r.roll;d.className='cdie '+r.out;
-   $('#gx_'+r.k).innerHTML=`<span class="${r.out}">${OUTT[r.out]}</span> ${r.gain?`<b>+${r.gain} %</b>`:''}`;
+   $('#gx_'+r.k).innerHTML=`<span class="${r.out}">${OUTT[r.out]}</span> ${r.gain?`<b>+${r.gain} pt</b>`:''}`;
    await sleep(280);
   }
   const g=res.rows.reduce((a,r)=>a+r.gain,0);
   const wrap=$('#cMain .gym');
-  wrap.insertAdjacentHTML('beforeend',`<p class="note" style="margin:10px 0 0">${g?`+${g} % au total.`:'Séance sans progrès.'}${res.crit?' Échec critique : une petite blessure te fatigue davantage.':''}</p>${K.inj&&K.inj.fresh?`<div class="card cnote warn" style="margin-top:10px"><h3>🚑 Blessure</h3><p><b>${esc(K.inj.n)}</b> : arrêt de ${K.inj.months} mois. Tu perdras environ ${injLoss(K.pct[K.inj.sk[0]])} % par mois sur ${K.inj.sk.map(k=>SX[k].n.toLowerCase()).join(', ')}, à récupérer par le repos et la kiné.</p></div>`:''}
+  wrap.insertAdjacentHTML('beforeend',`<p class="note" style="margin:10px 0 0">${g?`+${g} point${g>1?'s':''} de jauge à répartir.`:'Séance sans point.'}${res.crit?' Échec critique : une petite blessure te fatigue davantage.':''}</p>${K.inj&&K.inj.fresh?`<div class="card cnote warn" style="margin-top:10px"><h3>🚑 Blessure</h3><p><b>${esc(K.inj.n)}</b> : arrêt de ${K.inj.months} mois. Tu perdras environ ${injLoss(K.pct[K.inj.sk[0]])} % par mois sur ${K.inj.sk.map(k=>SX[k].n.toLowerCase()).join(', ')}, à récupérer par le repos et la kiné.</p></div>`:''}
   <div class="startRow"><button class="btn primary big" id="gymNext">${K.sessDone>=3?'Terminer la préparation →':'Séance suivante →'}</button></div>`);
   $('#gymNext').onclick=()=>afterSessionNext();
  };
@@ -3604,7 +3624,7 @@ function renderCommBox(){
  setup.players=setup.players.filter(a=>!a.locked||a.cat===OUTC[cfg.cat]);
  const mine=careers.filter(c=>c.cat===OUTC[cfg.cat]);
  const taken=new Set(setup.players.filter(a=>a.locked).map(a=>a.fromCareer));
- const mineHTML=mine.length?`<select id="cmMineSel">${mine.map(c=>`<option value="${c.id}">${esc(c.first)} ${esc(c.last.toUpperCase())} · saison ${c.season} · ${c.age} ans · ${fmt1c(careerAvg(c))}/20</option>`).join('')}</select><button class="btn small" id="cmMine" ${setup.players.length>=6?'disabled':''}>Ajouter comme joueur</button>`:`<span class="note">Aucune carrière ${CATN[OUTC[cfg.cat]]} : crée-en une dans l’onglet « Mode carrière ».</span>`;
+ const mineHTML=mine.length?`<select id="cmMineSel">${mine.map(c=>`<option value="${c.id}">${esc(c.first)} ${esc(c.last.toUpperCase())} · saison ${c.season} · ${c.age} ans · ${Math.round(careerAvg(c))} %</option>`).join('')}</select><button class="btn small" id="cmMine" ${setup.players.length>=6?'disabled':''}>Ajouter comme joueur</button>`:`<span class="note">Aucune carrière ${CATN[OUTC[cfg.cat]]} : crée-en une dans l’onglet « Mode carrière ».</span>`;
  let comm;
  if(!onlineOn())comm=`<span class="note">La base en ligne n’est pas encore activée.</span>`;
  else{
