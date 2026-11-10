@@ -787,11 +787,12 @@ function paperCtx(ev,p,io,extra){
  const E=paperEng(),sex=sexOf(p.cat),N=(PAPER_DATA.GEO[ev.id]||{}).N;
  if(!p.pe){p.pe={CH:paperChars(p),COMP:{},sex,cat:p.cat,dayBreak:DB[p.cat]};E.newState(p.pe);}
  const c=p.pe;c.COMP[ev.id]=paperEvPct(p,ev);if(p.nextMent&&!c.nmDone){c.st.nextMent=(c.st.nextMent||0)+p.nextMent;c.nmDone=true;}
- c.dayInfo=j=>({forme:(p.form[j]||{mod:0}).mod});
+ if(p.selfForm)delete c.dayInfo;else c.dayInfo=j=>({forme:(p.form[j]||{mod:0}).mod});
  c.roll=async info=>{const st=c.st,cap=E.capOf(ev.id,c.COMP[ev.id]);
   const stage=info.k==='elan'||info.k==='throw'||info.k==='jump';
   const stg=info.k==='elan'?ev.el:(info.k==='throw'||info.k==='jump')?ev.fin:null;
-  const o={kind:stage?'stage':info.k==='run'?'run':info.k==='start'?'start':'rage',label:info.label,
+  const tabK=['alea','cond','incident','incident2','rage'].includes(info.k);
+  const o={kind:stage?'stage':info.k==='run'?'run':info.k==='start'?'start':info.k==='form'?'form':tabK?'table':'rage',label:info.label,
    sk:stg?stg.sk:info.k==='mental'?['men']:info.k==='rage'?['men','tac']:(info.k==='run'||info.k==='start')?(ev.skS||ev.sk||['men']):['men'],cap,T:info.seuil==null?20:info.seuil,
    mods:{form:st.forme,fat:st.fat,cond:0,condName:'Conditions',total:0},D:N,cum:info.done||0};
   if(stage){o.si=info.k==='elan'?0:1;o.ns=2;}
@@ -801,6 +802,7 @@ function paperCtx(ev,p,io,extra){
   return r.roll;};
  c.emit=async e=>{
   if(e.k==='advance')await io.advance(Math.min(e.cum,N),e.a,e.out==='parf'?'perfect':e.out==='reuss'?'ok':e.out==='crit'?'crit':'fail',!!e.start);
+  else if(e.k==='note'){if(p.human&&io.note)await io.note(e.t);}
   else if(extra&&extra.emit)await extra.emit(e);};
  delete c.gate;if(extra&&extra.gate)c.gate=extra.gate;
  return c;
@@ -1151,15 +1153,18 @@ async function runBarEvent(C,H){
  C.all.forEach(p=>{const s=st[p.id];setRes(p,r,s.best||null,s.best?ptsOf(ev,s.best):0,false);});
 }
 
+const paperAll=C=>!C.noForm&&C.evs.every(ev=>C.all.every(p=>paperOn(ev,p)));
+const PCOND={s:'Conditions tirées au dé',txt:'Forme du jour, aléa et conditions se tirent au dé pendant l’épreuve.',mod:0};
 async function runCompetition(C,H){
  C.attempts=C.attempts||3;let removed=[],all0=null;
+ const PA=paperAll(C);C.all.forEach(p=>{p.selfForm=PA;});
  await H.begin(C);
- if(!C.noForm)await doForm(C,H,1);
+ if(!C.noForm&&!PA)await doForm(C,H,1);
  for(let r=0;r<C.evs.length;r++){
   if(H.aborted())return;
-  if(r===C.dayBreak){C.all.forEach(p=>{p.fat*=.4;});await H.night(C);await doForm(C,H,2);}
+  if(r===C.dayBreak){C.all.forEach(p=>{p.fat*=.4;});await H.night(C);if(!PA)await doForm(C,H,2);}
   const ev=C.evs[r];
-  C.cur={r,ev,cond:drawCond(ev),day:r<C.dayBreak?1:2};
+  C.cur={r,ev,cond:PA?PCOND:drawCond(ev),day:r<C.dayBreak?1:2};
   C.all.forEach(p=>{p.att[r]=[];});
   await H.eventStart(C);
   removed=C.all.filter(p=>p.dnf);if(removed.length){all0=[...C.all];C.all=C.all.filter(p=>!p.dnf);}
@@ -2879,7 +2884,7 @@ function setStatus(C,p,o){
 const OUTCOL={perfect:'#fbbf24',ok:'#34d399',fail:'#fb923c',crit:'#ef4444'};
 function showOut(out,roll,o){
  const m=$('#dieMsg');m.className='dieMsg '+out;
- m.innerHTML=`<span class="big">${OUTT[out]}</span>dé ${roll} · seuil ${o.T}`;
+ m.innerHTML=o.kind==='table'?`<span class="big">${roll}</span>${esc(o.label)}`:`<span class="big">${OUTT[out]}</span>dé ${roll} · seuil ${o.T}`;
 }
 const stAdvance=(p,cum)=>ST.mode==='race'?ST.raceTo(p,cum):ST.runTo(p,cum);
 function makeIO(g,C,p){
@@ -2900,10 +2905,10 @@ function makeIO(g,C,p){
     if(R_)roomSend('roll',{gid:R_.gid,pid:p.id,k:kk,v:roll});
    }
    await Die.roll(roll,g.turbo||g.simmed);
-   const out=mkOut(o.T,roll);
+   const tb=o.kind==='table',out=tb?'ok':mkOut(o.T,roll);
    if(g.onRoll)g.onRoll(o,out,roll);
-   Die.tint(out);showOut(out,roll,o);ST.speed=1;ST.popup(p,`${roll} · ${OUTT[out].replace(' !','').replace('ÉCHEC CRITIQUE','Échec critique')}`,OUTCOL[out]);
-   if(!g.turbo||out==='crit'||roll===o.T)addLog(out,`${o.label} : dé ${roll} / seuil ${o.T} → ${OUTT[out]}`);
+   Die.tint(tb?null:out);showOut(out,roll,o);ST.speed=1;ST.popup(p,tb?`${roll}`:`${roll} · ${OUTT[out].replace(' !','').replace('ÉCHEC CRITIQUE','Échec critique')}`,OUTCOL[out]);
+   if(tb)addLog('note',`${o.label} : dé ${roll}`);else if(!g.turbo||out==='crit'||roll===o.T)addLog(out,`${o.label} : dé ${roll} / seuil ${o.T} → ${OUTT[out]}`);
    await sleep(g.turbo?70:(out==='crit'?900:650));
    if(o.kind==='stage'&&o.ns){ST.speed=g.turbo?.3:1;await ST.stage(p,o.si,o.ns,out);}
    return{roll,out};
@@ -2913,7 +2918,7 @@ function makeIO(g,C,p){
    await stAdvance(p,cum);renderHeat(g,C);
    const h=$('#status').querySelector('h4');if(h)h.textContent=`En piste · case ${cum}`;
   },
-  async note(t){addLog('note',t);$('#dieMsg').className='dieMsg crit';$('#dieMsg').textContent=t;await sleep(g.turbo?200:1400);},
+  async note(t){addLog('note',t);$('#dieMsg').className='dieMsg crit';$('#dieMsg').textContent=t;await sleep(g.fast||g.simmed?50:(g.turbo?200:(g.auto?600:1300)));},
   async phase(){}
  };
 }
@@ -2922,7 +2927,7 @@ function makeBotIO(g,C,p){
  return{
   async roll(o){
    if(g.abort)throw new Error('abort');
-   const roll=rnd(20),out=mkOut(o.T,roll),sp=g.spNow;
+   const roll=rnd(20),out=o.kind==='table'?'ok':mkOut(o.T,roll),sp=g.spNow;
    if(sp>0){setWho(p,o.label);showOut(out,roll,o);ST.speed=sp;ST.popup(p,`${roll}`,OUTCOL[out]);await sleep(Math.round(260*sp));}
    else if((g.cnt=(g.cnt||0)+1)%10===0)await sleep(0);
    if(o.kind==='stage'&&o.ns){ST.speed=sp;await ST.stage(p,o.si,o.ns,out);}

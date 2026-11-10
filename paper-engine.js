@@ -40,13 +40,14 @@ function create(DATA,helpers){
     const apt1=aptOf(CH,id);const d=await roll({k:'form',label:'Forme du jour',seuil:apt1,idx}),k=kind(d,apt1);st.forme=KF[k];st.first=0;st.nextMent=0;st.nextRage=0;
     const a=await roll({k:'alea',label:'Aléa du jour'});let t='journée normale';
     if(a===1){st.forme-=1;t='nuit blanche (forme −1)';}else if(a===2){st.first=-1;t='échauffement bâclé (−1 au premier jet)';}else if(a<=4){st.nextMent=-1;t='stress de la chambre d’appel (Mental −1 à la prochaine épreuve)';}else if(a===5){st.fat+=1;t='genou qui tire (fatigue +1)';}else if(a===15){st.first=1;t='bon échauffement (+1 au premier jet)';}else if(a<=17&&a>=16){st.nextRage=1;t='dernier conseil du coach (+1 au rang de la prochaine rage de vaincre)';}else if(a===18){st.nextMent=1;t='public chaud (Mental +1 à la prochaine épreuve)';}else if(a===19){st.forme+=1;t='excellente nuit (forme +1)';}else if(a===20){st.forme+=1;st.first=1;t='jour de grâce (forme +1, +1 au premier jet)';}
-    head=`Jour ${j} : forme d20=${d} contre ${apt1} (${k==='parf'?'parfait +2':k==='reuss'?'réussi +1':k==='crit'?'échec critique −1':'échec 0'}). Aléa du jour d20=${a} : ${t}. Modificateur de forme du jour : ${(st.forme>=0?'+':'')+st.forme}.`;}
+    head=`Jour ${j} : forme d20=${d} contre ${apt1} (${k==='parf'?'parfait +2':k==='reuss'?'réussi +1':k==='crit'?'échec critique −1':'échec 0'}). Aléa du jour d20=${a} : ${t}. Modificateur de forme du jour : ${(st.forme>=0?'+':'')+st.forme}.`;
+    if(ctx.emit)await ctx.emit({k:'note',t:`Forme du jour : ${k==='parf'?'parfaite':k==='reuss'?'réussie':k==='crit'?'échec critique':'échec'}. Aléa du jour : ${t}. Forme ${(st.forme>=0?'+':'')+st.forme}.`});}
    const apt=aptOf(CH,id),ai=AP.indexOf(apt),pc=COMP[id],cap=capOf(id,pc),base=baseOf(pc);
    /* conditions et Mental */
    const dc=await roll({k:'cond',label:'Conditions',idx});let cm=0,ct='conditions neutres';
    if(dc>=6&&dc<=7&&['100','110h','lj'].includes(id)){cm=1;ct='vent arrière';}else if(dc>=8&&dc<=9&&['100','110h','lj'].includes(id)){cm=-1;ct='vent de face';}else if(dc===10){cm=-1;ct='pluie fine';}else if(dc===11&&['100','400','110h','1500'].includes(id)){cm=-1;ct='chaleur écrasante';}else if(dc===12&&['sp','dt','jt'].includes(id)){cm=-1;ct='rafales';}else if(dc===13||dc===14){cm=CH.men>=14?2:1;ct='le public s’enflamme';}else if(dc===15||dc===16){cm=CH.men>=14?0:-1;ct='stade silencieux';}else if(dc===17){cm=1;ct='soirée idéale';}
    const dm=await roll({k:'mental',label:'Mental',seuil:CH.men,idx}),km=kind(dm,CH.men),mm=KF[km]+st.nextMent;st.nextMent=0;
-   let common=base+st.forme+cm+mm-st.fat;let had20=false;let first=st.first;st.first=0;const rageB=st.nextRage;st.nextRage=0;
+   let common=base+st.forme+cm+mm-st.fat;if(ctx.emit)await ctx.emit({k:'note',t:`Conditions : ${ct} (${cm>=0?'+':''}${cm}). Mental ${mm>=0?'+':''}${mm}. Seuil de base ${cl(common)}.`});let had20=false;let first=st.first;st.first=0;const rageB=st.nextRage;st.nextRage=0;
    L.push(`Conditions d20=${dc} : ${ct} (${cm>=0?'+':''}${cm}). Mental d20=${dm} contre ${CH.men} : ${KF[km]>=0?'+':''}${KF[km]}. Seuil de base ${base} + forme ${st.forme>=0?'+':''}${st.forme} + conditions ${cm>=0?'+':''}${cm} + Mental ${mm>=0?'+':''}${mm}${st.fat?' − fatigue '+st.fat:''} = ${cl(common)}.`);
    let native=null,detail=null;
    if(tab.kind==='race'){
@@ -126,7 +127,7 @@ function create(DATA,helpers){
    if(had20){const di=await roll({k:'incident',label:'Incident',idx});let txt;
     if(di<=10)txt='rien';else if(di<=13){txt='crampe (fatigue +1, −1 au premier jet de l’épreuve suivante)';st.fat+=1;st.first=-1;}else if(di<=16){txt='mauvais appui (−1 au premier jet de l’épreuve suivante)';st.first=-1;}else if(di<=19){const kk2=DATA.TRIO[id][(di-1)%3];CH[kk2]=Math.max(1,CH[kk2]-1);txt=`douleur (−1 en ${kk2} jusqu’à la fin de la compétition)`;}
     else{const r2=await roll({k:'incident2',label:'Relance',idx});if(r2>=16){txt=`blessure possible : relance ${r2}, blessure et abandon`;abandon=true;}else{txt=`blessure possible : relance ${r2}, simple forfait pour cette épreuve`;forfeit=true;}}
-    incident={d:di,txt};L.push(`Un 20 naturel est sorti pendant l’épreuve : incident d20=${di} : ${txt}.`);}
+    incident={d:di,txt};if(ctx.emit)await ctx.emit({k:'note',t:'Incident : '+txt+'.'});L.push(`Un 20 naturel est sorti pendant l’épreuve : incident d20=${di} : ${txt}.`);}
    const nativeCm=(id==='hj'||id==='pv')?Math.round(native*100):(DATA.CMUNIT&&DATA.CMUNIT.includes(id)?Math.round(native*100):native);
    const perf=forfeit?null:native;const pts=(perf&&!forfeit)?ptsOf(id,sex,native):0;ctx.total+=pts;
    res.push({id,head,lines:L,detail,perf,pts,cap,apt,pc,forfeit,abandon,incident});
