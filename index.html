@@ -1973,6 +1973,15 @@ const ST={
    ctx.beginPath();ctx.arc(7.5,-20.5,2.6,0,Math.PI,false);ctx.closePath();ctx.fillStyle=TA;ctx.fill();ctx.strokeStyle='#fff';ctx.lineWidth=.08;ctx.stroke();
    mat(-25.4,5.3,-20.5,9.7,'#c23a2e','#fff');lab('HAUTEUR',-14.4,7.6);
   }else{
+   /* prolongement des lignes de secteur (disque, poids, javelot) avec arcs de distance */
+   const fan=(fx,fy,half,r0,len,step,k,col)=>{ctx.save();ctx.translate(fy,fx);
+    ctx.strokeStyle='rgba(255,255,255,.8)';ctx.lineWidth=.1;ctx.beginPath();
+    [-1,1].forEach(sg=>{const a=Math.PI/2+sg*half;ctx.moveTo(r0*Math.cos(a),r0*Math.sin(a));ctx.lineTo((r0+len*k)*Math.cos(a),(r0+len*k)*Math.sin(a));});ctx.stroke();
+    ctx.lineWidth=.07;ctx.strokeStyle='rgba(255,255,255,.55)';
+    for(let d=step;d<=len;d+=step){const r=r0+d*k;ctx.beginPath();ctx.arc(0,0,r,Math.PI/2-half,Math.PI/2+half,false);ctx.stroke();
+     this.txt(ctx,d+' m',r*Math.cos(Math.PI/2-half)+1.6,r*Math.sin(Math.PI/2-half)+.2,.95,'rgba(255,255,255,.85)',0);}
+    ctx.restore();};
+   fan(-30,-9.5,half,0,70,10,.62);fan(-30,9.5,half,0,24,4,1);fan(-23,0,14.48*Math.PI/180,8.2,90,10,.43);
    /* extrémité gauche : deux plaques de lancer, secteurs bordeaux ; javelot entre les deux */
    sector(-30,-9.5,Math.PI/2,half,0,19,'#8c3b37');sector(-30,9.5,Math.PI/2,half,0,13,'#8c3b37');
    fillR(-40,-14.6,-20,-4.4,TA,'#fff',.12);fillR(-40,4.4,-20,14.6,TA,'#fff',.12);
@@ -1984,7 +1993,6 @@ const ST={
    runway(1,23.3,-8.8,1.3);mat(23.8,-11.7,29,-5.9,'#1d4a3a','#e8c34a');
    /* longueur et triple saut */
    runway(-12,15.6,15.6,1.8);fillR(15.6,14.7,16.1,16.5,'#f8fafc');sand(16.3,13.7,24.3,17.5);lab('LONGUEUR',-8,18.4);
-   runway(-9,19.6,9.6,1.8);fillR(19.6,8.7,20.1,10.5,'#f8fafc');sand(26.3,7.7,34.1,11.5);lab('TRIPLE',-6,12.4);
    /* hauteur */
    ctx.beginPath();ctx.moveTo(-7.2,38.5);ctx.arc(0,38.5,7.2,Math.PI,0,true);ctx.closePath();ctx.fillStyle=TA;ctx.fill();ctx.strokeStyle='#fff';ctx.lineWidth=.1;ctx.stroke();
    mat(38.5,-3.2,43.2,3.2,'#1d4a3a','#e8c34a');lab('HAUTEUR',33,-9);
@@ -2113,6 +2121,7 @@ const ST={
   }
   /* lignes de couloirs : pleines sur la ligne droite, en pointillés là où elles se superposent au virage */
   ctx.strokeStyle='rgba(255,255,255,.95)';
+  ctx.setLineDash([]);for(let k=0;k<=this.NL;k++){ctx.lineWidth=(k===0||k===this.NL)?.26:.12;const x=R1+k*LW;ctx.beginPath();ctx.moveTo(x,-H);ctx.lineTo(x,H);ctx.stroke();}
   for(let k=0;k<=this.NL;k++){
    ctx.lineWidth=(k===0||k===this.NL)?.26:.12;const x=R1+k*LW;
    ctx.setLineDash(dash);ctx.beginPath();ctx.moveTo(x,-H);ctx.lineTo(x,bx);ctx.stroke();
