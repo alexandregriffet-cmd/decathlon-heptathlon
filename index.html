@@ -1477,7 +1477,7 @@ const INJURIES=[
  {id:'lca',n:'Rupture du ligament croisé antérieur (genou)',zone:'le genou',sk:['det','pui','vit','dex'],months:9,w:.7,tg:'jr'}
 ];
 const injLoss=pc=>Math.max(2,Math.round(pc*.05));            /* % perdus par mois d'arrêt, par qualité touchée : 80 % → 4 */
-const hurtSk=(K,k)=>!!(K.regain&&K.regain[k]>0);
+const hurtSk=(K,k)=>!!(K.inj&&K.regain&&K.regain[k]>0);   /* une qualité n'est bloquée que pendant l'arrêt ; ensuite on peut de nouveau l'entraîner, et les % perdus restent récupérables par le repos et la kiné */
 const hasRegain=K=>!!K.regain&&Object.keys(K.regain).some(k=>K.regain[k]>0);
 /* épreuve → famille de blessures : r course, j saut/appuis, t lancer, b barre, e endurance */
 const evTags=ev=>!ev?'':ev.mech==='throw'?'t':ev.mech==='race'?(ev.D>=60?'re':'r'):ev.mech==='bar'?'jb':'j';
@@ -3633,7 +3633,7 @@ function finishRehab(){
  K.inj.left--;
  if(K.inj.left<=0){
   const rest=Object.keys(K.regain||{}).filter(k=>K.regain[k]>0).map(k=>`${SX[k].i} ${SX[k].n} ${K.regain[k]} %`).join(', ');
-  cNote=`<div class="card cnote"><h3>💪 Tu es rétabli</h3><p>Fin de l’arrêt (${esc(K.inj.n)}).${rest?` Il te reste à récupérer : ${rest}. Utilise des séances de kiné et de repos : l’entraînement ne les fera pas remonter.`:' Tu as tout récupéré.'}</p></div>`;
+  cNote=`<div class="card cnote"><h3>💪 Tu es rétabli</h3><p>Fin de l’arrêt (${esc(K.inj.n)}).${rest?` Il te reste à récupérer : ${rest}. Tu peux de nouveau t’entraîner dessus. Les séances de kiné et de repos les récupèrent plus vite : l’entraînement, lui, ne les fait pas remonter.`:' Tu as tout récupéré.'}</p></div>`;
   K.inj=null;
  }
  advanceStep();persist();renderCareer();
