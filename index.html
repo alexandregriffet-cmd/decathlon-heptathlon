@@ -1906,15 +1906,6 @@ const ST={
    const sp=new T.Sprite(new T.SpriteMaterial({map:glow,blending:T.AdditiveBlending,transparent:true,depthWrite:false,fog:false}));
    sp.scale.set(52,52,1);sp.position.set(px*.96,h+3,-py*.96);this.s.add(sp);
   });
-  /* portique d'arrivée */
-  const fc=document.createElement('canvas');fc.width=512;fc.height=64;const fx=fc.getContext('2d');
-  for(let i=0;i<64;i++)for(let j=0;j<8;j++){fx.fillStyle=(i+j)%2?'#fff':'#111';fx.fillRect(i*8,j*8,8,8);}
-  fx.fillStyle='#b3261e';fx.fillRect(130,10,252,44);fx.fillStyle='#fff';fx.font='bold 34px Oswald, Arial';fx.textAlign='center';fx.textBaseline='middle';fx.fillText('ARRIVÉE',256,33);
-  const ft=new T.CanvasTexture(fc);
-  const Ri=this.R1,wd=Ro-Ri+2.2,cx=(Ro+Ri)/2+.1;
-  const beam=new T.Mesh(new T.BoxGeometry(wd,1.5,.5),[0,1,2,3,4,5].map(k=>new T.MeshLambertMaterial(k===4||k===5?{map:ft}:{color:0x1b2036})));
-  beam.position.set(cx,5.6,-this.HL);this.s.add(this.cast(beam));
-  [Ri-.9,Ro+1.4].forEach(px=>{const p=new T.Mesh(new T.BoxGeometry(.45,5.6,.45),new T.MeshLambertMaterial({color:0x2a3350}));p.position.set(px,2.8,-this.HL);this.s.add(this.cast(p));});
  },
  flagStrip(){
   const nats=['France','États-Unis','Allemagne','Royaume-Uni','Espagne','Italie','Canada','Japon','Pays-Bas','Belgique','Suède','Norvège','Finlande','Pologne','Suisse','Brésil'];
