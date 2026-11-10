@@ -407,6 +407,8 @@ tr.rec td{background:#ffc83d1f;padding:8px 10px}tr.rec small{color:var(--mute)}
 <div id="banner" class="banner" hidden></div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="paper-data.js"></script>
+<script src="paper-engine.js"></script>
 <script>
 var ROOM=null;
 /* générateur aléatoire de la logique : Math.random en solo, graine partagée en salle en ligne (tous les écrans calculent le même résultat) */
@@ -471,6 +473,7 @@ EV.PENI=[
  {id:'60h',n:'60 m haies',s:'60 m haies',i:'🚧',mech:'race',k:'track',A:20.0479,B:17,C:1.835,D:6,m:60,hurdles:true,hF:1.3,hS:.85,nh:5,sk:['vit','pui','dex','tec','men'],skS:['pui','tec','men'],fs:true,fat:0,f:2,indoor:true},
  cpEv('HEP','hj'),cpEv('HEP','sp'),cpEv('HEP','lj',{wind:false}),cpEv('HEP','800')
 ];
+['DEC','HEP'].forEach(c=>EV[c].forEach(e=>{if(e.mech==='race'&&typeof PAPER_DATA!=='undefined'&&PAPER_DATA.GEO[e.id])e.D=PAPER_DATA.GEO[e.id].N;}));
 EV.HEPI.forEach(e=>{if(e.pmx==null)e.pmx=1.04;});EV.PENI.forEach(e=>{e.pmx=1.1;});
 const DB={DEC:5,HEP:4,HEPI:4,PENI:5};
 const CATN={DEC:'Décathlon',HEP:'Heptathlon',HEPI:'Heptathlon en salle',PENI:'Pentathlon en salle'};
@@ -487,12 +490,12 @@ const RECS={
 /* niveaux de compétition (calendrier FFA) : nb de participants et niveau moyen des adversaires (en %) */
 const LEVELS=[
  {id:'dep',n:'Championnats départementaux',s:'Départementaux',parts:16,avg:30,min:6,intl:0,bars:0},
- {id:'reg',n:'Championnats régionaux',s:'Régionaux',parts:16,avg:39,min:8,intl:0,bars:1},
- {id:'inter',n:'Championnats interrégionaux',s:'Interrégionaux',parts:18,avg:49,min:10,intl:0,bars:2},
- {id:'fra',n:'Championnats de France Élite',s:'France Élite',parts:20,avg:62,min:13,intl:.1,bars:3},
- {id:'eur',n:'Championnats d’Europe',s:'Europe',parts:22,avg:58,min:15,intl:1,bars:4},
- {id:'mon',n:'Championnats du monde',s:'Monde',parts:24,avg:62,min:15,intl:1,bars:5},
- {id:'jo',n:'Jeux olympiques',s:'Jeux olympiques',parts:28,avg:64,min:15,intl:1,bars:6}
+ {id:'reg',n:'Championnats régionaux',s:'Régionaux',parts:16,avg:46,min:8,intl:0,bars:1},
+ {id:'inter',n:'Championnats interrégionaux',s:'Interrégionaux',parts:18,avg:63,min:10,intl:0,bars:2},
+ {id:'fra',n:'Championnats de France Élite',s:'France Élite',parts:20,avg:74,min:13,intl:.1,bars:3},
+ {id:'eur',n:'Championnats d’Europe',s:'Europe',parts:22,avg:75,ps:{DEC:.40,HEP:.40},min:15,intl:1,bars:4},
+ {id:'mon',n:'Championnats du monde',s:'Monde',parts:24,avg:75,ps:{DEC:.7,HEP:.55},min:15,intl:1,bars:5},
+ {id:'jo',n:'Jeux olympiques',s:'Jeux olympiques',parts:28,avg:75,ps:{DEC:.85,HEP:.85},min:15,intl:1,bars:6}
 ];
 /* niveaux en salle : mêmes adversaires que leurs équivalents en plein air, sans les Jeux olympiques */
 const INDOOR_N={dep:['Championnats départementaux en salle','Départ. salle'],reg:['Championnats régionaux en salle','Régionaux salle'],inter:['Championnats interrégionaux en salle','Interrég. salle'],fra:['Championnats de France Élite en salle','France Élite salle'],eur:['Championnats d’Europe en salle','Europe salle'],mon:['Championnats du monde en salle','Monde salle']};
@@ -757,6 +760,127 @@ async function doRace(ev,p,cur,io){
  return{perf,pts:ptsOf(ev,perf),Q,rolls,aeff,bonusOut:rg.out,dq:false};
 }
 
+
+/* ---------- courses : moteur commun papier / en ligne (règles et tables du livre) ---------- */
+let _PE=null;
+function paperEng(){if(!_PE)_PE=PaperEngine.create(PAPER_DATA,{ptsOf:(id,sex,v)=>{const ev=EV[sex==='M'?'DEC':'HEP'].find(e=>e.id===id);return ptsOf(ev,ev.u==='cm'?Math.round(v*100):v);}});return _PE;}
+const paperOn=(ev,p)=>typeof PaperEngine!=='undefined'&&typeof PAPER_DATA!=='undefined'&&!ev.indoor&&p.cat&&PAPER_DATA.TABLES[sexOf(p.cat)]&&PAPER_DATA.TABLES[sexOf(p.cat)][ev.id]&&PAPER_DATA.EV[p.cat];
+function paperChars(p){const CH={};STATS.forEach(s=>CH[s.k]=Math.max(1,Math.min(20,Math.round(13+(effPct(p,s.k)-30)*.1))));return CH;}   /* 30 % = 13/20 (départ du livre), 100 % = 20/20 */
+function paperEvPct(p,ev){const sk=ev.sk||evAllSk(ev);const m=sk.reduce((a,k)=>a+effPct(p,k),0)/sk.length;return Math.max(0,Math.min(100,(m-30)/.7));}   /* compétence du livre : 0 % au départ, 100 % au maximum */
+function paperCtx(ev,p,io,extra){
+ const E=paperEng(),sex=sexOf(p.cat),N=(PAPER_DATA.GEO[ev.id]||{}).N;
+ if(!p.pe){p.pe={CH:paperChars(p),COMP:{},sex,cat:p.cat,dayBreak:DB[p.cat]};E.newState(p.pe);}
+ const c=p.pe;c.COMP[ev.id]=paperEvPct(p,ev);
+ c.dayInfo=j=>({forme:(p.form[j]||{mod:0}).mod});
+ c.roll=async info=>{const st=c.st,cap=E.capOf(ev.id,c.COMP[ev.id]);
+  const stage=info.k==='elan'||info.k==='throw'||info.k==='jump';
+  const stg=info.k==='elan'?ev.el:(info.k==='throw'||info.k==='jump')?ev.fin:null;
+  const o={kind:stage?'stage':info.k==='run'?'run':info.k==='start'?'start':'rage',label:info.label,
+   sk:stg?stg.sk:info.k==='mental'?['men']:info.k==='rage'?['men','tac']:(info.k==='run'||info.k==='start')?(ev.skS||ev.sk||['men']):['men'],cap,T:info.seuil==null?20:info.seuil,
+   mods:{form:st.forme,fat:st.fat,cond:0,condName:'Conditions',total:0},D:N,cum:info.done||0};
+  if(stage){o.si=info.k==='elan'?0:1;o.ns=2;}
+  if(extra&&extra.before)await extra.before(info);
+  const r=await io.roll(o);
+  if(info.k==='elan'&&ev.run)await io.advance(ev.run.D,ev.run.D,r.out);
+  return r.roll;};
+ c.emit=async e=>{
+  if(e.k==='advance')await io.advance(Math.min(e.cum,N),e.a,e.out==='parf'?'perfect':e.out==='reuss'?'ok':e.out==='crit'?'crit':'fail',!!e.start);
+  else if(extra&&extra.emit)await extra.emit(e);};
+ delete c.gate;if(extra&&extra.gate)c.gate=extra.gate;
+ return c;
+}
+async function paperRace(ev,p,cur,io){
+ const E=paperEng(),c=paperCtx(ev,p,io);
+ await io.phase({kind:'race',ev});
+ const r=await E.playEvent(c,cur.r);
+ return{perf:r.perf,pts:r.pts,dq:false,rolls:0,detail:r.detail,lines:r.lines};
+}
+const paperNat=(ev,v)=>v==null?null:(ev.u==='cm'?Math.round(v*100):v);
+/* sauts et lancers : tour à tour, un essai par athlète et par tour, avec les règles et les tables du livre */
+async function runPaperField(C,H){
+ const{ev,r}=C.cur,order=orderByTotal(C),E=paperEng();C.all.forEach(p=>p.att[r]=[]);
+ await call(H,'fieldStart',C,order);
+ const S=new Map();
+ order.forEach(p=>{
+  const s={release:null,atGate:false,done:false,waiter:null,res:null,err:null,last:null};S.set(p,s);
+  const wake=()=>{if(s.waiter){const w=s.waiter;s.waiter=null;w();}};
+  const c=paperCtx(ev,p,ioOf(H,C,p),{gate:a=>new Promise(res=>{s.release=res;s.atGate=true;wake();}),emit:async e=>{if(e.k==='attempt')s.last=e.att;}});
+  E.playEvent(c,C.cur.r).then(x=>{s.res=x;s.done=true;wake();},err=>{s.err=err;s.done=true;wake();});
+ });
+ const parked=s=>new Promise(res=>{if(s.atGate||s.done)res();else s.waiter=res;});
+ for(let a=0;a<=C.attempts;a++){
+  if(a>=1)await call(H,'roundTitle',C,a);
+  for(const p of order){
+   if(H.aborted())return;
+   const s=S.get(p);await parked(s);if(s.err)throw s.err;if(s.done)continue;
+   if(a>=1)await call(H,'turnStart',C,p,{kind:'field',a});
+   s.atGate=false;s.last=null;const rel=s.release;rel();await parked(s);if(s.err)throw s.err;
+   if(a>=1){
+    const at=s.last,nul=!at||at.nul,perf=nul?null:paperNat(ev,at.value);
+    const res={nul,perf,pts:nul?0:ptsOf(ev,perf),Q:0,outs:['ok','ok']};
+    await call(H,'turnEnd',C,p,res);p.att[r][a-1]=res;await call(H,'attemptDone',C,p,a,res);
+   }
+  }
+ }
+ for(const p of order){const s=S.get(p);await parked(s);if(s.err)throw s.err;
+  const x=s.res,perf=(!x||x.forfeit||!x.perf)?null:paperNat(ev,x.perf);setRes(p,r,perf,perf?ptsOf(ev,perf):0,false);}
+}
+/* hauteur et perche : barre commune, tous les athlètes sautent la même hauteur (règles et tables du livre) */
+async function runPaperBar(C,H){
+ const{ev,r}=C.cur,order=orderByTotal(C),E=paperEng();
+ const bars=barList(C.cat,ev,C.li);C.bars=bars;
+ const st={};C.all.forEach(p=>{st[p.id]={best:0,fails:0,out:false,want:0,hist:[]};});C.barSt=st;
+ await call(H,'barStart',C,[...C.all]);
+ const S=new Map(),curI={bar:0,t:1};
+ order.forEach(p=>{
+  const s={release:null,atGate:false,done:false,waiter:null,res:null,err:null,info:null,jump:null};S.set(p,s);
+  const wake=()=>{if(s.waiter){const w=s.waiter;s.waiter=null;w();}};
+  const park=(info)=>new Promise(res=>{s.release=res;s.info=info;s.atGate=true;wake();});
+  const c=paperCtx(ev,p,ioOf(H,C,p),{gate:()=>park(null),
+   emit:async e=>{if(e.k==='barjump')s.jump=e;}});
+  c.barAsk=info=>park(info);
+  E.playEvent(c,C.cur.r).then(x=>{s.res=x;s.done=true;wake();},err=>{s.err=err;s.done=true;wake();});
+ });
+ const parked=s=>new Promise(res=>{if(s.atGate||s.done)res();else s.waiter=res;});
+ const go=async(s,v)=>{s.atGate=false;const rel=s.release;rel(v);await parked(s);if(s.err)throw s.err;};
+ for(const p of order){await parked(S.get(p));if(S.get(p).err)throw S.get(p).err;await go(S.get(p),undefined);}   /* épreuve : forme, conditions, Mental */
+ order.forEach(p=>{const s=S.get(p),q=st[p.id];if(s.info&&!p.human){let w=bars[0];for(const hcm of bars){const v=s.info.seuilAt(hcm);if(v>=1&&v<=17){w=hcm;break;}}q.want=w;}});
+ const insert=h=>{if(!bars.includes(h)){bars.push(h);bars.sort((a,b)=>a-b);}};
+ const MAXB=ev.id==='pv'?720:270;let last=-1,loops=0;
+ const alive=()=>order.filter(p=>{const s=S.get(p);return !s.done&&!st[p.id].out;});
+ while(loops++<500){
+  const active=alive();if(!active.length)break;
+  const nx=bars.find(x=>x>last);let bar;
+  if(nx==null){if(last>=MAXB)break;bar=last+barStep(ev,last);insert(bar);}else bar=nx;
+  last=bar;C.curBar=bar;
+  let trying=active.filter(p=>bar>=st[p.id].want);
+  for(let t=1;t<=3&&trying.length;t++){
+   const next=[];
+   for(const p of trying){
+    if(H.aborted())return;
+    const s=S.get(p),q=st[p.id];
+    if(p.human&&t===1&&H.askPass){
+     const ans=await H.askPass(C,p,bar);
+     if(ans){const hh=Math.round(+ans);if(hh>bar&&hh<=MAXB){insert(hh);q.want=hh;}q.hist.push({bar,res:'pass'});await call(H,'barAttemptDone',C,p,bar,t,{pass:true});continue;}
+    }
+    await call(H,'turnStart',C,p,{kind:'bar',bar,t});
+    s.jump=null;await go(s,{h:bar});
+    const j=s.jump,ok=!!(j&&j.entry.ok);
+    const res={nul:false,perf:ok?bar:null,pts:0,Q:ok?1:0,outs:['ok','ok'],ok,bar};
+    await call(H,'turnEnd',C,p,res);
+    if(ok){q.best=bar;q.fails=0;q.hist.push({bar,res:'ok',t});}
+    else{q.fails++;q.hist.push({bar,res:'ko',t});if(q.fails>=3)q.out=true;else next.push(p);}
+    p.att[r].push({bar,ok,perf:res.perf,t});
+    await call(H,'barAttemptDone',C,p,bar,t,res);
+   }
+   trying=next;
+  }
+  if(H.barRoundDone)await H.barRoundDone(C,bar);
+ }
+ for(const p of order){const s=S.get(p);if(!s.done)await go(s,null);await parked(s);if(s.err)throw s.err;
+  const x=s.res,best=(!x||x.forfeit||!x.perf)?null:Math.round(x.perf*100);setRes(p,r,best,best?ptsOf(ev,best):0,false);}
+}
+
 /* ---------- un essai (concours ou barre) ----------
    3 jets : 1) rage de vaincre  2) prise d'élan  3) saut ou lancer (qui donne la distance, ou décide si la barre est passée).
    Un 20 sur le dernier jet d'un saut ou d'un lancer = essai nul (pied mordu, engin hors secteur). */
@@ -850,14 +974,14 @@ function makeBot(level,cat,id,usedNames){
  usedNames.add(key);
  const natPool=RNG()<level.intl?NAT_INT:NAT_FR,nat=pick(natPool);
  const base=level.avg+gauss()*4,pct={};
- STATS.forEach(s=>pct[s.k]=clamp(Math.round(base+gauss()*7),8,PCT_MAX));
+ STATS.forEach(s=>pct[s.k]=clamp(Math.round(base+gauss()*7),3,PCT_MAX));
  /* profil de spécialité : un point fort, un point faible */
  pct[pick(STATS).k]+=8;pct[pick(STATS).k]-=7;
- STATS.forEach(s=>pct[s.k]=clamp(pct[s.k],8,PCT_MAX));
+ STATS.forEach(s=>pct[s.k]=clamp(pct[s.k],3,PCT_MAX));
  const pr=pick(PROFILES),mo=morphOf(pr.S+gauss()*.35,pr.M+gauss()*.35,sex);
  return{id,human:false,first,last,nat:nat[0],flag:nat[1],sex,cat,pct,h:mo.h,w:mo.w,color:'#8a96b8',age:19+rnd(14)};
 }
-function initRuntime(p){p.mt={};p.res=[];p.total=0;p.fat=0;p.inj={};p.warned=false;p.form={};p.att=[];}
+function initRuntime(p){p.pe=null;p.mt={};p.res=[];p.total=0;p.fat=0;p.inj={};p.warned=false;p.form={};p.att=[];}
 
 /* ---------- compétition ---------- */
 function buildCompetition(levelId,cat,humans){
@@ -899,7 +1023,7 @@ async function runHeat(C,H,heat){
    roll:o=>new Promise(resolve=>{s.req={o,resolve};wake(s);}),
    advance:(...a)=>s.real.advance(...a),note:t=>s.real.note(t),phase:()=>s.real.phase&&s.real.phase()
   };
-  doRace(ev,p,C.cur,io).then(res=>{results.set(p,res);s.done=true;wake(s);},err=>{s.err=err;s.done=true;wake(s);});
+  (paperOn(ev,p)?paperRace:doRace)(ev,p,C.cur,io).then(res=>{results.set(p,res);s.done=true;wake(s);},err=>{s.err=err;s.done=true;wake(s);});
  });
  let active=heat.slice(),round=0;
  while(active.length){
@@ -1023,9 +1147,10 @@ async function runCompetition(C,H){
   C.all.forEach(p=>{p.att[r]=[];});
   await H.eventStart(C);
   removed=C.all.filter(p=>p.dnf);if(removed.length){all0=[...C.all];C.all=C.all.filter(p=>!p.dnf);}
+  const PP=C.all.every(p=>paperOn(ev,p));
   if(ev.mech==='race')await runRaceEvent(C,H);
-  else if(ev.mech==='bar')await runBarEvent(C,H);
-  else await runFieldEvent(C,H);
+  else if(ev.mech==='bar')await(PP?runPaperBar:runBarEvent)(C,H);
+  else await(PP?runPaperField:runFieldEvent)(C,H);
   if(H.aborted())return;
   C.all.forEach(p=>{p.fat+=ev.f*(p.age>=34?1.25:1);});
   /* blessure en pleine compétition (mode carrière) : le joueur abandonne les épreuves suivantes */
@@ -1425,7 +1550,7 @@ function injectPros(C){
  const bots=C.all.filter(p=>!p.human),lim=Math.min(maxN,Math.max(0,bots.length-4));
  pool.map(r=>({r,k:r[4]+gauss()*140})).sort((a,b)=>b.k-a.k).slice(0,lim).forEach((x,i)=>{
   const keep=bots[i],rr=ind?[x.r[0],x.r[1],x.r[2],x.r[3],Math.round(x.r[4]*sc),x.r[5]]:x.r,pro=makePro(C.cat,keep.id,rr,!ind);
-  Object.keys(keep).forEach(k=>delete keep[k]);Object.assign(keep,pro);initRuntime(keep);
+  Object.keys(keep).forEach(k=>delete keep[k]);Object.assign(keep,pro);{const ps=C.level.ps&&C.level.ps[oc];if(ps)STATS.forEach(s=>keep.pct[s.k]=clamp(Math.round(keep.pct[s.k]*ps),3,PCT_MAX));}initRuntime(keep);
  });
 }
 /* compétition des légendes : les 25 meilleurs de l'histoire */
