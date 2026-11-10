@@ -2055,7 +2055,7 @@ const ST={
   ctx.restore();
   /* cases : une alternance légère */
   for(let k=0;k<this.NL;k++){const E=this.laneLen(k)-S;for(let i=-(this.chute?0:i0);i<E;i++){
-   this.qL(ctx,k,Math.max(i,-S),Math.min(i+1,E));ctx.save();ctx.globalAlpha=(i+k)%2?0.055:0.035;ctx.fillStyle=(i+k)%2?'#ffffff':'#000000';ctx.fill();ctx.restore();
+   this.qL(ctx,k,Math.max(i,-S),Math.min(i+1,E));ctx.fillStyle=this.indoor?((i+k)%2?'#2f67c2':'#2a60bb'):((i+k)%2?'#c8493a':'#c24330');ctx.fill();
   }}
   /* traits de cases (une ligne par couloir : les cases ont la même taille dans chaque couloir) */
   ctx.strokeStyle='rgba(255,255,255,.42)';ctx.lineWidth=.07;
@@ -2106,7 +2106,7 @@ const ST={
   if(this.chute){ /* cases du 100 m / 110 m sur la ligne droite et le prolongement */
    const D=ev.D;
    for(let k=0;k<this.NL;k++)for(let i=-(D+1);i<0;i++){
-    ctx.save();ctx.globalAlpha=(i+k)%2?0.055:0.035;ctx.fillStyle=(i+k)%2?'#ffffff':'#000000';ctx.fillRect(R1+k*LW,H+i*cs,LW,cs);ctx.restore();
+    ctx.fillStyle=(i+k)%2?'#c8493a':'#c24330';ctx.fillRect(R1+k*LW,H+i*cs,LW,cs);
    }
    ctx.strokeStyle='rgba(255,255,255,.42)';ctx.lineWidth=.07;
    for(let i=-D;i<0;i++){const y=H+i*cs;ctx.setLineDash(y>-H?[]:[.5,.5]);ctx.beginPath();ctx.moveTo(R1,y);ctx.lineTo(Ro,y);ctx.stroke();}
@@ -2136,11 +2136,11 @@ const ST={
    const D=ev.D,s0=-D;
    /* zone de départ + ligne */
    for(let k=0;k<this.NL;k++){
-    this.qL(ctx,k,s0-((this.indoor&&this.chute)?.25:1),s0);ctx.fillStyle='rgba(0,0,0,.16)';ctx.fill();
+    this.qL(ctx,k,s0-((this.indoor&&this.chute)?.25:1),s0);ctx.fillStyle=this.indoor?'#2455a8':'#b23d29';ctx.fill();
     this.qL(ctx,k,s0-.06,s0+.06);ctx.fillStyle='#fff';ctx.fill();
    }
    if(D>40&&!this.indoor){ /* 800 m et 1 500 m : tout le monde court à la corde, couloirs 1 et 2 */
-    for(let k=2;k<this.NL;k++){const E=this.laneLen(k)-this.S;for(let i=-Math.ceil(this.S);i<E;i++){this.qL(ctx,k,Math.max(i,-this.S),Math.min(i+1,E));ctx.fillStyle='rgba(0,0,0,.22)';ctx.fill();}}
+    for(let k=2;k<this.NL;k++){const E=this.laneLen(k)-this.S;for(let i=-Math.ceil(this.S);i<E;i++){this.qL(ctx,k,Math.max(i,-this.S),Math.min(i+1,E));ctx.fillStyle=this.indoor?'#2455a8':'#a93a27';ctx.fill();}}
     const t2=this.posR(R1+LW*1.0,s0);this.txt(ctx,'À LA CORDE · COULOIRS 1 ET 2',0,-3,1.7,'rgba(255,255,255,.6)',Math.PI/2,null,true);
    }
    if(!this.chute){const t=this.posR(Ro+2.6,s0);this.txt(ctx,'DÉPART '+ev.m+' m',t.x,t.y,1.5,'#fff',0);}
