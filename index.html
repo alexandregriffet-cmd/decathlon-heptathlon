@@ -672,17 +672,17 @@ const LEVELS=[
  {id:'reg',n:'Championnats régionaux',s:'Régionaux',parts:16,avg:46,min:0,intl:0,bars:1},
  {id:'inter',n:'Championnats interrégionaux',s:'Interrégionaux',parts:18,avg:63,min:30,intl:0,bars:2},
  {id:'fra',n:'Championnats de France Élite',s:'France Élite',parts:20,avg:74,min:45,intl:.1,bars:3},
- {id:'eur',n:'Championnats d’Europe',s:'Europe',parts:22,avg:75,ps:{DEC:.40,HEP:.40},min:60,intl:1,bars:4},
- {id:'mon',n:'Championnats du monde',s:'Monde',parts:24,avg:75,ps:{DEC:.7,HEP:.55},min:60,intl:1,bars:5},
- {id:'jo',n:'Jeux olympiques',s:'Jeux olympiques',parts:28,avg:75,ps:{DEC:.85,HEP:.85},min:60,intl:1,bars:6}
+ {id:'eur',n:'Championnats d’Europe',s:'Europe',parts:22,avg:75,ps:{DEC:.90,HEP:.90},min:60,intl:1,bars:4},
+ {id:'mon',n:'Championnats du monde',s:'Monde',parts:24,avg:75,ps:{DEC:.95,HEP:.92},min:60,intl:1,bars:5},
+ {id:'jo',n:'Jeux olympiques',s:'Jeux olympiques',parts:28,avg:75,ps:{DEC:1,HEP:1},min:60,intl:1,bars:6}
 ];
 /* niveaux en salle : mêmes adversaires que leurs équivalents en plein air, sans les Jeux olympiques */
 const INDOOR_N={dep:['Championnats départementaux en salle','Départ. salle'],reg:['Championnats régionaux en salle','Régionaux salle'],inter:['Championnats interrégionaux en salle','Interrég. salle'],fra:['Championnats de France Élite en salle','France Élite salle'],eur:['Championnats d’Europe en salle','Europe salle'],mon:['Championnats du monde en salle','Monde salle']};
 const LEVELS_I=Object.keys(INDOOR_N).map(b=>{const L=LEVELS.find(l=>l.id===b);return{...L,id:b+'_i',base:b,indoor:1,n:INDOOR_N[b][0],s:INDOOR_N[b][1],parts:Math.max(8,L.parts-4)};});
 /* meetings stars : niveau Europe pour les barres, adversaires réels */
 const STARS=[
- {id:'deca',n:'Décastar de Talence',s:'Décastar',parts:20,avg:58,min:50,intl:1,bars:4,base:'eur',star:1},
- {id:'gotz',n:'Hypo-Meeting de Götzis',s:'Götzis',parts:20,avg:60,min:50,intl:1,bars:4,base:'eur',star:1}
+ {id:'deca',n:'Décastar de Talence',s:'Décastar',parts:20,avg:58,min:50,intl:1,bars:4,base:'eur',star:1,ps:{DEC:.88,HEP:.88}},
+ {id:'gotz',n:'Hypo-Meeting de Götzis',s:'Götzis',parts:20,avg:60,min:50,intl:1,bars:4,base:'eur',star:1,ps:{DEC:.88,HEP:.88}}
 ];
 const lvById=id=>LEVELS.find(l=>l.id===id)||STARS.find(l=>l.id===id)||LEVELS_I.find(l=>l.id===id);
 /* hauteur de départ de la barre (cm) selon le niveau */
