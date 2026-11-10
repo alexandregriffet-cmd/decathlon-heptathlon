@@ -377,7 +377,7 @@ tr.rec td{background:#ffc83d1f;padding:8px 10px}tr.rec small{color:var(--mute)}
  <p><b>Blessures (carrière)</b> : après une compétition ou une séance, surtout si tu es fatigué, tu peux te blesser (luxation de l’épaule, ischio-jambiers, cheville, tendon d’Achille…). Elle peut survenir en pleine compétition : tu abandonnes alors les épreuves restantes. Tu manques ensuite des étapes du calendrier : 1 mois pour une entorse ou un claquage, 3 mois pour une lésion musculaire, jusqu’à 9 mois pour une rupture du ligament croisé du genou. Chaque mois d’arrêt, les qualités touchées perdent environ 5 % de leur valeur (4 points à 80 %). Ces points ne reviennent ni par l’entraînement ni par les points à répartir : seulement par le repos et la kiné (d20 : +1 %, +2 % si parfait), pendant l’arrêt comme après.</p>
  <p><b>Salle en ligne (jusqu’à 16 joueurs)</b> : un joueur crée une salle et envoie le code (ou le lien) aux autres. Chacun joue sur son propre écran : même stade, mêmes adversaires, mêmes résultats, chacun lance le d20 de son athlète. L’hôte choisit le niveau et lance la partie. En mode carrière, chaque joueur garde sa propre carrière : sur une même étape du calendrier, tous se déclarent prêts, l’hôte lance, et chacun voit le résultat entrer dans sa carrière.</p>
 <p><b>En salle</b> : l’heptathlon en salle (hommes : 60 m, longueur, poids, hauteur, 60 m haies, perche, 1 000 m) et le pentathlon en salle (femmes : 60 m haies, hauteur, poids, longueur, 800 m) se jouent en mode libre, avec les mêmes niveaux jusqu’aux championnats du monde en salle. En carrière, la saison en salle suit chaque été : régionaux en salle, France Élite en salle, puis Europe ou Monde en salle, avec tes records de salle à part.</p>
-<p>Pour entrer dans une compétition, la moyenne de tes capacités sur toutes les épreuves doit atteindre un minimum : départementaux 6/20, régionaux 8/20, interrégionaux 10/20, France Élite 13/20, Europe, Monde et Jeux 15/20 (décathlon comme heptathlon). Sans le minimum, le niveau reste verrouillé.</p>
+<p>Pour entrer dans une compétition, ta compétence moyenne sur toutes les épreuves doit atteindre un minimum : départementaux et régionaux libres, interrégionaux 30 %, France Élite 45 %, Europe, Monde et Jeux 60 % (décathlon comme heptathlon). Sans le minimum, le niveau reste verrouillé.</p>
  <h4>Les qualités</h4>
  <p>9 qualités en pourcentage : vitesse, force, puissance, détente, endurance, dextérité, technique, mental, tactique. Tout le monde démarre à 30 % partout et déplace ses pourcentages comme il veut (maximum 100 %). Tu choisis aussi ta <b>taille</b> et ton <b>poids</b> : ils donnent un profil (sprinteur, cardio, léger, lanceur, grand gabarit, complet) et un <b>bonus ou malus de −2 à +2 par épreuve</b>.</p>
  <h4>La capacité sur 20</h4>
@@ -502,8 +502,8 @@ const INDOOR_N={dep:['Championnats départementaux en salle','Départ. salle'],r
 const LEVELS_I=Object.keys(INDOOR_N).map(b=>{const L=LEVELS.find(l=>l.id===b);return{...L,id:b+'_i',base:b,indoor:1,n:INDOOR_N[b][0],s:INDOOR_N[b][1],parts:Math.max(8,L.parts-4)};});
 /* meetings stars : niveau Europe pour les barres, adversaires réels */
 const STARS=[
- {id:'deca',n:'Décastar de Talence',s:'Décastar',parts:20,avg:58,min:13,intl:1,bars:4,base:'eur',star:1},
- {id:'gotz',n:'Hypo-Meeting de Götzis',s:'Götzis',parts:20,avg:60,min:13,intl:1,bars:4,base:'eur',star:1}
+ {id:'deca',n:'Décastar de Talence',s:'Décastar',parts:20,avg:58,min:50,intl:1,bars:4,base:'eur',star:1},
+ {id:'gotz',n:'Hypo-Meeting de Götzis',s:'Götzis',parts:20,avg:60,min:50,intl:1,bars:4,base:'eur',star:1}
 ];
 const lvById=id=>LEVELS.find(l=>l.id===id)||STARS.find(l=>l.id===id)||LEVELS_I.find(l=>l.id===id);
 /* hauteur de départ de la barre (cm) selon le niveau */
@@ -2309,7 +2309,7 @@ const ST={
  /* ---------- pions ---------- */
  /* ---------- drapeaux (compétitions internationales) ---------- */
  flagMode(){try{const L=G&&G.C&&G.C.level;return !!(L&&(L.intl>=1||L.id==='leg'));}catch(e){return false;}},
- resetPawns(){Object.values(this.pawns).forEach(g=>this.pawnG.remove(g));this.pawns={};this.best={};if(this.markG){[...this.markG.children].forEach(c=>this.markG.remove(c));}this.marks={};},
+ resetPawns(){if(!this.ok)return;Object.values(this.pawns).forEach(g=>this.pawnG.remove(g));this.pawns={};this.best={};if(this.markG){[...this.markG.children].forEach(c=>this.markG.remove(c));}this.marks={};},
  drawFlag(x,X,Y,W,H,nat){
   const H3=(c)=>{const h=H/c.length;c.forEach((k,i)=>{x.fillStyle=k;x.fillRect(X,Y+i*h,W,Math.ceil(h));});};
   const V3=(c)=>{const w=W/c.length;c.forEach((k,i)=>{x.fillStyle=k;x.fillRect(X+i*w,Y,Math.ceil(w),H);});};
@@ -2397,8 +2397,8 @@ const ST={
   g.position.set(v.x,v.h,-v.y);g.rotation.y=Math.atan2(Math.cos(v.a),-Math.sin(v.a));
   if(this.haloFor===p)this.halo.position.set(v.x,.25,-v.y);
  },
- setHalo(p){this.haloFor=p||null;this.halo.visible=!!p;if(p){const v=this.pawn(p).userData.v;this.halo.position.set(v.x,.25,-v.y);}},
- hideAll(){Object.values(this.pawns).forEach(g=>g.visible=false);this.setHalo(null);},
+ setHalo(p){if(!this.ok)return;this.haloFor=p||null;this.halo.visible=!!p;if(p){const v=this.pawn(p).userData.v;this.halo.position.set(v.x,.25,-v.y);}},
+ hideAll(){if(!this.ok)return;Object.values(this.pawns).forEach(g=>g.visible=false);this.setHalo(null);},
 
  /* ---------- animation ---------- */
  anim(ms,fn){
@@ -2676,14 +2676,14 @@ function renderSetup(){
   ${STATS.map(s=>`<div class="stat"><span>${s.i}</span><span>${s.n}</span><div class="bar"><i style="width:${carOf(a.pct[s.k])/20*100}%"></i></div><b>${carOf(a.pct[s.k])}/20</b>
    <button data-act="adj" data-k="${s.k}" data-d="-10">−1</button><button data-act="adj" data-k="${s.k}" data-d="10">+1</button></div>`).join('')}
   <div class="pts"><span>Compétence moyenne (qualification : ${lv.min} % minimum)</span><b class="${qualified(a,cfg.cat,lv)?'zero':'left'}">${Math.round(avgCap(a,cfg.cat))} %</b></div>
-  <div class="caps">${EV[cfg.cat].map(e=>`<span class="cp">${e.i} ${e.s} <b>${Math.round(paperEvPct(a,e))} %</b> · apt. ${paperEng().aptOf(paperChars(a),e.id)}</span>`).join('')}</div>
+  <div class="caps">${EV[cfg.cat].map(e=>`<span class="cp">${e.i} ${e.s} <b>${Math.round(paperEvPct(a,e))} %</b> ${PAPER_DATA.TRIO[e.id]?` · apt. ${paperEng().aptOf(paperChars(a),e.id)}`:''}</span>`).join('')}</div>
   <div class="tools"><button class="btn small" data-act="even">Tout à 13</button><button class="btn small" data-act="rand">Aléatoire</button></div>
   </div>`;
  }).join('');
  const bad=setup.players.find(a=>!a.locked&&TOTAL_PCT-sumPct(a)!==0);
  const unq=(cfg.free||career||legM)?null:setup.players.find(a=>!qualified(a,cfg.cat,lv));
  $('#startBtn').disabled=!setup.players.length||!!bad||!!unq;
- $('#startMsg').textContent=!setup.players.length?'Ajoute au moins un athlète.':bad?`Il reste des pourcentages à répartir : ${(bad.first||'Athlète')} ${bad.last}`:unq?`${unq.first||'Athlète'} n'a pas la moyenne minimale de ${lv.min}/20 pour ce niveau (actuellement ${fmt1c(avgCap(unq,cfg.cat))}/20). Redistribue tes pourcentages.`:'';
+ $('#startMsg').textContent=!setup.players.length?'Ajoute au moins un athlète.':bad?`Il reste des pourcentages à répartir : ${(bad.first||'Athlète')} ${bad.last}`:unq?`${unq.first||'Athlète'} n'a pas la compétence moyenne minimale de ${lv.min} % pour ce niveau (actuellement ${fmt1c(avgCap(unq,cfg.cat))}/20). Redistribue tes pourcentages.`:'';
  $('#addHuman').disabled=setup.players.length>=6;
  if(ROOM&&setup.players.length>1)setup.players.length=1;
  $('#startBtn').textContent=career?'Commencer la carrière':'Lancer la compétition';
@@ -3268,7 +3268,7 @@ function renderCal(){
   const L=lvById(st.lv),q=avg>=L.min-1e-9&&careerQualified(K,st.lv);
   const h=K.hist.filter(x=>x.year===K.year&&x.name===st.n).pop();
   const state=K.phase==='retired'?'':i<K.step?'done':i===K.step&&K.phase!=='bilan'?'cur':'';
-  const res=h?(h.skip?`<small>${h.skip==='NQ'?'non qualifié':h.skip}</small>`:`<small>${rankTxt(h.rank,h.of)} · ${nf(h.total)} pts</small>`):`<small>min ${L.min}/20 · ${q?'<span style="color:var(--ok)">qualifié</span>':'<span style="color:var(--bad)">non qualifié</span>'}</small>`;
+  const res=h?(h.skip?`<small>${h.skip==='NQ'?'non qualifié':h.skip}</small>`:`<small>${rankTxt(h.rank,h.of)} · ${nf(h.total)} pts</small>`):`<small>min ${L.min} % · ${q?'<span style="color:var(--ok)">qualifié</span>':'<span style="color:var(--bad)">non qualifié</span>'}</small>`;
   return `<div class="calRow ${state}"><span class="calM">${st.m}</span><div><b>${st.n}</b>${res}</div></div>`;
  }).join('');
 }
@@ -3278,7 +3278,7 @@ function renderSkills(){
 }
 function renderHist(){
  const pbs=EV[K.cat].map(e=>{const p=K.pb[e.id];return `<tr><td>${e.i} ${e.s}</td><td>${p?fmtPerf(e,p.perf):'—'}</td><td>${p?nf(p.pts):'—'}</td><td>${p?p.year:''}</td></tr>`;}).join('');
- const pbsI=Object.keys(K.pb).some(k=>k.startsWith('i:'))?`<tr><th colspan="4" style="text-align:left">En salle</th></tr>`+EV[IND[K.cat]].map(e=>{const p=K.pb['i:'+e.id];return p?`<tr><td>${e.i} ${e.s}</td><td>${fmtPerf(e,p.perf)}</td><td>${nf(p.pts)}</td><td>${p.year}</td></tr>`:'';}).join(''):'';
+ const pbsI=Object.keys(K.pb).some(k=>k.startsWith('i:'))?`<tr><th colspan="4" style="text-align:left">En salle</th></tr>`+(EV[IND[K.cat]]||[]).map(e=>{const p=K.pb['i:'+e.id];return p?`<tr><td>${e.i} ${e.s}</td><td>${fmtPerf(e,p.perf)}</td><td>${nf(p.pts)}</td><td>${p.year}</td></tr>`:'';}).join(''):'';
  const rows=[...K.hist].reverse().slice(0,60).map(h=>`<tr><td>${h.year}</td><td>${h.age} ans</td><td>${esc(h.name)}</td><td>${h.skip?(h.skip==='NQ'?'non qualifié':h.skip):rankTxt(h.rank,h.of)}</td><td>${h.skip?'—':nf(h.total)}</td><td>${h.pbs||''}</td></tr>`).join('');
 const isI=h=>{const l=lvById(h.lv);return !!(l&&l.indoor);};
 const played=K.hist.filter(h=>!h.skip&&h.total>0&&!isI(h)),bestH=played.reduce((a,h)=>h.total>a.total?h:a,{total:0});
@@ -3341,7 +3341,7 @@ function poolsHTML(){
 }
 
 /* ---------- entraînement ---------- */
-const trainEv=id=>EV[K.cat].find(e=>e.id===id)||EV[IND[K.cat]].find(e=>e.id===id);
+const trainEv=id=>EV[K.cat].find(e=>e.id===id)||(IND[K.cat]&&EV[IND[K.cat]].find(e=>e.id===id));
 function slotLabel(s){
  if(!s)return'<i style="color:var(--mute)">vide</i>';
  if(s.t==='dis'){const ev=trainEv(s.ev);return `🏟️ Discipline : ${ev.i} ${ev.n}`;}
@@ -3359,7 +3359,7 @@ function trainHTML(){
  if(!full){
   body=`<p class="note" style="margin:0 0 8px">Choisis ${K.slots.filter(x=>!x).length} séance${K.slots.filter(x=>!x).length>1?'s':''} pour préparer : <b>${esc(st.n)}</b> (${st.m}). Un 20 au dé ajoute de la fatigue (−1 au seuil) ; le repos la fait retomber.</p>
   <div class="palette">${SESS.filter(s=>s.id!=='dis'&&(s.id!=='kin'||hasRegain(K))).map(s=>`<button class="pal" data-a="slot" data-t="${s.id}"><b>${s.i} ${s.n}</b><small>${s.d}</small>${s.sk.length?`<span class="chips">${s.sk.map(k=>`<span class="chip">${SX[k].i} ${K.pct[k]} %</span>`).join('')}</span><span class="th">d20 ≤ ${gymThreshold(K,s)}</span>`:''}</button>`).join('')}
-  <div class="pal dis"><b>🏟️ Séance de discipline</b><small>${SESSX.dis.d}</small><select id="cDisEv">${EV[K.cat].map(e=>`<option value="${e.id}">${e.i} ${e.n}</option>`).join('')}${EV[IND[K.cat]].filter(e=>!EV[K.cat].some(x=>x.id===e.id)).map(e=>`<option value="${e.id}">${e.i} ${e.n} (salle)</option>`).join('')}</select><button class="btn small primary" data-a="slotDis">Ajouter</button></div></div>`;
+  <div class="pal dis"><b>🏟️ Séance de discipline</b><small>${SESSX.dis.d}</small><select id="cDisEv">${EV[K.cat].map(e=>`<option value="${e.id}">${e.i} ${e.n}</option>`).join('')}${(IND[K.cat]?EV[IND[K.cat]]:[]).filter(e=>!EV[K.cat].some(x=>x.id===e.id)).map(e=>`<option value="${e.id}">${e.i} ${e.n} (salle)</option>`).join('')}</select><button class="btn small primary" data-a="slotDis">Ajouter</button></div></div>`;
  }else if(K.sessDone<3){
   const sl=K.slots[K.sessDone];
   body=`<div class="startRow"><button class="btn primary big" data-a="run">▶ Séance ${K.sessDone+1}/3 : ${slotLabel(sl)}</button></div>`;
@@ -3457,7 +3457,7 @@ function compHTML(){
  const st=seasonSteps(K.year)[K.step],L=lvById(st.lv),q=careerQualified(K,st.lv),avg=careerAvg(K);
  return `<div class="card"><h3>🏁 ${esc(st.n)}</h3>
  <p class="note" style="margin:0 0 10px">${st.m} ${K.year+(st.ind?1:0)} · ${L.parts} participants · niveau moyen des adversaires ≈ ${L.avg} %${L.bars>=4?' · barres très hautes':''}</p>
- <div class="cmpBox"><div><small>Minimum de qualification</small><b>${L.min}/20</b></div><div><small>Ta moyenne de capacité</small><b style="color:${q?'var(--ok)':'var(--bad)'}">${fmt1c(avg)}/20</b></div><div><small>Fatigue</small><b>${K.tf?'●'.repeat(K.tf):'○'}</b></div></div>
+ <div class="cmpBox"><div><small>Minimum de qualification</small><b>${L.min} %</b></div><div><small>Ta compétence moyenne</small><b style="color:${q?'var(--ok)':'var(--bad)'}">${Math.round(avg)} %</b></div><div><small>Fatigue</small><b>${K.tf?'●'.repeat(K.tf):'○'}</b></div></div>
  ${q?`<div class="startRow"><button class="btn primary big" data-a="comp" data-m="play">🎮 Jouer sur le plateau</button><button class="btn big" data-a="comp" data-m="sim">⚡ Simuler</button><button class="btn" data-a="comp" data-m="skip">Passer</button></div>`:
  `<p class="note" style="color:var(--bad)">Tu n’as pas la moyenne minimale pour participer. Continue de t’entraîner.</p><div class="startRow"><button class="btn primary big" data-a="comp" data-m="nq">Continuer</button></div>`}</div>`;
 }
@@ -3772,7 +3772,7 @@ function roomStart(){
  const lv=levelOf(cfg.level),msg=$('#startMsg');
  if(!list.length)return;
  const bad=list.find(m=>!m.ready);if(bad){msg.textContent=`${bad.first} ${bad.last} n'a pas fini de répartir ses pourcentages.`;return;}
- if(!cfg.free&&cfg.level!=='legends'){const unq=list.find(m=>!qualified(m,cfg.cat,lv));if(unq){msg.textContent=`${unq.first} ${unq.last} n'a pas la moyenne minimale de ${lv.min}/20 pour ce niveau (ou coche « jeu libre »).`;return;}}
+ if(!cfg.free&&cfg.level!=='legends'){const unq=list.find(m=>!qualified(m,cfg.cat,lv));if(unq){msg.textContent=`${unq.first} ${unq.last} n'a pas la compétence moyenne minimale de ${lv.min} % pour ce niveau (ou coche « jeu libre »).`;return;}}
  roomSend('start',{gid:Date.now().toString(36)+Math.floor(Math.random()*1e4).toString(36),seed:1+Math.floor(Math.random()*4e9),
   cfg:{level:cfg.level,cat:cfg.cat,attempts:cfg.attempts,free:!!cfg.free},
   humans:list.map(m=>({seat:m.seat,first:m.first,last:m.last,nat:m.nat,color:m.color,pct:m.pct,h:m.h,w:m.w,age:m.age}))});
