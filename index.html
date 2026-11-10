@@ -3569,6 +3569,7 @@ function poolsHTML(){
  return `<div class="card pool"><h3>🎁 Points à répartir</h3>
  <div class="ph"><b>${esc(p.why)}</b><span class="chip ${p.n?'m':'p'}">${p.n} ${plural(p.n,'point')} à répartir</span></div>
  <p class="note" style="margin:4px 0 8px">${p.sk?'Choisis parmi les qualités de l’épreuve.':'Répartis librement entre tes qualités.'} À partir de 75 %, un point coûte 2 points à répartir, à partir de 85 % 3 points.${more>0?` · ${more} autre${more>1?'s':''} répartition${more>1?'s':''} ensuite`:''}</p>
+ ${(()=>{if(!p.n||STATS.some(s=>poolOk(K,p,s.k)))return'';const el=STATS.filter(s=>!p.sk||p.sk.includes(s.k));const why=el.map(s=>`${s.n} (${hurtSk(K,s.k)?'blessée':'plafond de ton profil atteint : '+plafOf(K,s.k,K.cat)+'/20'})`).join(', ');return`<div class="note" style="margin:0 0 8px;padding:8px 10px;border:1px solid var(--gold,#e3b341);border-radius:8px">⚠️ Ce point ne peut pas être attribué : ${why}. Valide pour passer. Pour progresser, choisis une séance qui travaille d’autres qualités.</div>`;})()}
  ${STATS.map(s=>{
   const ok=poolOk(K,p,s.k),el=!p.sk||p.sk.includes(s.k),got=(p.got&&p.got[s.k])||0;
   return `<div class="stat pl ${el?'':'off'}"><span>${s.i}</span><span>${s.n}</span><div class="bar"><i style="width:${K.pct[s.k]/PCT_MAX*100}%"></i></div><b>${K.pct[s.k]}%</b>
