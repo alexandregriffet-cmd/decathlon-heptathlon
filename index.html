@@ -209,7 +209,7 @@ dialog p,dialog li{color:#dfe5f7;font-size:14px;line-height:1.5;margin:4px 0}
 .calRow{display:flex;gap:10px;align-items:center;padding:7px 8px;border-radius:10px;margin:3px 0}
 .calRow.cur{background:#ffc83d22;outline:1px solid var(--gold)}.calRow.done{opacity:.75}
 .calRow small{display:block;color:var(--mute);font-size:12px}.calM{width:76px;flex:none;font:600 12px Oswald;color:var(--gold);text-transform:uppercase}
-.sk2{display:grid;grid-template-columns:22px 86px 1fr 42px;gap:5px;align-items:center;margin:4px 0;font-size:14px}
+.sk2{display:grid;grid-template-columns:22px 86px 1fr 42px auto;gap:5px;align-items:center;margin:4px 0;font-size:14px}
 .sk2 .bar{height:8px;border-radius:9px;background:#0d1634;overflow:hidden}.sk2 .bar i{display:block;height:100%;background:linear-gradient(90deg,#35c27a,#ffc83d)}.sk2 b{text-align:right;font-family:Oswald}
 .slots{display:flex;flex-direction:column;gap:6px;margin-bottom:12px}
 .slot{display:flex;align-items:center;gap:10px;padding:8px 10px;border:1px solid var(--line);border-radius:10px;background:#ffffff0a}
@@ -224,7 +224,7 @@ dialog p,dialog li{color:#dfe5f7;font-size:14px;line-height:1.5;margin:4px 0}
 .gres .perfect{color:#fbbf24}.gres .ok{color:#34d399}.gres .fail{color:#fb923c}.gres .crit{color:#ef4444}
 .cmpBox{display:flex;gap:14px;flex-wrap:wrap;margin:6px 0 12px}.cmpBox>div{background:#ffffff0d;border:1px solid var(--line);border-radius:12px;padding:10px 16px}.cmpBox small{display:block;color:var(--mute);font-size:12px}.cmpBox b{font:700 24px Oswald}
 .pool .ph{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
-.stat.pl{grid-template-columns:22px 86px 1fr 42px 30px 30px}.stat.pl.off{opacity:.4}
+.stat.pl{grid-template-columns:22px 86px 1fr 42px auto 30px 30px}.gg{display:inline-flex;gap:2px}.gg i{width:9px;height:12px;border:1px solid var(--line);border-radius:2px;background:#0d1634}.gg i.f{background:#ffc83d;border-color:#ffc83d}.gg i.n{background:#35c27a;border-color:#35c27a}.stat.pl.off{opacity:.4}
 .histGrid{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(0,1fr);gap:18px}
 @media(max-width:1000px){.cGrid,.histGrid{grid-template-columns:1fr}.gr{grid-template-columns:110px 48px 50px 1fr}}
 
@@ -3517,7 +3517,7 @@ function renderCal(){
  }).join('');
 }
 function renderSkills(){
- $('#cSkills').innerHTML=`<h3>Qualités</h3>`+STATS.map(s=>`<div class="sk2"><span>${s.i}</span><span>${s.n}${K.regain&&K.regain[s.k]>0?` <small style="color:var(--bad)" title="À récupérer par le repos et la kiné">🩹−${K.regain[s.k]}</small>`:''}</span><div class="bar"><i style="width:${K.pct[s.k]/PCT_MAX*100}%"></i></div><b>${K.pct[s.k]}%</b></div>`).join('')+
+ $('#cSkills').innerHTML=`<h3>Qualités</h3>`+STATS.map(s=>`<div class="sk2"><span>${s.i}</span><span>${s.n}${K.regain&&K.regain[s.k]>0?` <small style="color:var(--bad)" title="À récupérer par le repos et la kiné">🩹−${K.regain[s.k]}</small>`:''}</span><div class="bar"><i style="width:${K.pct[s.k]/PCT_MAX*100}%"></i></div><b>${K.pct[s.k]}%</b><span class="gg" title="Jauge d’entraînement">${(()=>{const need=gaugeNeed(K,s.k),g=(K.gauge&&K.gauge[s.k])||0;let h='';for(let i=0;i<need;i++)h+=`<i class="${i<g?'f':''}"></i>`;return h;})()}</span></div>`).join('')+
   `<div class="caps" style="margin-top:8px">${EV[K.cat].map(e=>`<span class="cp">${e.i} ${e.s} <b>${capOf(K,evSkills(e),e)}/20</b>${(()=>{const d=morphMod(K,e);return d?` <small class="${d>0?'mp':'mm'}">${d>0?'+':''}${d}</small>`:'';})()}</span>`).join('')}</div>`;
 }
 function renderHist(){
@@ -3576,11 +3576,11 @@ function poolsHTML(){
  const can=p.n===0||!STATS.some(s=>poolOk(K,p,s.k));
  return `<div class="card pool"><h3>🎁 Points à répartir</h3>
  <div class="ph"><b>${esc(p.why)}</b><span class="chip ${p.n?'m':'p'}">${p.n} ${plural(p.n,'point')} à répartir</span></div>
- <p class="note" style="margin:4px 0 8px">${p.sk?'Choisis parmi les qualités de l’épreuve.':'Répartis librement entre tes qualités.'} À partir de 75 %, un point coûte 2 points à répartir, à partir de 85 % 3 points.${more>0?` · ${more} autre${more>1?'s':''} répartition${more>1?'s':''} ensuite`:''}</p>
+ <p class="note" style="margin:4px 0 8px">${p.sk?'Choisis parmi les qualités de l’épreuve.':'Répartis librement entre tes qualités.'} Chaque point remplit une case de la <b>jauge d’entraînement</b> de la qualité (cases vertes = ajoutées maintenant). Quand la jauge est pleine, la qualité gagne <b>+10 %</b>. ${more>0?` · ${more} autre${more>1?'s':''} répartition${more>1?'s':''} ensuite`:''}</p>
  ${(()=>{if(!p.n||STATS.some(s=>poolOk(K,p,s.k)))return'';const el=STATS.filter(s=>!p.sk||p.sk.includes(s.k));const why=el.map(s=>`${s.n} (${hurtSk(K,s.k)?'blessée':'plafond de ton profil atteint : '+plafOf(K,s.k,K.cat)+'/20'})`).join(', ');return`<div class="note" style="margin:0 0 8px;padding:8px 10px;border:1px solid var(--gold,#e3b341);border-radius:8px">⚠️ Ce point ne peut pas être attribué : ${why}. Valide pour passer. Pour progresser, choisis une séance qui travaille d’autres qualités.</div>`;})()}
  ${STATS.map(s=>{
   const ok=poolOk(K,p,s.k),el=!p.sk||p.sk.includes(s.k),got=(p.got&&p.got[s.k])||0;
-  return `<div class="stat pl ${el?'':'off'}"><span>${s.i}</span><span>${s.n}</span><div class="bar"><i style="width:${K.pct[s.k]/PCT_MAX*100}%"></i></div><b>${K.pct[s.k]}%</b>
+  return `<div class="stat pl ${el?'':'off'}"><span>${s.i}</span><span>${s.n}</span><div class="bar"><i style="width:${K.pct[s.k]/PCT_MAX*100}%"></i></div><b>${K.pct[s.k]}%</b><span class="gg" title="Jauge d’entraînement : quand elle est pleine, la qualité gagne +10 %">${(()=>{const need=gaugeNeed(K,s.k),g=K.gauge&&K.gauge[s.k]||0,nw=Math.min(got,g);let h='';for(let i=0;i<need;i++)h+=`<i class="${i<g-nw?'f':i<g?'n':''}"></i>`;return h;})()}</span>
   <button data-a="psub" data-k="${s.k}" ${got?'':'disabled'}>−</button><button data-a="padd" data-k="${s.k}" ${ok?'':'disabled'}>+</button></div>`;}).join('')}
  <div class="startRow"><button class="btn" data-a="pauto" ${p.n?'':'disabled'}>Répartir automatiquement</button><button class="btn primary big" data-a="pok" ${can?'':'disabled'}>Valider</button></div></div>`;
 }
