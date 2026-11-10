@@ -1442,6 +1442,7 @@ function gymThreshold(K,sess){
 }
 /* séance générale : un seul jet. Parfait = 2 points, réussi = 1, échec = 0, 20 = 0 point et +1 fatigue. Les points vont dans la jauge d'une caractéristique de la séance (au choix). */
 function gymSession(K,sess,rollFn){
+ markTrained(K,sess.sk);
  const T=gymThreshold(K,sess),roll=rollFn?rollFn():rnd(20),out=mkOut(T,roll);
  const pts=out==='perfect'?2:out==='ok'?1:0,crit=out==='crit';
  if(crit)K.tf=Math.min(3,K.tf+1);
@@ -1524,7 +1525,7 @@ function trainingOutcome(t){
  return{ok,allowed,score,bonus:ok?Math.min(3,t.perfect):0};
 }
 function applyDisciplineGain(K,ev,t){
- const o=trainingOutcome(t),sk=trainSk(ev),gains={};K.comp=K.comp||{};
+ const o=trainingOutcome(t),sk=trainSk(ev),gains={};markTrained(K,sk);K.comp=K.comp||{};
  const pts=o.ok?(o.bonus>=2?2:1):0,cur=K.comp[ev.id]||0;
  if(pts){const rate=cur<40?3:cur<80?2:1;let g=pts*rate;if(K.age<=19)g=Math.ceil(g*1.25);g=Math.min(g,100-cur);K.comp[ev.id]=cur+g;gains[ev.id]=g;}
  K.tf=Math.min(3,K.tf+(t.crit?1:0));
@@ -1607,6 +1608,13 @@ function agePlan(newAge){
  const n=newAge>=35?3:2;
  return{loss:{n,d:10,from:['vit','det','pui','dex']},txt:newAge>=35?'La vétérance : il faut compenser par la tête.':'Les premières usures se font sentir.'};
 }
+/* jauge de maintien : chaque qualité physique doit être travaillée au moins une fois par saison (séance générale ou de discipline qui la concerne). Jauge pleine = 1 case ; une saison sans la travailler vide la case, la suivante fait perdre 10 % (1 point sur 20), jusqu'au départ (30 %) */
+const PHYS=['vit','for','pui','det','end','dex'];
+function markTrained(K,sk){K.mt=K.mt||{};(sk||[]).forEach(k=>{if(PHYS.includes(k))K.mt[k]=1;});}
+function applyMaintenance(K){const lost=[],warn=[];K.mnt=K.mnt||{};K.mt=K.mt||{};K.gauge=K.gauge||{};
+ PHYS.forEach(k=>{if(K.mt[k]){K.mnt[k]=1;return;}const m=K.mnt[k]==null?1:K.mnt[k];if(m>0){K.mnt[k]=0;warn.push(k);return;}if(K.pct[k]>START_PCT){K.pct[k]=Math.max(START_PCT,K.pct[k]-10);K.gauge[k]=0;lost.push(k);}});
+ K.mt={};return{lost,warn};}
+function maintHTML(){const mt=K.mt||{},mn=K.mnt||{};return`<p class="note" style="margin:10px 0 0">Maintien (une séance par saison) : ${PHYS.map(k=>{const ok=!!mt[k],low=!ok&&mn[k]===0;return`<span class="chip ${ok?'p':low?'m':''}" title="${ok?'travaillée cette saison':low?'jauge vide : une saison sans la travailler et tu perds 10 %':'à travailler cette saison'}">${SX[k].i} ${SX[k].n} ${ok?'✓':low?'⚠️':'·'}</span>`;}).join(' ')}</p>`;}
 function applyAging(K){
  const nw=K.age+1,plan=agePlan(nw),lost=[];
  if(plan.loss){
@@ -3603,7 +3611,7 @@ function trainHTML(){
  }
  return `<div class="card"><h3>🏋️ Préparation · ${esc(st.n)}</h3>
   <p class="note" style="margin:0 0 10px">${K.tf>=2?'Tu es fatigué. ':''}Niveau visé : ${L.s}, compétence moyenne minimale ${L.min} % — la tienne : <b style="color:${q?'var(--ok)':'var(--bad)'}">${Math.round(careerAvg(K))} %</b>.</p>
-  <div class="slots">${slots}</div>${body}${K.sessDone<3?`<p style="margin:10px 0 0"><button class="btn small" data-a="skipPrep">Sauter la préparation →</button></p>`:''}</div>`;
+  <div class="slots">${slots}</div>${body}${maintHTML()}${K.sessDone<3?`<p style="margin:10px 0 0"><button class="btn small" data-a="skipPrep">Sauter la préparation →</button></p>`:''}</div>`;
 }
 /* ---------- blessure : mois d'arrêt, soins et rééducation ---------- */
 function rehabHTML(){
@@ -3735,8 +3743,8 @@ function bilanHTML(){
  <div class="startRow"><button class="btn primary big" data-a="season">Saison ${K.season+1} →</button></div></div>`;
 }
 function nextSeason(){
- const r=applyAging(K);if(K.inj)enterRehab(K);
- cNote=`<div class="card cnote"><h3>🎂 Saison ${K.season} · ${K.year} · ${K.age} ans</h3><p>${esc(r.plan.txt)}${r.lost.length?` Tu perds : ${r.lost.map(l=>`${SX[l.k].i} ${SX[l.k].n} −${l.d} %`).join(', ')}.`:''}${r.plan.gain?` Tu as <b>${r.plan.gain} points</b> à répartir.`:''}</p></div>`;
+ const r=applyAging(K);const mt=applyMaintenance(K);if(K.inj)enterRehab(K);
+ cNote=`<div class="card cnote"><h3>🎂 Saison ${K.season} · ${K.year} · ${K.age} ans</h3><p>${esc(r.plan.txt)}${r.lost.length?` Tu perds : ${r.lost.map(l=>`${SX[l.k].i} ${SX[l.k].n} −${l.d} %`).join(', ')}.`:''}${r.plan.gain?` Tu as <b>${r.plan.gain} points</b> à répartir.`:''}${mt.lost.length?` Faute de travail cette saison, tu perds : ${mt.lost.map(k=>`${SX[k].i} ${SX[k].n} −10 %`).join(', ')}.`:''}${mt.warn.length?` ⚠️ Pas travaillées cette saison : ${mt.warn.map(k=>`${SX[k].i} ${SX[k].n}`).join(', ')}. Une saison de plus et tu les perds.`:''}</p></div>`;
  persist();renderCareer();
 }
 function retiredHTML(){
