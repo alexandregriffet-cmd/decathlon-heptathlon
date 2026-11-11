@@ -123,11 +123,11 @@ function create(DATA,helpers){
     }
    }
    /* incident : un 20 naturel pendant l'épreuve */
-   let forfeit=false,abandon=false,incident=null;
+   let forfeit=false,abandon=false,light=false,incident=null;
    if(had20){const di=await roll({k:'incident',label:'Incident',idx});let txt;
     if(di<=10)txt='rien';else if(di<=13){txt='crampe (fatigue +1, −1 au premier jet de l’épreuve suivante)';st.fat+=1;st.first=-1;}else if(di<=16){txt='mauvais appui (−1 au premier jet de l’épreuve suivante)';st.first=-1;}else if(di<=19){const kk2=DATA.TRIO[id][(di-1)%3];CH[kk2]=Math.max(1,CH[kk2]-1);txt=`douleur (−1 en ${kk2} jusqu’à la fin de la compétition)`;}
-    else{const r2=await roll({k:'incident2',label:'Relance',idx});if(r2>=16){txt=`blessure possible : relance ${r2}, blessure et abandon`;abandon=true;}else{txt=`blessure possible : relance ${r2}, simple forfait pour cette épreuve`;forfeit=true;}}
-    incident={d:di,txt};if(ctx.emit)await ctx.emit({k:'note',t:'Incident : '+txt+'.'});L.push(`Un 20 naturel est sorti pendant l’épreuve : incident d20=${di} : ${txt}.`);}
+    else{const r2=await roll({k:'incident2',label:'Relance',idx});if(r2>=16){txt=`blessure possible : relance ${r2}, blessure et abandon`;abandon=true;}else{txt=`blessure possible : relance ${r2}, blessure légère : le résultat de l’épreuve est conservé, fatigue +2 et −1 au premier jet de l’épreuve suivante`;st.fat+=2;st.first=-1;light=true;}}
+    incident={d:di,txt,light};if(ctx.emit)await ctx.emit({k:'note',t:'Incident : '+txt+'.'});L.push(`Un 20 naturel est sorti pendant l’épreuve : incident d20=${di} : ${txt}.`);}
    const nativeCm=(id==='hj'||id==='pv')?Math.round(native*100):(DATA.CMUNIT&&DATA.CMUNIT.includes(id)?Math.round(native*100):native);
    const perf=forfeit?null:native;const pts=(perf&&!forfeit)?ptsOf(id,sex,native):0;ctx.total+=pts;
    res.push({id,head,lines:L,detail,perf,pts,cap,apt,pc,forfeit,abandon,incident});

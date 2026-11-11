@@ -539,7 +539,7 @@ dialog.rulesD{max-width:860px;max-height:90vh;overflow:auto}
  <li><b>Le saut ou le lancer</b> : un <b>20</b> est un essai nul. Dé égal au seuil ou inférieur au tiers du seuil : tu montes d’un bloc dans la table. Dé sous le seuil : bloc normal. Dé au-dessus : tu descends d’un bloc.</li>
  <li><b>La rage de vaincre</b> : comme en course, d20 sans seuil, rang calculé de la même façon. La table croise le bloc, le rang et l’aptitude pour donner la performance au centimètre.</li></ol>
  <p><b>Hauteur et perche</b> : tous les athlètes sautent la même barre, qui monte par paliers. À chaque hauteur, un jet d’élan puis un jet de saut : réussite ou parfaite, la barre est passée. Trois échecs de suite et c’est terminé ; ta meilleure barre franchie est ton résultat. Les barres trop basses pour ton niveau sont franchies d’office, les barres hors de portée sont refusées.</p>
- <p><b>Incident</b> : chaque 20 naturel sorti pendant une épreuve déclenche un d20 d’incident. 1 à 10 : rien. 11 à 13 : crampe (fatigue +1, −1 au premier jet de l’épreuve suivante). 14 à 16 : mauvais appui (−1 au premier jet de l’épreuve suivante). 17 à 19 : douleur (−1 sur une qualité de l’épreuve jusqu’à la fin de la compétition). 20 : relance ; à 16 ou plus, blessure et abandon, sinon simple forfait pour l’épreuve.</p>
+ <p><b>Incident</b> : chaque 20 naturel sorti pendant une épreuve déclenche un d20 d’incident. 1 à 10 : rien. 11 à 13 : crampe (fatigue +1, −1 au premier jet de l’épreuve suivante). 14 à 16 : mauvais appui (−1 au premier jet de l’épreuve suivante). 17 à 19 : douleur (−1 sur une qualité de l’épreuve jusqu’à la fin de la compétition). 20 : relance ; à 16 ou plus, blessure et abandon, sinon blessure légère : le résultat de l’épreuve est conservé, et tu choisis de continuer (fatigue +2, −1 au premier jet suivant) ou de te préserver (abandon, tu gardes tes points).</p>
 
  <h4 id="r7">7. Les points et les records</h4>
  <p>Chaque performance est convertie avec les formules du barème World Athletics, pour te comparer aux vrais athlètes : record du monde du décathlon (Kevin Mayer, 9 126 points) et de l’heptathlon (Jackie Joyner-Kersee, 7 291 points). Les records du monde de chaque épreuve ne sont à portée que dans le meilleur des cas : compétence de 100 %, aptitude maximale et tirages exceptionnels. Temps au centième, sauts et lancers au centimètre.</p>
@@ -1358,6 +1358,16 @@ async function runCompetition(C,H){
     if(p.dnf||!p.pe||!p.pe.st.stopped)continue;
     if(r<C.evs.length-1)p.dnf=true;
     if(p.human){p.hurt=pickInjury(null,ev);p.hurt.where=ev.n;if(p.dnf)p.hurt.dnf=true;await call(H,'injured',C,p,p.hurt,ev);}
+   }
+  }
+  /* blessure légère (relance 11 à 15 sur un incident) : le résultat de l'épreuve est conservé ; le joueur choisit de continuer (pénalités) ou de se préserver (abandon, mais il garde ses points) */
+  if(PP&&typeof pickInjury==='function'){
+   for(const p of C.all){
+    const lr=p.pe&&p.pe.res&&p.pe.res[r];if(!p.human||p.dnf||!lr||!lr.incident||!lr.incident.light)continue;
+    p.hurt=pickInjury(null,ev);p.hurt.where=ev.n;p.hurt.months=p.hurt.left=p.hurt.total=1;p.hurt.light=true;
+    let keep=true;if(r<C.evs.length-1&&H.askLight)keep=await H.askLight(C,p,ev);
+    if(!keep){p.dnf=true;p.hurt.dnf=true;}
+    await call(H,'injured',C,p,p.hurt,ev);
    }
   }
   if(!PP&&(C.hurtRisk||C.all.some(x=>x.hurtRisk))&&typeof pickInjury==='function'){
@@ -3313,6 +3323,17 @@ function makeHooks(g){
   async barRoundDone(C,bar){
    guard();renderLive(C);ticker(`Barre ${fmtM(bar)} terminée`);
    if(g.spNow>0)await sleep(150*g.spNow);
+  },
+  async askLight(C,p,ev){
+   guard();
+   if(g.auto||g.room)return true;
+   g.turbo=false;ST.speed=1;
+   $('#status').innerHTML=`<h4>🩹 Blessure légère</h4><div class="prob">Ton résultat en ${esc(ev.n)} est conservé. Continuer la compétition : fatigue +2 et −1 au premier jet de la prochaine épreuve, avec une blessure d'un mois en fin de compétition. Te préserver : tu abandonnes la suite (les épreuves restantes comptent 0 point) et tu gardes tes points.</div>`;
+   return new Promise(res=>{
+    const b=$('#actBtn'),pb=$('#passBtn');b.textContent='Continuer la compétition';pb.textContent='Me préserver (abandon)';b.hidden=false;pb.hidden=false;
+    const done=v=>{b.hidden=true;pb.hidden=true;b.onclick=null;pb.onclick=null;res(v);};
+    b.onclick=()=>done(true);pb.onclick=()=>done(false);
+   });
   },
   async injured(C,p,h,ev){
    guard();
