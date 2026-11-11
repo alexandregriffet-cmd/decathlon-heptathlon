@@ -3818,7 +3818,7 @@ function runSlot(){
  const sl=K.slots[K.sessDone];if(!sl)return;
  cNote='';
  if(sl.t==='rep'){const g=restSession(K);K.sessDone++;persist();cNote=`<div class="card cnote"><h3>🏖️ Repos</h3><p>Tu récupères : la fatigue d’entraînement retombe à zéro.${g.length?` Le repos fait aussi remonter ${g.map(x=>`${SX[x.k].i} ${SX[x.k].n} +${x.n} %`).join(', ')}.`:(hasRegain(K)?' Cette fois, rien de plus sur tes qualités blessées.':'')}</p></div>`;afterSessionNext(true);return;}
- if(sl.t==='kin'){const r=kineSession(K);K.sessDone++;persist();cNote=`<div class="card cnote ${r.n?'':'warn'}"><h3>🩺 Kiné · rééducation</h3><p>Dé ${r.roll} contre un seuil de ${r.T} : <b>${OUTT[r.out]}</b>${r.got.length?` : ${r.got.map(x=>`${SX[x.k].i} ${SX[x.k].n} +${x.n} %`).join(', ')} récupéré${r.got.reduce((a,x)=>a+x.n,0)>1?'s':''}.`:'. Pas de progrès cette séance.'}${r.out==='crit'?' Petite rechute : tu es plus fatigué.':''}</p></div>`;afterSessionNext(true);return;}
+ if(sl.t==='kin'){kinFlow();return;}
  if(sl.t==='dis'){doDiscipline(trainEv(sl.ev));return;}
  gymFlow(SESSX[sl.t]);
 }
@@ -3828,6 +3828,29 @@ function afterSessionNext(keep){
  if(K.inj&&K.inj.fresh){enterRehab(K);persist();renderCareer();return;}
  if(K.sessDone>=3)K.phase='comp';
  persist();renderCareer();
+}
+
+/* séance de kiné : même déroulé que les autres entraînements (seuil, bouton, lancer du d20 animé, résultat) */
+async function kinFlow(){
+ const r=kineSession(K);K.sessDone++;persist();
+ const gotTxt=r.got.length?`${r.got.map(x=>`${SX[x.k].i} ${SX[x.k].n} <b>+${x.n} %</b>`).join(', ')} récupéré${r.got.reduce((a,x)=>a+x.n,0)>1?'s':''}`:'';
+ $('#cMain').innerHTML=`<div class="card gym"><h3>🩺 Kiné · rééducation</h3>
+ <p class="note" style="margin:0 0 10px">Rééducation de tes qualités blessées.<br>Seuil du d20 : <b>${r.T}</b> (Technique et Mental). Réussite : <b>1 %</b> récupéré · parfait (dé = seuil) : <b>2 %</b> · échec : 0 · 20 : 0 et +1 fatigue.</p>
+ <div class="gymRows"><div class="gr"><span>🎲 Jet de la séance</span><b>seuil ${r.T}</b><div class="cdie" id="cd_kin">?</div><span class="gres" id="gx_kin"></span></div></div>
+ <div class="startRow"><button class="btn primary big" id="gymGo">🎲 Lancer le d20</button></div></div>`;
+ const go=$('#gymGo');
+ const play=async()=>{
+  go.hidden=true;const d=$('#cd_kin');
+  for(let i=0;i<10;i++){d.textContent=rnd(20);await sleep(55);}
+  d.textContent=r.roll;d.className='cdie '+r.out;
+  $('#gx_kin').innerHTML=`<span class="${r.out}">${OUTT[r.out]}</span> ${r.n?`<b>+${r.n} %</b>`:''}`;
+  await sleep(280);
+  $('#cMain .gym').insertAdjacentHTML('beforeend',`<p class="note" style="margin:10px 0 0">${gotTxt?gotTxt+'.':'Pas de progrès cette séance.'}${r.out==='crit'?' Petite rechute : tu es plus fatigué.':''}</p>
+  <div class="startRow"><button class="btn primary big" id="gymNext">${K.phase==='rehab'?(K.sessDone>=3?'Terminer les soins →':'Séance suivante →'):(K.sessDone>=3?'Terminer la préparation →':'Séance suivante →')}</button></div>`);
+  $('#gymNext').onclick=()=>afterSessionNext();
+ };
+ go.onclick=play;
+ if(K.opt.auto)play();
 }
 async function gymFlow(sess){
  const T=gymThreshold(K,sess),before={...K.pct};
