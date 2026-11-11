@@ -377,7 +377,7 @@ dialog.rulesD{max-width:860px;max-height:90vh;overflow:auto}
 
  <h2 class="hH">Choisis ton jeu</h2>
  <div class="hModes">
-  <button class="hCard" id="hFree"><i>🏟️</i><b>Compétition libre</b><span>Crée ton athlète et choisis ton niveau, du championnat départemental aux Jeux olympiques. Seul contre des virtuels ou à plusieurs sur le même écran.</span><em>Jouer →</em></button>
+  <button class="hCard" id="hFree"><i>🏟️</i><b>Compétition libre</b><span>Crée ton athlète et choisis ton niveau, du niveau amateur aux Jeux olympiques. Seul contre des virtuels ou à plusieurs sur le même écran.</span><em>Jouer →</em></button>
   <button class="hCard" id="hLeg"><i>⭐</i><b>Compétition des légendes</b><span>Mesure-toi aux 25 meilleurs décathloniens ou heptathloniennes de l’histoire, sur la même piste, au même moment.</span><em>Défier les légendes →</em></button>
   <button class="hCard" id="hCar"><i>🏅</i><b>Mode carrière</b><span>Plusieurs saisons : entraînements, jauges, podiums, records, blessures, vieillissement. Ta carrière est sauvegardée et tu la reprends quand tu veux.</span><em>Commencer une carrière →</em></button>
   <button class="hCard" id="hReal"><i>👤</i><b>Athlète existant</b><span>Kevin Mayer, Ashton Eaton, Damian Warner, Nafi Thiam… Prends leur place en jeu libre, en légendes ou en carrière.</span><em>Choisir un champion →</em></button>
@@ -388,7 +388,7 @@ dialog.rulesD{max-width:860px;max-height:90vh;overflow:auto}
  <h2 class="hH">Comment ça marche</h2>
  <div class="hSteps">
   <div><b>1</b><h3>Crée ton athlète</h3><p>9 qualités à 30 % au départ, 160 points de pourcentage à répartir, une taille et un poids qui dessinent ton profil.</p></div>
-  <div><b>2</b><h3>Qualifie-toi</h3><p>Chaque niveau demande une compétence moyenne minimale : 30 % en interrégional, 45 % à France Élite, 60 % de l’Europe aux Jeux.</p></div>
+  <div><b>2</b><h3>Qualifie-toi</h3><p>Chaque niveau demande une compétence moyenne minimale : 30 % en semi-professionnel (interrégional), 45 % aux championnats nationaux Élite, 60 % du championnat continental aux Jeux.</p></div>
   <div><b>3</b><h3>Lance le d20</h3><p>Forme du jour, aléa, conditions, Mental, puis les jets de l’épreuve. Chaque dé compte, et chaque dé se voit sur la piste.</p></div>
   <div><b>4</b><h3>Lis ton score</h3><p>Une table donne ta performance, convertie en points World Athletics. Compare-toi aux records et grimpe au classement.</p></div>
  </div>
@@ -550,13 +550,14 @@ dialog.rulesD{max-width:860px;max-height:90vh;overflow:auto}
 
  <h4 id="r8">8. Niveaux et qualification</h4>
  <table class="rt"><tr><th>Niveau</th><th>Participants</th><th>Compétence moyenne minimale</th></tr>
-  <tr><td>Départementaux</td><td>16</td><td>libre</td></tr>
-  <tr><td>Régionaux</td><td>16</td><td>libre</td></tr>
-  <tr><td>Interrégionaux</td><td>18</td><td>30 %</td></tr>
-  <tr><td>France Élite</td><td>20</td><td>45 %</td></tr>
-  <tr><td>Europe</td><td>22</td><td>60 %</td></tr>
+  <tr><td>Amateur 1 (départementaux)</td><td>16</td><td>libre</td></tr>
+  <tr><td>Amateur 2 (régionaux)</td><td>16</td><td>libre</td></tr>
+  <tr><td>Semi-professionnel (interrégionaux)</td><td>18</td><td>30 %</td></tr>
+  <tr><td>Championnats nationaux Élite (France Élite)</td><td>20</td><td>45 %</td></tr>
+  <tr><td>Championnats continentaux (Europe, Asie, Afrique, NACAC, Amérique du Sud, Océanie)</td><td>22</td><td>60 %</td></tr>
   <tr><td>Monde</td><td>24</td><td>60 %</td></tr>
   <tr><td>Jeux olympiques</td><td>28</td><td>60 %</td></tr></table>
+ <p><b>Noms des compétitions</b> : la France garde ses vrais noms (départementaux, régionaux, interrégionaux, France Élite, Europe). Pour toutes les autres nations, les compétitions portent des noms génériques : <b>Amateur 1</b> (équivalent départemental), <b>Amateur 2</b> (équivalent régional), <b>Semi-professionnel</b> (équivalent interrégional), puis les <b>championnats nationaux Élite</b> et le <b>championnat continental</b> de ton continent. Choisis ta nationalité en créant l’athlète : les noms, les adversaires compatriotes et le championnat continental suivent.</p>
  <p>La compétence moyenne est calculée sur toutes les épreuves. Sans le minimum, le niveau reste verrouillé, sauf en <b>mode libre</b> (case à cocher). Les athlètes virtuels complètent le plateau. Le stade s’agrandit avec le niveau : petite tribune au départemental, tribunes pleines et drapeaux à l’international, anneaux olympiques aux Jeux.</p>
 
  <h4 id="r9">9. Les modes de jeu</h4>
@@ -691,6 +692,27 @@ const STARS=[
  {id:'gotz',n:'Hypo-Meeting de Götzis',s:'Götzis',parts:20,avg:60,min:50,intl:1,bars:4,base:'eur',star:1,ps:{DEC:.88,HEP:.88}}
 ];
 const lvById=id=>LEVELS.find(l=>l.id===id)||STARS.find(l=>l.id===id)||LEVELS_I.find(l=>l.id===id);
+
+/* ---------- noms des niveaux selon la nationalité ----------
+   France : les vrais noms français. Autres nations : noms génériques (équivalents français entre parenthèses dans les règles)
+   et championnats continentaux de leur continent (Europe, Asie, Afrique, NACAC, Amérique du Sud, Océanie). */
+const CONTOF={'Japon':'ASI','Chine':'ASI','Corée du Sud':'ASI','Inde':'ASI','Kenya':'AFR','Éthiopie':'AFR','Maroc':'AFR','Algérie':'AFR','Tunisie':'AFR','Sénégal':'AFR','Côte d\'Ivoire':'AFR','Cameroun':'AFR','Nigeria':'AFR','Afrique du Sud':'AFR','Madagascar':'AFR','Djibouti':'AFR','États-Unis':'NAM','Canada':'NAM','Mexique':'NAM','Cuba':'NAM','Jamaïque':'NAM','Bahamas':'NAM','Trinité-et-Tobago':'NAM','Grenade':'NAM','Haïti':'NAM','Brésil':'SAM','Argentine':'SAM','Colombie':'SAM','Chili':'SAM','Australie':'OCE','Nouvelle-Zélande':'OCE'};
+const CONT_LV={EUR:['Championnats d’Europe','Europe'],ASI:['Championnats d’Asie','Asie'],AFR:['Championnats d’Afrique','Afrique'],NAM:['Championnats NACAC','NACAC'],SAM:['Championnats d’Amérique du Sud','Am. du Sud'],OCE:['Championnats d’Océanie','Océanie']};
+const contOfNat=n=>CONTOF[n]||'EUR';
+const GEN_LV={dep:['Compétition amateur · niveau 1','Amateur 1'],reg:['Compétition amateur · niveau 2','Amateur 2'],inter:['Compétition semi-professionnelle','Semi-pro'],fra:['Championnats nationaux Élite','Nationaux Élite']};
+let CURNAT='France';
+function applyNat(nat){
+ nat=nat||'France';CURNAT=nat;
+ [...LEVELS,...LEVELS_I].forEach(l=>{
+  if(!l.n0){l.n0=l.n;l.s0=l.s;}
+  const b=l.base||l.id;let n=l.n0,sh=l.s0;
+  if(nat!=='France'){
+   if(GEN_LV[b]){n=GEN_LV[b][0];sh=GEN_LV[b][1];}else if(b==='eur'){const c=CONT_LV[contOfNat(nat)];n=c[0];sh=c[1];}
+   if(l.indoor){n+=' en salle';sh+=' salle';}
+  }
+  l.n=n;l.s=sh;
+ });
+}
 /* hauteur de départ de la barre (cm) selon le niveau */
 const BAR_START={DEC:{hj:[145,150,160,170,175,180,185],pv:[260,300,340,380,420,440,460]},HEP:{hj:[120,125,135,145,150,155,160]}};
 BAR_START.HEPI=BAR_START.DEC;BAR_START.PENI=BAR_START.HEP;
@@ -1338,7 +1360,9 @@ function makeBot(level,cat,id,usedNames,home){
  /* nationalité : aux premiers niveaux ce sont des compatriotes de l'athlète ; plus haut, des étrangers (avec encore quelques compatriotes) */
  const homeN=NATS.some(n=>n[0]===home)?home:'France';
  let natName=homeN;
- if(RNG()<level.intl&&RNG()>.14)natName=pick(NAT_INT.filter(n=>n[0]!==homeN))[0];
+ if(RNG()<level.intl&&RNG()>.14){let pool=NAT_INT.filter(n=>n[0]!==homeN);
+  if((level.base||level.id)==='eur'&&contOfNat(homeN)!=='EUR'&&RNG()<.8){const cp=NATS.filter(n=>n[0]!==homeN&&contOfNat(n[0])===contOfNat(homeN));if(cp.length)pool=cp;}   /* championnats continentaux : surtout des nations du même continent */
+  natName=pick(pool)[0];}
  const nat=[natName,flagOf(natName)];
  let first,last,key,g=0;
  do{const np=namePool(natName);first=pick(sex==='M'?np[0]:np[1]);last=pick(np[2]);key=first+last;}while(usedNames.has(key)&&g++<50);
@@ -1356,6 +1380,7 @@ function initRuntime(p){p.pe=null;p.mt={};p.res=[];p.total=0;p.fat=0;p.inj={};p.
 /* ---------- compétition ---------- */
 function buildCompetition(levelId,cat,humans){
  const level=lvById(levelId);
+ applyNat(humans[0]&&humans[0].nat);
  const all=humans.map((h,i)=>({...h,id:i,human:true,cat,pct:{...h.pct}}));
  const used=new Set(all.map(p=>p.first+p.last));
  const lanes=level.indoor?6:8,target=(level.parts>1&&level.id!=='leg')?Math.ceil(Math.max(level.parts,humans.length)/lanes)*lanes:Math.max(level.parts,humans.length);  /* séries pleines : tous les couloirs sont occupés */
@@ -1585,19 +1610,20 @@ const START_YEAR=2027;
 /* calendrier d'une saison, d'après le calendrier FFA : départementaux → régionaux → interrégionaux → France Élite → international → meeting */
 function intlLevelId(year){return(year-2028)%4===0?'jo':(year%2===0?'eur':'mon');}
 function seasonSteps(year){
- const il=intlLevelId(year),L=LEVELS.find(l=>l.id===il);
+ if(typeof K!=='undefined'&&K&&K.nat)applyNat(K.nat);
+ const il=intlLevelId(year),L=LEVELS.find(l=>l.id===il),nm=id=>lvById(id).n;
  return[
-  {n:'Championnats départementaux',m:'Mai',lv:'dep'},
-  {n:'Championnats régionaux',m:'Juin',lv:'reg'},
-  {n:'Championnats interrégionaux',m:'Juin',lv:'inter'},
+  {n:nm('dep'),m:'Mai',lv:'dep'},
+  {n:nm('reg'),m:'Juin',lv:'reg'},
+  {n:nm('inter'),m:'Juin',lv:'inter'},
   {n:'Hypo-Meeting de Götzis',m:'Juin',lv:'gotz'},
-  {n:'Championnats de France Élite',m:'Juillet',lv:'fra'},
+  {n:nm('fra'),m:'Juillet',lv:'fra'},
   {n:L.n+' '+year,m:'Août',lv:il},
   {n:'Décastar de Talence',m:'Septembre',lv:'deca'},
   /* hiver suivant : saison en salle (heptathlon / pentathlon), sans préparation supplémentaire */
-  {n:'Championnats régionaux en salle',m:'Janvier',lv:'reg_i',ind:1},
-  {n:'Championnats de France Élite en salle',m:'Février',lv:'fra_i',ind:1},
-  {n:(year%2===0?'Championnats d’Europe en salle ':'Championnats du monde en salle ')+(year+1),m:'Mars',lv:year%2===0?'eur_i':'mon_i',ind:1}
+  {n:nm('reg_i'),m:'Janvier',lv:'reg_i',ind:1},
+  {n:nm('fra_i'),m:'Février',lv:'fra_i',ind:1},
+  {n:(year%2===0?nm('eur_i'):lvById('mon_i').n)+' '+(year+1),m:'Mars',lv:year%2===0?'eur_i':'mon_i',ind:1}
  ];
 }
 
@@ -1968,6 +1994,7 @@ function evtProfile(cat,marks,pts){
 /* championnats d'Europe, du monde, Jeux olympiques : de vrais noms parmi les athlètes virtuels */
 function injectPros(C){
  const ind=!!C.level.indoor,id=ind?C.level.base:C.level.id;if(!['eur','mon','jo','deca','gotz'].includes(id))return;
+ if(id==='eur'){const hn=(C.all.find(p=>p.human)||{}).nat;if(contOfNat(hn)!=='EUR')return;}   /* championnats continentaux hors d'Europe : pas d'athlètes réels européens */
  if(ind&&!['eur','mon'].includes(id))return;
  const maxN={eur:20,mon:18,jo:18,deca:14,gotz:14}[id],oc=OUTC[C.cat],sc=ind?(sexOf(C.cat)==='M'?.73:.72):1;
  const taken=new Set(C.all.map(p=>(p.first+' '+p.last).toLowerCase()));
@@ -3176,6 +3203,7 @@ function renderRealBox(){
  $('#realGo').onclick=()=>{const v=$('#realPick').value;if(!v)return;if(!setup.players.length)setup.players.push(newHuman());applyReal(setup.players[0],setup.cfg.cat,v);renderSetup();window.scrollTo({top:$('#athletes').offsetTop-20,behavior:'smooth'});};
 }
 function renderSetup(){
+ applyNat(setup.players[0]&&setup.players[0].nat);
  const cfg=setup.cfg;
  const career=setup.mode==='career';
  $('#setup').classList.toggle('cm',career);
@@ -3257,6 +3285,8 @@ $('#athletes').addEventListener('input',e=>{
  const f=e.target.dataset.f;if(!f)return;
  const a=setup.players.find(x=>x.uid==e.target.closest('.ath').dataset.uid);a[f]=e.target.value;if(typeof roomPing==='function')roomPing();
  if(f==='first'||f==='last')e.target.closest('.ath').querySelector('.head b').textContent=(a.first||'Athlète')+' '+a.last.toUpperCase();
+
+ if(f==='nat'&&a===setup.players[0])renderSetup();   /* les noms des compétitions dépendent de la nationalité */
 });
 $('#athletes').addEventListener('change',e=>{if(e.target.dataset.real){const a=setup.players.find(x=>x.uid==e.target.closest('.ath').dataset.uid);applyReal(a,setup.cfg.cat,e.target.value);renderSetup();return;}if(!e.target.dataset.m)return;const a=setup.players.find(x=>x.uid==e.target.closest('.ath').dataset.uid);a[e.target.dataset.m]=+e.target.value;renderSetup();});
 $('#cfgLevel').onchange=e=>{setup.cfg.level=e.target.value;renderSetup();};
