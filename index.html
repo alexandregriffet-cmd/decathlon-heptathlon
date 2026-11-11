@@ -2805,7 +2805,7 @@ const ST={
   this.hideAll();this.heat=heat;this.mode='race';
   const D=this.ev.D,s0=-D;
   heat.forEach((p,k)=>{
-   const co=D>40,kk=co?k%2:k,row=co?k>>1:0;
+   const co=D>40,gr=co&&this.indoor,n=heat.length,kk=gr?(n>1?-.3+1.6*k/(n-1):.5):co?k%2:k,row=co&&!gr?k>>1:0;   /* 1000 m en salle : départ groupé, tous sur la même ligne, répartis sur les deux couloirs intérieurs */
    const g=this.pawn(p);g.visible=true;const q=this.pos(kk,s0-.5-row*.3);
    g.userData.v.s=0;g.userData.v.sc=null;g.userData.lane=kk;g.userData.row=row;this.place(p,q.x,q.y,q.a,0);
   });
