@@ -1281,13 +1281,68 @@ const FIRST_F=['Nafi','Katarina','Jackie','Carolina','Anouk','Emma','Laura','Sof
 const LAST=['Moreau','Keller','Okafor','Silva','Tanaka','Novak','Lindqvist','Duval','Haddad','Brown','Rossi','Petrov','Mbaye','Hansen','Kowalski','Dubois','Garnier','Weber','Lopez','Nowak','Fischer','Marchand','Costa','Berger','Lemaire','Girard'];
 const NAT_FR=[['France','🇫🇷']];
 const NAT_INT=[['Israël','🇮🇱'],['Allemagne','🇩🇪'],['États-Unis','🇺🇸'],['Canada','🇨🇦'],['Estonie','🇪🇪'],['Grenade','🇬🇩'],['Royaume-Uni','🇬🇧'],['Espagne','🇪🇸'],['Pologne','🇵🇱'],['Pays-Bas','🇳🇱'],['Belgique','🇧🇪'],['Brésil','🇧🇷'],['Japon','🇯🇵'],['Cuba','🇨🇺'],['Ukraine','🇺🇦'],['République tchèque','🇨🇿'],['Suède','🇸🇪'],['Australie','🇦🇺'],['Finlande','🇫🇮']];
+/* ---------- noms par nationalité (prénoms masculins, féminins, noms de famille) : les rivaux d'un athlète sont d'abord ses compatriotes ---------- */
+const NP={
+fr:['Léo,Hugo,Mathieu,Yann,Tom,Adrien,Théo,Axel,Maxime,Julien,Romain,Baptiste,Antoine,Lucas,Nicolas,Quentin,Florian,Clément','Léa,Emma,Inès,Clara,Marie,Jade,Elsa,Maëlle,Zoé,Alice,Lola,Camille,Manon,Chloé,Pauline,Océane,Anaïs,Margaux','Moreau,Duval,Dubois,Garnier,Marchand,Lemaire,Girard,Martin,Bernard,Petit,Robert,Richard,Durand,Leroy,Fontaine,Mercier,Roux,Fournier,Lambert,Blanc'],
+de:['Lukas,Jonas,Felix,Niklas,Tobias,Maximilian,Jan,Leon,Moritz,Florian,Sven,Karl,Markus,Jannik','Anna,Laura,Lena,Hannah,Sophie,Katharina,Julia,Lea,Marie,Johanna,Verena,Mareike,Nele,Sarah','Müller,Schmidt,Fischer,Weber,Wagner,Becker,Hoffmann,Keller,Schäfer,Koch,Richter,Wolf,Neumann,Braun,Krüger,Hartmann,Lange,Vogel'],
+nl:['Daan,Sem,Lars,Bram,Thijs,Ruben,Niels,Jasper,Joris,Stijn,Mees,Teun,Koen,Sven','Anouk,Sanne,Lotte,Femke,Eva,Fleur,Iris,Noor,Lieke,Roos,Dafne,Sifan,Nadine,Maaike','de Vries,Jansen,van den Berg,Bakker,Visser,Smit,Meijer,de Boer,Mulder,de Groot,Bos,Vos,Peters,Hendriks,Dekker,Brouwer,Kuipers'],
+es:['Pablo,Álvaro,Adrián,Sergio,Javier,Diego,Iván,Daniel,Marcos,Raúl,Alejandro,Rubén,Jorge,Mario','Lucía,Carmen,Marta,Paula,Laura,Elena,Irene,Sara,Cristina,Nuria,Andrea,Ana,Claudia,Alba','García,Fernández,González,Rodríguez,López,Martínez,Sánchez,Pérez,Gómez,Ruiz,Hernández,Díaz,Moreno,Muñoz,Álvarez,Romero,Navarro,Torres'],
+lat:['Santiago,Mateo,Sebastián,Matías,Nicolás,Andrés,Camilo,Emiliano,Joaquín,Felipe,Rodrigo,Esteban,Julián,Leandro','Valentina,Camila,Sofía,Isabella,Daniela,Mariana,Catalina,Fernanda,Paula,Luciana,Renata,Ximena,Gabriela,Martina','Ramírez,Castillo,Herrera,Vargas,Rojas,Mendoza,Silva,Ortega,Cabrera,Morales,Reyes,Gutiérrez,Flores,Medina,Aguilar,Suárez,Ríos,Peña'],
+it:['Marco,Luca,Matteo,Andrea,Davide,Simone,Lorenzo,Gianmarco,Federico,Alessandro,Riccardo,Filippo,Dario,Leonardo','Giulia,Sara,Chiara,Francesca,Martina,Elisa,Alice,Sveva,Valentina,Silvia,Beatrice,Elena,Larissa,Giada','Rossi,Russo,Ferrari,Esposito,Bianchi,Romano,Colombo,Ricci,Marino,Greco,Bruno,Gallo,Conti,De Luca,Mancini,Costa,Giordano,Rizzo'],
+pt:['João,Tiago,Rui,Pedro,Nuno,Ricardo,Diogo,André,Miguel,Hugo,Bruno,Duarte,Francisco,Gonçalo','Inês,Ana,Beatriz,Marta,Sofia,Catarina,Rita,Joana,Mariana,Carolina,Filipa,Teresa,Patrícia,Diana','Silva,Santos,Ferreira,Pereira,Oliveira,Costa,Rodrigues,Martins,Sousa,Fernandes,Gonçalves,Gomes,Lopes,Marques,Alves,Almeida,Ribeiro,Pinto'],
+br:['Lucas,Gabriel,Matheus,Rafael,Thiago,Bruno,Felipe,Gustavo,Vinícius,Leonardo,Eduardo,Caio,Rodrigo,Henrique','Ana,Beatriz,Juliana,Fernanda,Larissa,Camila,Amanda,Letícia,Bianca,Mariana,Isabela,Rafaela,Carolina,Luana','Silva,Souza,Oliveira,Santos,Lima,Pereira,Costa,Carvalho,Almeida,Ribeiro,Gomes,Martins,Barbosa,Rocha,Nascimento,Araújo,Cardoso,Teixeira'],
+en:['Jack,Oliver,Harry,George,Jacob,Callum,Ben,Liam,Ethan,Thomas,Daniel,Adam,Luke,Connor','Emily,Charlotte,Amelia,Isla,Grace,Lucy,Holly,Katie,Jessica,Chloe,Ellie,Megan,Hannah,Rebecca','Smith,Jones,Taylor,Brown,Williams,Wilson,Evans,Thomas,Roberts,Johnson,Walker,Wright,Robinson,Thompson,White,Hughes,Edwards,Green'],
+ie:['Cian,Conor,Seán,Oisín,Darragh,Niall,Eoin,Ciarán,Padraig,Fionn,Liam,Cathal,Ronan,Declan','Aoife,Niamh,Saoirse,Ciara,Orla,Siobhán,Róisín,Caoimhe,Aisling,Sinéad,Clodagh,Éabha,Grace,Emer','Murphy,Kelly,O’Sullivan,Walsh,Smith,O’Brien,Byrne,Ryan,O’Connor,O’Neill,Doyle,McCarthy,Gallagher,Doherty,Kennedy,Lynch,Murray,Quinn'],
+us:['Jordan,Tyler,Austin,Ryan,Cody,Dylan,Brandon,Marcus,Trey,Caleb,Garrett,Devon,Mason,Ethan','Madison,Emily,Taylor,Brianna,Ashley,Kayla,Jasmine,Morgan,Alexis,Courtney,Rachel,Hailey,Destiny,Erin','Johnson,Williams,Davis,Miller,Anderson,Jackson,Harris,Clark,Lewis,Walker,Hall,Young,Allen,King,Wright,Scott,Turner,Baker'],
+ca:['Liam,Noah,Ethan,Mathieu,Olivier,Alexandre,Jacob,Nathan,Connor,Dylan,Samuel,William,Félix,Lucas','Emma,Olivia,Sophie,Chloé,Léa,Ava,Brianne,Camille,Mia,Maya,Jade,Alicia,Alysha,Sarah','Tremblay,Gagnon,Roy,Côté,Bouchard,Gauthier,Morin,Lavoie,Fortin,Gagné,MacDonald,Campbell,Stewart,Thompson,Murphy,Wilson,Clarke,Fraser'],
+nz:['Jack,Ben,Callum,Hayden,Liam,Aaron,Joshua,Ryan,Nathan,Tane,Brent,Cody,Scott,Rhys','Emma,Sophie,Hannah,Eliza,Zoe,Kate,Lucy,Olivia,Georgia,Maia,Tessa,Holly,Imogen,Lydia','Smith,Wilson,Taylor,Brown,Walker,Anderson,Thompson,Campbell,Ward,Henderson,Cooper,Hunter,Mitchell,Ross,Parker,Reid,Murray,Fraser'],
+au:['Jack,Lachlan,Mitchell,Cameron,Nathan,Riley,Brodie,Hayden,Ryan,Jarrod,Kyle,Blake,Dean,Tom','Emily,Chloe,Sophie,Zoe,Jessica,Madison,Ella,Georgia,Kate,Alana,Brooke,Tayla,Isabelle,Rachel','Smith,Jones,Williams,Brown,Wilson,Taylor,Anderson,Thompson,Walker,White,Harris,Martin,Hall,Cooper,Kelly,Murray,Ryan,Stewart'],
+se:['Erik,Oskar,Viktor,Anton,Johan,Axel,Filip,Emil,Gustav,Linus,Elias,Marcus,Karl,Nils','Emma,Elin,Sara,Julia,Maja,Frida,Linnea,Ida,Hanna,Moa,Klara,Amanda,Matilda,Wilma','Andersson,Johansson,Karlsson,Nilsson,Eriksson,Larsson,Olsson,Persson,Svensson,Gustafsson,Pettersson,Jonsson,Lindqvist,Lindgren,Berg,Axelsson,Lundberg,Bergström'],
+no:['Magnus,Henrik,Sander,Kristian,Håkon,Andreas,Eirik,Jakob,Sondre,Markus,Torstein,Vebjørn,Lars,Ola','Ingrid,Kari,Silje,Marte,Hedda,Thea,Nora,Emilie,Ida,Maren,Live,Astrid,Sofie,Frida','Hansen,Johansen,Olsen,Larsen,Andersen,Pedersen,Nilsen,Kristiansen,Jensen,Karlsen,Johnsen,Pettersen,Eriksen,Berg,Haugen,Hagen,Bakken,Moen'],
+dk:['Mikkel,Jonas,Rasmus,Frederik,Mads,Kasper,Simon,Anders,Nikolaj,Christian,Emil,Lasse,Søren,Morten','Sofie,Emma,Ida,Freja,Mette,Louise,Caroline,Julie,Maja,Cecilie,Camilla,Line,Maria,Rikke','Jensen,Nielsen,Hansen,Pedersen,Andersen,Christensen,Larsen,Sørensen,Rasmussen,Jørgensen,Petersen,Madsen,Kristensen,Olsen,Thomsen,Poulsen,Møller,Holm'],
+fi:['Eero,Mikko,Antti,Juho,Jari,Teemu,Ville,Lauri,Petri,Matti,Aleksi,Joonas,Kalle,Olli','Aino,Emilia,Sanna,Heidi,Laura,Anni,Johanna,Katja,Minna,Elina,Hanna,Saara,Tiina,Kristiina','Korhonen,Virtanen,Mäkinen,Nieminen,Mäkelä,Hämäläinen,Laine,Heikkinen,Koskinen,Järvinen,Lehtonen,Lehtinen,Saarinen,Salminen,Heinonen,Niemi,Kinnunen,Turunen'],
+ee:['Rasmus,Karl,Taavi,Mihkel,Marten,Kristjan,Henri,Andres,Jaan,Märt,Kaspar,Siim,Robert,Toomas','Liis,Maria,Kadri,Anna,Mari,Kristiina,Triin,Karin,Helena,Annika,Laura,Eliise,Merili,Gerda','Tamm,Saar,Sepp,Mägi,Kask,Kukk,Rebane,Ilves,Pärn,Koppel,Lepik,Oja,Kallas,Karu,Põder,Luik,Raud,Vaher'],
+lt:['Mantas,Tomas,Darius,Andrius,Paulius,Lukas,Rokas,Gediminas,Justas,Vytautas,Dainius,Mindaugas,Aurimas,Karolis','Ieva,Rūta,Gabija,Eglė,Aistė,Austėja,Monika,Laura,Inga,Jurgita,Viktorija,Kamilė,Agnė,Greta','Kazlauskas,Petrauskas,Jankauskas,Stankevičius,Vasiliauskas,Žukauskas,Butkus,Paulauskas,Urbonas,Navickas,Rimkus,Balčiūnas,Šimkus,Kavaliauskas,Ramanauskas,Sakalauskas,Mikalauskas,Grigas'],
+lv:['Jānis,Andris,Māris,Edgars,Kristaps,Roberts,Raimonds,Artūrs,Mārtiņš,Rihards,Gatis,Normunds,Ainārs,Pēteris','Laura,Anna,Elīna,Zane,Ieva,Līga,Kristīne,Marta,Dace,Santa,Linda,Agnese,Ilze,Sigita','Bērziņš,Kalniņš,Ozoliņš,Jansons,Liepiņš,Krūmiņš,Balodis,Eglītis,Zariņš,Pētersons,Vītols,Siliņš,Kārkliņš,Sproģis,Ābele,Mežals,Lācis,Grīnbergs'],
+pl:['Kamil,Piotr,Michał,Marcin,Łukasz,Paweł,Tomasz,Jakub,Mateusz,Adam,Krzysztof,Dawid,Wojciech,Rafał','Anna,Kasia,Magdalena,Agnieszka,Natalia,Justyna,Aleksandra,Joanna,Karolina,Ewelina,Marta,Patrycja,Monika,Weronika','Nowak,Kowalski,Wiśniewski,Wójcik,Kowalczyk,Kamiński,Lewandowski,Zieliński,Szymański,Woźniak,Dąbrowski,Kozłowski,Jankowski,Mazur,Kwiatkowski,Krawczyk,Piotrowski,Grabowski'],
+cz:['Jan,Petr,Tomáš,Jakub,Martin,Lukáš,Ondřej,Michal,Pavel,Zdeněk,Roman,Filip,Radek,Vojtěch','Eliška,Tereza,Lucie,Kristýna,Veronika,Barbora,Klára,Markéta,Adéla,Michaela,Nikola,Kateřina,Denisa,Zuzana','Novák,Svoboda,Novotný,Dvořák,Černý,Procházka,Kučera,Veselý,Horák,Němec,Pokorný,Marek,Pospíšil,Hájek,Král,Jelínek,Růžička,Beneš'],
+ua:['Oleksandr,Andriy,Serhiy,Bohdan,Dmytro,Artem,Maksym,Taras,Vasyl,Mykola,Ihor,Roman,Yaroslav,Denys','Olena,Kateryna,Oksana,Yaroslava,Nataliya,Iryna,Mariya,Anastasiya,Tetyana,Yulia,Svitlana,Viktoriya,Daryna,Hanna','Shevchenko,Kovalenko,Bondarenko,Tkachenko,Kravchenko,Melnyk,Boyko,Moroz,Savchenko,Lysenko,Marchenko,Kovalchuk,Polishchuk,Rudenko,Petrenko,Klymenko,Honcharenko,Pavlenko'],
+bg:['Georgi,Ivan,Dimitar,Nikolay,Petar,Stefan,Atanas,Hristo,Todor,Kiril,Boyan,Milen,Plamen,Zhivko','Maria,Ivanka,Elena,Svetla,Desislava,Yordanka,Daniela,Gergana,Nadezhda,Tsvetelina,Radostina,Vesela,Stefka,Ivet','Ivanov,Georgiev,Dimitrov,Petrov,Stoyanov,Todorov,Kolev,Angelov,Hristov,Vasilev,Popov,Nikolov,Iliev,Markov,Yordanov,Atanasov,Stefanov,Mihaylov'],
+hr:['Ivan,Marko,Luka,Filip,Josip,Mateo,Domagoj,Ante,Tomislav,Dario,Nikola,Mario,Stjepan,Karlo','Ana,Ivana,Marija,Petra,Matea,Sandra,Lucija,Maja,Nina,Martina,Sara,Dora,Ema,Katarina','Horvat,Kovačić,Babić,Marić,Jurić,Novak,Knežević,Vuković,Perić,Matić,Tomić,Pavlović,Božić,Blažević,Šimić,Kovač,Franjić,Radić'],
+rs:['Marko,Nemanja,Stefan,Milan,Nikola,Luka,Dušan,Vladimir,Aleksandar,Filip,Miloš,Uroš,Bojan,Dejan','Milica,Jelena,Ivana,Marija,Tamara,Ana,Jovana,Sara,Teodora,Katarina,Sanja,Maja,Dragana,Ivona','Jovanović,Petrović,Nikolić,Marković,Đorđević,Stojanović,Ilić,Stanković,Pavlović,Milošević,Popović,Kostić,Lazić,Mitrović,Todorović,Radovanović,Simić,Vasić'],
+hu:['Bence,Máté,Dávid,Ádám,Gábor,Balázs,Zoltán,Péter,Levente,Attila,Kristóf,Dániel,András,Tamás','Réka,Anna,Boglárka,Zsófia,Eszter,Fanni,Nóra,Petra,Kinga,Lili,Dóra,Vivien,Szilvia,Barbara','Nagy,Kovács,Tóth,Szabó,Horváth,Varga,Kiss,Molnár,Németh,Farkas,Balogh,Papp,Takács,Juhász,Lakatos,Mészáros,Oláh,Simon'],
+ro:['Andrei,Alexandru,Mihai,Cristian,Florin,Răzvan,Ionuț,Bogdan,Vlad,Adrian,Marius,Daniel,Sorin,Radu','Ioana,Elena,Maria,Andreea,Alexandra,Cristina,Raluca,Diana,Larisa,Mihaela,Roxana,Alina,Simona,Claudia','Popescu,Ionescu,Popa,Stan,Dumitru,Gheorghe,Constantin,Marin,Radu,Stoica,Munteanu,Mocanu,Dobre,Barbu,Ene,Niculescu,Tudor,Matei'],
+gr:['Giorgos,Nikos,Kostas,Dimitris,Panagiotis,Yannis,Christos,Thanasis,Vasilis,Stelios,Michalis,Alexandros,Lefteris,Spyros','Maria,Eleni,Katerina,Sofia,Ioanna,Despina,Anna,Georgia,Paraskevi,Konstantina,Voula,Nikoleta,Fotini,Stavroula','Papadopoulos,Georgiou,Nikolaidis,Dimitriou,Karagiannis,Vasiliadis,Pappas,Alexiou,Christodoulou,Antoniou,Ioannidis,Makris,Kokkinos,Mavridis,Panagiotou,Stavrou,Theodorou,Sotiriou'],
+tr:['Mehmet,Mustafa,Ahmet,Emre,Burak,Can,Kerem,Murat,Eren,Hakan,Yusuf,Serkan,Onur,Barış','Elif,Zeynep,Ayşe,Merve,Esra,Büşra,Derya,Selin,Ebru,Gizem,Duygu,Seda,Aslı,Nur','Yılmaz,Kaya,Demir,Şahin,Çelik,Yıldız,Yıldırım,Öztürk,Aydın,Özdemir,Arslan,Doğan,Kılıç,Aslan,Çetin,Kara,Koç,Kurt'],
+il:['Ariel,Eitan,Noam,Itai,Yonatan,Omer,Daniel,Amit,Guy,Tal,Ido,Lior,Dor,Roi','Noa,Shira,Maya,Tamar,Yael,Hila,Michal,Dana,Liat,Roni,Adi,Shani,Neta,Gal','Cohen,Levi,Mizrahi,Peretz,Biton,Dahan,Avraham,Friedman,Katz,Azoulay,Hadad,Amar,Malka,Golan,Shapira,Goldberg,Ben-David,Bar-Lev'],
+ar:['Youssef,Mohamed,Karim,Omar,Amine,Hicham,Said,Rachid,Mehdi,Anas,Nabil,Hamza,Bilal,Soufiane','Fatima,Salma,Nezha,Hasna,Yasmine,Imane,Sara,Meryem,Leila,Samira,Khadija,Amal,Nadia,Houda','El Amrani,Benali,Haddad,Bouazza,Lahlou,Alaoui,Idrissi,Tazi,Berrada,Chraibi,Ouahbi,Mansouri,Zouine,Benhassi,El Guerrouj,Bidouane,Souleiman,Ghezal'],
+wa:['Moussa,Ibrahima,Cheikh,Mamadou,Abdoulaye,Ousmane,Jean-Marc,Kévin,Yannick,Franck,Serge,Aliou,Seydou,Landry','Aminata,Fatou,Awa,Mariama,Khady,Aïcha,Nadège,Mireille,Estelle,Rokhaya,Sokhna,Christelle,Ndeye,Adja','Diop,Ndiaw,Sow,Diallo,Mbaye,Fall,Ndiaye,Sarr,Kouassi,Koné,Traoré,Ouattara,Mbarga,Ngono,Fofana,Bamba,Tchoumi,Essomba'],
+ht:['Jean,Wilfried,Kervens,Mackenson,Johnny,Stanley,Rodney,Frantz,Wilson,Jonas,Emmanuel,Dieuseul,Fabrice,Samuel','Marie,Rose,Nadège,Widlyne,Carline,Esther,Fabiola,Stéphanie,Naïka,Magalie,Roselaine,Mirlande,Sandra,Judith','Joseph,Pierre,Jean-Baptiste,Louis,Charles,Saint-Fleur,Désir,Lafontant,Jeanty,Célestin,Duval,Étienne,Dorsainvil,Michel,Toussaint,Beauvais,Augustin,Baptiste'],
+mg:['Hery,Andry,Tojo,Mamy,Faly,Rado,Njaka,Fenitra,Tiana,Lalaina,Mickaël,Nirina,Solo,Rivo','Voahangy,Hanta,Lalao,Miora,Fara,Naina,Tahina,Soa,Mialy,Vola,Haja,Noro,Lanto,Sitraka','Rakotomalala,Randrianarisoa,Rasolofo,Rakotondrabe,Andrianarivo,Razafy,Ravelomanana,Rabemananjara,Andriamihaja,Rasoanaivo,Ratsimbazafy,Rakoto,Razanakoto,Rabarison,Randria,Raharison,Ramanantsoa,Rajaonarison'],
+ng:['Chukwuemeka,Emeka,Tobi,Segun,Obinna,Ifeanyi,Femi,Chidi,Kelechi,Uche,Tunde,Ikenna,Seyi,Chinedu','Blessing,Ngozi,Funke,Amaka,Chioma,Ada,Folake,Temi,Ese,Favour,Nkechi,Yetunde,Oluchi,Adaeze','Okafor,Adeyemi,Okonkwo,Ogunleye,Balogun,Eze,Nwosu,Ibrahim,Adeleke,Olawale,Chukwu,Obi,Onyekwere,Oduduru,Ajayi,Amusan,Osazuwa,Akinyemi'],
+ke:['Kipchoge,Kiprop,Brian,Kevin,Collins,Dennis,Elijah,Geoffrey,Hillary,Isaac,Peter,Samson,Wesley,Julius','Faith,Mercy,Caroline,Esther,Joyce,Hellen,Gladys,Pamela,Winnie,Sharon,Beatrice,Priscilla,Lilian,Maximilla','Kipruto,Kiplagat,Rotich,Kosgei,Cheruiyot,Kiptoo,Korir,Biwott,Mutai,Kimutai,Langat,Kiprotich,Njoroge,Omondi,Otieno,Wanjiru,Yego,Rudisha'],
+et:['Tesfaye,Getachew,Abebe,Dawit,Mulugeta,Yohannes,Kebede,Tadesse,Berhanu,Haile,Henok,Samuel,Birhanu,Mesfin','Tigist,Almaz,Genzebe,Selam,Meseret,Hirut,Aster,Meron,Tsion,Bethlehem,Senait,Dagmawit,Rahel,Mekdes','Bekele,Gebrselassie,Tola,Dibaba,Kebede,Desta,Alemu,Girma,Assefa,Tadesse,Wolde,Gebre,Mengistu,Hailu,Abera,Tsegaye,Yimer,Negash'],
+za:['Sipho,Thabo,Willem,Johan,Pieter,Wayde,Akani,Luvo,Cornel,Pierre,Ruan,Gift,Tumelo,Dewald','Lerato,Nomvula,Thandi,Zanele,Liezel,Janice,Caster,Karin,Elize,Carina,Anrie,Palesa,Lindiwe,Chanel','van der Merwe,Botha,Nel,Coetzee,Naidoo,Dlamini,Nkosi,Mokoena,Ndlovu,Jacobs,Smit,Pretorius,du Toit,Visser,Venter,Theron,Mthembu,van Niekerk'],
+jm:['Usain,Omar,Yohan,Nesta,Asafa,Rusheen,Kemar,Jevaughn,Javon,Orlando,Warren,Ramone,Tajay,Rajindra','Shelly-Ann,Elaine,Shericka,Veronica,Danielle,Natoya,Stephenie,Ackera,Janieve,Briana,Tia,Kerrica,Nickisha,Lamara','Bolt,Powell,Blake,McLeod,Thompson,Campbell,Fraser,Williams,Brown,Walker,Gayle,Mullings,Graham,Hylton,Samuels,Pryce,Goule,Distin'],
+cu:['Yoandri,Leonel,Yorgelis,Orlando,Alejandro,Yunier,Dayron,Lázaro,Reinier,Raidel,Maikel,Yosvany,Osmany,Ernesto','Yarisley,Yaimé,Yarelis,Daniela,Yusmay,Sandra,Dayana,Lisandra,Yordanka,Yamilé,Rosa,Ailín,Idalmis,Yaniuvis','Pérez,Rodríguez,González,Fernández,Díaz,Álvarez,Rojas,Castillo,Barrios,Mayor,Echevarría,Quesada,Hernández,Iglesias,Savigne,Pedroso,Zayas,Lescay'],
+jp:['Haruto,Yuto,Sota,Ren,Kaito,Daiki,Takumi,Shun,Ryota,Keita,Yuki,Hiroki,Kenta,Masato','Yui,Hina,Sakura,Aoi,Mio,Rina,Haruka,Mei,Nanami,Misaki,Ayaka,Kana,Saki,Yuna','Sato,Suzuki,Takahashi,Tanaka,Watanabe,Ito,Yamamoto,Nakamura,Kobayashi,Kato,Yoshida,Yamada,Sasaki,Matsumoto,Inoue,Kimura,Hayashi,Shimizu'],
+cn:['Wei,Jun,Hao,Lei,Yang,Ming,Bin,Tao,Peng,Jian,Chao,Long,Feng,Kai','Li,Na,Jing,Xia,Fang,Yan,Ting,Lin,Xin,Yu,Mei,Qian,Hui,Ying','Wang,Li,Zhang,Liu,Chen,Yang,Huang,Zhao,Wu,Zhou,Xu,Sun,Ma,Zhu,Hu,Guo,He,Gao'],
+kr:['Min-jun,Seo-jun,Ji-hoon,Hyun-woo,Joon-ho,Sung-min,Dong-hyun,Tae-yang,Jae-won,Woo-jin,Kyung-soo,Young-ho,Seung-hyun,Jin-woo','Seo-yeon,Ji-woo,Ha-eun,Min-seo,Yu-na,Soo-jin,Eun-ji,Hye-jin,Ji-min,Da-hye,So-yeon,Chae-won,Ye-jin,Mi-rae','Kim,Lee,Park,Choi,Jung,Kang,Cho,Yoon,Jang,Lim,Han,Oh,Seo,Shin,Kwon,Hwang,Ahn,Song'],
+in:['Arjun,Rohan,Vikram,Aditya,Rahul,Amit,Karan,Sanjay,Vijay,Manoj,Deepak,Ravi,Suresh,Naveen','Priya,Anjali,Pooja,Neha,Kavita,Sunita,Divya,Swati,Meera,Anita,Ritu,Lakshmi,Shweta,Swapna','Sharma,Singh,Kumar,Patel,Gupta,Reddy,Nair,Yadav,Chauhan,Verma,Mishra,Das,Mehta,Joshi,Pillai,Iyer,Choudhary,Kapoor']
+};
+const NAT_NP={'France':'fr','Belgique':['fr','nl'],'Suisse':['fr','de'],'Canada':['ca','ca'],'Allemagne':'de','Autriche':'de','Pays-Bas':'nl','Espagne':'es','Mexique':'lat','Argentine':'lat','Colombie':'lat','Chili':'lat','Cuba':'cu','Italie':'it','Portugal':'pt','Brésil':'br','Royaume-Uni':'en','Irlande':'ie','États-Unis':'us','Nouvelle-Zélande':'nz','Australie':'au','Suède':'se','Norvège':'no','Danemark':'dk','Finlande':'fi','Estonie':'ee','Lituanie':'lt','Lettonie':'lv','Pologne':'pl','République tchèque':'cz','Ukraine':'ua','Bulgarie':'bg','Croatie':'hr','Serbie':'rs','Hongrie':'hu','Roumanie':'ro','Grèce':'gr','Turquie':'tr','Israël':'il','Maroc':'ar','Algérie':'ar','Tunisie':'ar','Sénégal':'wa','Côte d\'Ivoire':'wa','Cameroun':'wa','Haïti':'ht','Madagascar':'mg','Nigeria':'ng','Kenya':'ke','Éthiopie':'et','Afrique du Sud':'za','Jamaïque':'jm','Bahamas':'jm','Trinité-et-Tobago':'jm','Grenade':'jm','Japon':'jp','Chine':'cn','Corée du Sud':'kr','Inde':'in'};
+function namePool(nat){let k=NAT_NP[nat];if(Array.isArray(k))k=pick(k);const p=NP[k]||NP.fr;return p.map(s=>s.split(','));}
 function gauss(){let s=0;for(let i=0;i<6;i++)s+=RNG();return(s-3)/Math.sqrt(.5);}
-function makeBot(level,cat,id,usedNames){
+function makeBot(level,cat,id,usedNames,home){
  const sex=sexOf(cat);
+ /* nationalité : aux premiers niveaux ce sont des compatriotes de l'athlète ; plus haut, des étrangers (avec encore quelques compatriotes) */
+ const homeN=NATS.some(n=>n[0]===home)?home:'France';
+ let natName=homeN;
+ if(RNG()<level.intl&&RNG()>.14)natName=pick(NAT_INT.filter(n=>n[0]!==homeN))[0];
+ const nat=[natName,flagOf(natName)];
  let first,last,key,g=0;
- do{first=pick(sex==='M'?FIRST_M:FIRST_F);last=pick(LAST);key=first+last;}while(usedNames.has(key)&&g++<50);
+ do{const np=namePool(natName);first=pick(sex==='M'?np[0]:np[1]);last=pick(np[2]);key=first+last;}while(usedNames.has(key)&&g++<50);
  usedNames.add(key);
- const natPool=RNG()<level.intl?NAT_INT:NAT_FR,nat=pick(natPool);
  const base=level.avg+gauss()*4,pct={};
  STATS.forEach(s=>pct[s.k]=clamp(Math.round(base+gauss()*7),3,PCT_MAX));
  /* profil de spécialité : un point fort, un point faible */
@@ -1304,7 +1359,8 @@ function buildCompetition(levelId,cat,humans){
  const all=humans.map((h,i)=>({...h,id:i,human:true,cat,pct:{...h.pct}}));
  const used=new Set(all.map(p=>p.first+p.last));
  const lanes=level.indoor?6:8,target=(level.parts>1&&level.id!=='leg')?Math.ceil(Math.max(level.parts,humans.length)/lanes)*lanes:Math.max(level.parts,humans.length);  /* séries pleines : tous les couloirs sont occupés */
- while(all.length<target)all.push(makeBot(level,cat,all.length,used));
+ const homes=humans.map(h=>h.nat).filter(Boolean);
+ while(all.length<target)all.push(makeBot(level,cat,all.length,used,homes.length?pick(homes):'France'));
  all.forEach(initRuntime);
  const li=level.base?LEVELS.findIndex(l=>l.id===level.base):LEVELS.indexOf(level);
  const C={level,li,cat,evs:EV[cat],dayBreak:DB[cat],all,cur:null,abort:false,attempts:3,indoor:isInd(cat)};
@@ -2591,6 +2647,7 @@ const ST={
  },
  setEvent(C,ev){this.lastC=C;
   if(!this.ok)return;
+  this.endPodium();
   const T=this.T,L=this.L;
   this.ev=ev;this._C=C;this.clearGroup(this.evG);this.clearGroup(this.markG);this.marks={};this.best={};this.tws.length=0;
   this.drawGround(ev,C);this.updScreen(ev,C);this.halo.visible=false;this.queueN=0;
@@ -2784,6 +2841,7 @@ const ST={
    const w=this.tws[i],u=Math.min(1,(now-w.t0)/w.ms);w.fn(u);
    if(u>=1){this.tws.splice(i,1);w.res();}
   }
+  if(this.fx&&this.fx.length)for(const f of this.fx)f(dt,now);
   const cam=this.cam,g=this.goal;
   if(this.follow&&!this.manual&&this.heat.length){
    let best=null,sx=0,sz=0,n=0;
@@ -2802,6 +2860,99 @@ const ST={
   c.lookAt(cam.tx,0,cam.tz);
   if(this.halo.visible)this.halo.scale.setScalar(1+.08*Math.sin(now/180));
   this.r.render(this.s,c);
+ },
+ /* ---------- cérémonie du podium : de plus en plus prestigieuse avec le niveau (tier 0 = départemental … 6 = JO / Légendes) ---------- */
+ podTex(txt,sub,base,fg,nm){
+  const cv=document.createElement('canvas');cv.width=256;cv.height=256;const x=cv.getContext('2d');
+  x.fillStyle=base;x.fillRect(0,0,256,256);
+  const gd=x.createLinearGradient(0,0,0,256);gd.addColorStop(0,'rgba(255,255,255,.24)');gd.addColorStop(1,'rgba(0,0,0,.22)');x.fillStyle=gd;x.fillRect(0,0,256,256);
+  x.fillStyle=fg;x.font='bold 150px Oswald, Arial';x.textAlign='center';x.textBaseline='middle';x.fillText(txt,128,nm?100:128);
+  if(nm){x.font='bold 36px Oswald, Arial';x.fillText(nm.toUpperCase().slice(0,11),128,206);}
+  if(sub){x.font='bold 20px Oswald, Arial';x.fillText(sub.toUpperCase().slice(0,24),128,242);}
+  return new this.T.CanvasTexture(cv);
+ },
+ podium(top,lv){
+  if(!this.ok||!top||!top.length)return Promise.resolve();
+  const T=this.T,tier=(lv&&lv.id==='leg')?6:Math.max(0,Math.min(6,this.tier|0)),ind=this.indoor;
+  this.endPodium();this.clearGroup(this.evG);this.clearGroup(this.markG);this.hideAll();this.tws.length=0;
+  const G=new T.Group();this.evG.add(G);this.podG=G;this.fx=[];this.podPawns=[];
+  const W=ind?2.7:3.3,D=ind?2.6:3.1,k=1+tier*.05,H=[2.7*k,2.05*k,1.5*k],X=[0,-W,W];
+  const ph=(c,s)=>new T.MeshPhongMaterial({color:new T.Color(c),shininess:s==null?30:s,specular:s>60?0x999999:0x222222});
+  const bc=tier<1?['#c8a26a','#c8a26a','#c8a26a']:tier<2?['#2f5fd0','#2f5fd0','#2f5fd0']:tier<3?['#eef1f8','#eef1f8','#eef1f8']:['#e2b21f','#cfd4de','#b4753a'];
+  const fg=tier<1?'#5a3b14':tier<2?'#ffffff':tier<3?['#c99a10','#8a93a6','#a0622a']:'#1a1204';
+  const sub=tier>=2?(lv&&lv.s||''):'';
+  [0,1,2].forEach(i=>{
+   const sd=ph(bc[i],tier>=4?100:25),fr=new T.MeshPhongMaterial({map:this.podTex(String(i+1),sub,bc[i],Array.isArray(fg)?fg[i]:fg,top[i]&&String(top[i].last||'')),shininess:sd.shininess});
+   const b=new T.Mesh(new T.BoxGeometry(W,H[i],D),[sd,sd,sd,sd,fr,sd]);b.position.set(X[i],H[i]/2,0);b.castShadow=true;b.receiveShadow=true;G.add(b);
+   if(tier>=6){const tr=new T.Mesh(new T.BoxGeometry(W+.14,.16,D+.14),ph('#ffd34d',130));tr.position.set(X[i],H[i]+.03,0);G.add(tr);}
+   if(tier>=4){const tr=new T.Mesh(new T.BoxGeometry(W+.06,.1,D+.06),ph(tier>=6?'#ffd34d':'#ffffff',90));tr.position.set(X[i],.05,0);G.add(tr);}
+  });
+  if(tier>=1){const c=new T.Mesh(new T.BoxGeometry(W*3+(tier>=3?5:3),.1,D+5.5),ph(tier>=6?'#c99a10':tier>=3?'#a3152b':'#2b3a63',tier>=6?110:15));c.position.set(0,.05,1.2);c.receiveShadow=true;G.add(c);}
+  if(tier>=2){ /* panneau de fond avec le nom de la compétition */
+   const cv=document.createElement('canvas');cv.width=1024;cv.height=256;const x=cv.getContext('2d');
+   const gd=x.createLinearGradient(0,0,1024,0);
+   const pal=tier>=6?['#3a2a05','#8a6a10','#3a2a05']:tier>=5?['#0b1d4d','#1f4fbf','#0b1d4d']:tier>=4?['#1b2447','#3a4a8c','#1b2447']:tier>=3?['#3a0a14','#a3152b','#3a0a14']:['#16213e','#2f4a8a','#16213e'];
+   gd.addColorStop(0,pal[0]);gd.addColorStop(.5,pal[1]);gd.addColorStop(1,pal[2]);x.fillStyle=gd;x.fillRect(0,0,1024,256);
+   x.strokeStyle=tier>=6?'#ffd34d':'#ffffff';x.lineWidth=tier>=4?10:6;x.strokeRect(8,8,1008,240);
+   x.fillStyle=tier>=6?'#ffe9a0':'#fff';x.textAlign='center';x.textBaseline='middle';const tt=((lv&&lv.n)||'DÉCATHLON').toUpperCase();let fs=96;do{x.font='bold '+fs+'px Oswald, Arial';fs-=4;}while(x.measureText(tt).width>930&&fs>30);x.fillText(tt,512,100);
+   x.font='bold 54px Oswald, Arial';x.fillStyle=tier>=6?'#ffd34d':'#f4c430';x.fillText(tier>=5?'★ ★ ★ ★ ★':tier>=3?'★ ★ ★':'DÉCATHLON · HEPTATHLON',512,194);
+   const bw=W*3+5,ph2=bw/5,py=H[0]+ph2/2+2.7,pn=new T.Mesh(new T.PlaneGeometry(bw,ph2),new T.MeshBasicMaterial({map:new T.CanvasTexture(cv)}));pn.position.set(0,py,-D/2-1.6);G.add(pn);this.podTop=py+ph2/2;
+   [-1,1].forEach(s=>{const lg=new T.Mesh(new T.CylinderGeometry(.12,.12,py+ph2/2,8),ph('#9aa3b8',60));lg.position.set(s*(bw/2-.1),(py+ph2/2)/2,-D/2-1.6);G.add(lg);});
+  }
+  if(tier>=3){ /* mâts et drapeaux des trois nations */
+   top.slice(0,3).forEach((p,i)=>{
+    const fy=(this.podTop||H[0]+5)+.9,m=new T.Mesh(new T.CylinderGeometry(.07,.07,fy+1,8),ph('#d8dcea',70));m.position.set(X[i]*1.6-.05,(fy+1)/2,-D/2-1.7);G.add(m);
+    const cv=document.createElement('canvas');cv.width=192;cv.height=128;const x=cv.getContext('2d');x.fillStyle='#8a96b8';x.fillRect(0,0,192,128);if(p.nat)this.drawFlag(x,0,0,192,128,p.nat);
+    const f=new T.Mesh(new T.PlaneGeometry(2.1,1.4),new T.MeshBasicMaterial({map:new T.CanvasTexture(cv),side:T.DoubleSide}));f.position.set(X[i]*1.6+1.15,fy,-D/2-1.7);f.userData.ph=i;G.add(f);
+    this.fx.push((dt,now)=>{f.rotation.y=Math.sin(now/420+i)*.12;});
+   });
+  }
+  if(tier>=4){ /* fleurs et projecteurs */
+   [-1,1].forEach(s=>{const x0=s*(W*1.5+1.7);
+    const pot=new T.Mesh(new T.CylinderGeometry(.5,.38,.8,14),ph('#6b4a2a'));pot.position.set(x0,.4,.4);G.add(pot);
+    ['#e11d48','#f59e0b','#ffffff','#f472b6','#e11d48'].forEach((c,j)=>{const b=new T.Mesh(new T.SphereGeometry(.34,10,8),ph(c));b.position.set(x0+Math.cos(j*1.26)*.38,1.05+(j%2)*.14,.4+Math.sin(j*1.26)*.38);G.add(b);});
+    const bm=new T.Mesh(new T.ConeGeometry(2.6,13,24,1,true),new T.MeshBasicMaterial({color:tier>=6?0xffe9a0:0xfff2c8,transparent:true,opacity:tier>=5?.16:.11,blending:T.AdditiveBlending,depthWrite:false,side:T.DoubleSide}));
+    bm.position.set(s*6.5,6.5,2.5);bm.rotation.z=s*.38;bm.rotation.x=.18;G.add(bm);
+    this.fx.push((dt,now)=>{bm.rotation.z=s*(.38+Math.sin(now/900+s)*.08);});
+   });
+  }
+  if(tier>=5){ /* confettis + coupe */
+   const N=tier>=6?520:320,pos=new Float32Array(N*3),col=new Float32Array(N*3),vel=new Float32Array(N),cs=[[1,.82,.2],[.9,.1,.3],[.2,.6,1],[1,1,1],[.3,.9,.5]];
+   for(let i=0;i<N;i++){pos[i*3]=(Math.random()-.5)*20;pos[i*3+1]=Math.random()*14;pos[i*3+2]=(Math.random()-.5)*9;vel[i]=2+Math.random()*3;const c=cs[i%cs.length];col[i*3]=c[0];col[i*3+1]=c[1];col[i*3+2]=c[2];}
+   const geo=new T.BufferGeometry();geo.setAttribute('position',new T.BufferAttribute(pos,3));geo.setAttribute('color',new T.BufferAttribute(col,3));
+   const pts=new T.Points(geo,new T.PointsMaterial({size:.34,vertexColors:true,transparent:true,opacity:.95,depthWrite:false}));pts.frustumCulled=false;G.add(pts);
+   this.fx.push((dt)=>{for(let i=0;i<N;i++){pos[i*3+1]-=vel[i]*dt;pos[i*3]+=Math.sin(pos[i*3+1]*2+i)*dt*.8;if(pos[i*3+1]<0){pos[i*3+1]=13+Math.random()*2;pos[i*3]=(Math.random()-.5)*20;}}geo.attributes.position.needsUpdate=true;});
+   const cup=new T.Group();const gold=ph('#ffd34d',140);
+   const bs=new T.Mesh(new T.CylinderGeometry(.55,.65,.5,16),ph('#2a1a00',40));bs.position.y=.25;cup.add(bs);
+   const st=new T.Mesh(new T.CylinderGeometry(.12,.2,.7,12),gold);st.position.y=.85;cup.add(st);
+   const bw2=new T.Mesh(new T.CylinderGeometry(.62,.2,.9,18,1,true),gold);bw2.material.side=T.DoubleSide;bw2.position.y=1.65;cup.add(bw2);
+   cup.position.set(W*1.5+1.0,0,2.4);cup.scale.setScalar(tier>=6?1.6:1.2);G.add(cup);
+   this.fx.push((dt,now)=>{cup.rotation.y=now/1100;});
+  }
+  if(tier>=6){ /* feux d'artifice */
+   const bursts=[0,1,2].map(j=>{const n=70,pos=new Float32Array(n*3),geo=new T.BufferGeometry();geo.setAttribute('position',new T.BufferAttribute(pos,3));
+    const pt=new T.Points(geo,new T.PointsMaterial({size:.5,color:[0xffd34d,0xff5a7a,0x6ad0ff][j],transparent:true,opacity:1,depthWrite:false}));pt.frustumCulled=false;G.add(pt);
+    const dirs=[];for(let i=0;i<n;i++){const a=Math.random()*6.283,b=Math.acos(2*Math.random()-1),r=3+Math.random()*3;dirs.push([Math.sin(b)*Math.cos(a)*r,Math.cos(b)*r,Math.sin(b)*Math.sin(a)*r]);}
+    return{pt,geo,pos,dirs,t:-j*.9,cx:0,cy:0,cz:0,n};});
+   this.fx.push((dt)=>{bursts.forEach(o=>{o.t+=dt;if(o.t>2.4){o.t=0;o.cx=(Math.random()-.5)*24;o.cy=13+Math.random()*6;o.cz=-6-Math.random()*5;}
+    const u=Math.max(0,o.t);for(let i=0;i<o.n;i++){const d=o.dirs[i];o.pos[i*3]=o.cx+d[0]*u;o.pos[i*3+1]=o.cy+d[1]*u-3*u*u;o.pos[i*3+2]=o.cz+d[2]*u;}
+    o.geo.attributes.position.needsUpdate=true;o.pt.material.opacity=o.t<0?0:Math.max(0,1-o.t/2.3);});});
+  }
+  /* les pions : ils sautent sur leur marche, 3e, 2e puis 1er */
+  const sc=(ind?1.05:1.3);
+  top.slice(0,3).forEach((p,i)=>{
+   const g=this.pawn(p);g.visible=true;g.scale.setScalar(sc);g.rotation.y=0;g.position.set(X[i],0,8);
+   if(g.userData.lab)g.userData.lab.visible=false;
+   const ls=new T.Object3D();g.add(ls);g.userData.podLab=ls;this.podPawns.push(g);
+  });
+  const cam=this.goal,tn=2*Math.tan(this.c.fov*Math.PI/360);
+  this.follow=false;this.manual=true;cam.tx=0;cam.tz=ind?3:6;cam.pit=.3;cam.yaw=0;cam.d=Math.max(ind?20:25,(W*3+6)/(tn*(this.asp||1.6)))*(1+tier*.015);
+  return (async()=>{for(const i of [2,1,0]){const p=top[i];if(!p)continue;const g=this.pawn(p),x0=X[i],y1=H[i];await this.anim(850,u=>{const e=this.ease(u);g.position.set(x0,y1*e+Math.sin(Math.PI*e)*2.8,8*(1-e));});}})();
+ },
+ endPodium(){
+  if(this.podG){this.evG.remove(this.podG);this.podG.traverse&&this.podG.traverse(m=>{if(m.geometry)m.geometry.dispose();});this.podG=null;}
+  this.fx=[];
+  Object.values(this.pawns).forEach(g=>{if(g.userData.podLab){g.remove(g.userData.podLab);g.userData.podLab=null;if(g.userData.lab)g.userData.lab.visible=true;g.scale.setScalar(1.12);g.visible=false;}});
  },
  overview(){
   const p=this.pre;if(!p)return;this.follow=false;this.manual=true;
@@ -3509,7 +3660,9 @@ function makeHooks(g){
   async finish(C){guard();if(g.simmed)endSim(g);if(g.room)roomGameOver(g);
    if(g.train){ST.show(false);if(g.onFinish)g.onFinish(C);return;}
    if(!g.auto){for(const e of RC.checkTotal(C)){const t=RC.textTotal(e,C.cat);await banner(t.title,t.body,g.fast?1400:4500);}}else RC.checkTotal(C);
-   await banner('🏁 Compétition terminée','Place au classement…',g.fast?600:1700);ST.show(false);showFinal(C,g.onFinish?()=>g.onFinish(C):null);}
+   await banner('🏁 Compétition terminée','Place au classement…',g.fast?600:1700);
+   if(!g.auto&&!g.simmed&&ST.ok){const top3=[...C.all].sort((a,b)=>b.total-a.total).slice(0,3);ST.podium(top3,C.level);await waitBtn(g,'Voir le classement final →');ST.endPodium();}
+   ST.show(false);showFinal(C,g.onFinish?()=>g.onFinish(C):null);}
  };
 }
 
