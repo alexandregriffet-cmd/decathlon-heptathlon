@@ -1768,7 +1768,7 @@ function applyAging(K){
   }
  }
  if(plan.gain)K.pools.push({n:plan.gain,sk:null,why:`Croissance (${nw} ans)`});
- K.age=nw;K.year++;K.season++;K.step=0;K.phase='train';K.slots=[null,null,null];K.sessDone=0;K.tf=0;
+ K.age=nw;K.year++;K.season++;K.step=0;K.phase='train';K.endPrep=false;K.slots=[null,null,null];K.sessDone=0;K.tf=0;
  return{plan,lost,age:nw};
 }
 
@@ -3638,8 +3638,10 @@ function enterCareer(){inCareerGame=false;ST.show(false);show('career');renderCa
 /* ---------- avancement du calendrier ---------- */
 function pushSkip(st,why){K.hist.push({year:K.year,age:K.age,name:st.n,lv:st.lv,tl:lvById(st.lv).s,rank:0,of:0,total:0,pbs:0,skip:why});K.tf=0;}
 function advanceStep(){
- K.step++;K.slots=[null,null,null];K.sessDone=0;
- {const ss=seasonSteps(K.year);K.phase=K.step>=ss.length?'bilan':(ss[K.step].ind?'comp':'train');if(K.inj&&K.phase!=='bilan')enterRehab(K);}
+ K.step++;K.slots=[null,null,null];K.sessDone=0;K.endPrep=false;
+ {const ss=seasonSteps(K.year);
+  if(K.step>=ss.length){if(K.inj)K.phase='bilan';else{K.phase='train';K.endPrep=true;K.slots=[null];}}   /* fin de saison : une dernière séance avant le bilan */
+  else{K.phase='train';if(K.inj)enterRehab(K);}}
 }
 
 /* ---------- rendu général ---------- */
@@ -3737,7 +3739,7 @@ $('#cMain').addEventListener('click',e=>{
  else if(a==='comp')compAction(b.dataset.m);
  else if(a==='next'){afterSessionNext();}
  else if(a==='skipRehab'){K.sessDone=3;finishRehab();}
- else if(a==='skipPrep'){K.sessDone=3;K.phase='comp';persist();renderCareer();}
+ else if(a==='skipPrep'){K.sessDone=nSl();trainDone();persist();renderCareer();}
  else if(a==='season')nextSeason();
 });
 
@@ -3772,8 +3774,10 @@ function addSlot(s){
  const i=K.slots.findIndex(x=>!x);if(i<0)return;
  K.slots[i]=s;persist();renderCareer();
 }
+const nSl=()=>K.slots.length;
+function trainDone(){if(K.sessDone<nSl())return;if(K.endPrep){K.endPrep=false;K.phase='bilan';}else K.phase='comp';}
 function trainHTML(){
- const steps=seasonSteps(K.year),st=steps[K.step],full=K.slots.every(Boolean);
+ const steps=seasonSteps(K.year),st=K.endPrep?{...steps[steps.length-1],n:'la saison suivante',m:'Avril'}:steps[K.step],full=K.slots.every(Boolean);
  const L=lvById(st.lv),q=careerQualified(K,st.lv);
  const slots=K.slots.map((s,i)=>`<div class="slot ${i<K.sessDone?'done':i===K.sessDone&&full?'cur':''}"><span class="sn">${i+1}</span><div>${slotLabel(s)}</div>${s&&i>=K.sessDone?`<button class="btn small" data-a="unslot" data-i="${i}">✕</button>`:i<K.sessDone?'<span class="chip p">fait</span>':''}</div>`).join('');
  let body;
@@ -3781,13 +3785,13 @@ function trainHTML(){
   body=`<p class="note" style="margin:0 0 8px">Choisis ${K.slots.filter(x=>!x).length} séance${K.slots.filter(x=>!x).length>1?'s':''} pour préparer : <b>${esc(st.n)}</b> (${st.m}). Un 20 au dé ajoute de la fatigue (−1 au seuil) ; le repos la fait retomber.</p>
   <div class="palette">${SESS.filter(s=>s.id!=='dis'&&(s.id!=='kin'||hasRegain(K))).map(s=>`<button class="pal" data-a="slot" data-t="${s.id}"><b>${s.i} ${s.n}</b><small>${s.d}</small>${s.sk.length?`<span class="chips">${s.sk.map(k=>`<span class="chip">${SX[k].i} ${K.pct[k]} %</span>`).join('')}</span><span class="th">d20 ≤ ${gymThreshold(K,s)}</span>`:''}</button>`).join('')}
   <div class="pal dis"><b>🏟️ Séance de discipline</b><small>${SESSX.dis.d}</small><select id="cDisEv">${EV[K.cat].map(e=>`<option value="${e.id}">${e.i} ${e.n}</option>`).join('')}${(IND[K.cat]?EV[IND[K.cat]]:[]).filter(e=>!EV[K.cat].some(x=>x.id===e.id)).map(e=>`<option value="${e.id}">${e.i} ${e.n} (salle)</option>`).join('')}</select><button class="btn small primary" data-a="slotDis">Ajouter</button></div></div>`;
- }else if(K.sessDone<3){
+ }else if(K.sessDone<nSl()){
   const sl=K.slots[K.sessDone];
-  body=`<div class="startRow"><button class="btn primary big" data-a="run">▶ Séance ${K.sessDone+1}/3 : ${slotLabel(sl)}</button></div>`;
+  body=`<div class="startRow"><button class="btn primary big" data-a="run">▶ Séance ${K.sessDone+1}/${nSl()} : ${slotLabel(sl)}</button></div>`;
  }
- return `<div class="card"><h3>🏋️ Préparation · ${esc(st.n)}</h3>
-  <p class="note" style="margin:0 0 10px">${K.tf>=2?'Tu es fatigué. ':''}Niveau visé : ${L.s}, compétence moyenne minimale ${L.min} % — la tienne : <b style="color:${q?'var(--ok)':'var(--bad)'}">${Math.round(careerAvg(K))} %</b>.</p>
-  <div class="slots">${slots}</div>${body}${maintHTML()}${K.sessDone<3?`<p style="margin:10px 0 0"><button class="btn small" data-a="skipPrep">Sauter la préparation →</button></p>`:''}</div>`;
+ return `<div class="card"><h3>🏋️ ${K.endPrep?'Dernière séance de la saison':'Préparation · '+esc(st.n)}</h3>
+  <p class="note" style="margin:0 0 10px">${K.tf>=2?'Tu es fatigué. ':''}${K.endPrep?'Les compétitions sont terminées : une dernière séance avant le bilan de la saison.':`Niveau visé : ${L.s}, compétence moyenne minimale ${L.min} % — la tienne : <b style="color:${q?'var(--ok)':'var(--bad)'}">${Math.round(careerAvg(K))} %</b>.`}</p>
+  <div class="slots">${slots}</div>${body}${maintHTML()}${K.sessDone<nSl()?`<p style="margin:10px 0 0"><button class="btn small" data-a="skipPrep">Sauter la préparation →</button></p>`:''}</div>`;
 }
 /* ---------- blessure : mois d'arrêt, soins et rééducation ---------- */
 function rehabHTML(){
@@ -3826,7 +3830,7 @@ function afterSessionNext(keep){
  if(!keep)cNote='';
  if(K.phase==='rehab'){if(K.sessDone>=3){finishRehab();return;}persist();renderCareer();return;}
  if(K.inj&&K.inj.fresh){enterRehab(K);persist();renderCareer();return;}
- if(K.sessDone>=3)K.phase='comp';
+ trainDone();
  persist();renderCareer();
 }
 
@@ -3845,7 +3849,7 @@ async function kinFlow(){
   $('#gx_kin').innerHTML=`<span class="${r.out}">${OUTT[r.out]}</span> ${r.n?`<b>+${r.n} %</b>`:''}`;
   await sleep(280);
   const wrap=$('#cMain .gym');
-  const nextBtn=()=>`<div class="startRow"><button class="btn primary big" id="gymNext">${K.phase==='rehab'?(K.sessDone>=3?'Terminer les soins →':'Séance suivante →'):(K.sessDone>=3?'Terminer la préparation →':'Séance suivante →')}</button></div>`;
+  const nextBtn=()=>`<div class="startRow"><button class="btn primary big" id="gymNext">${K.phase==='rehab'?(K.sessDone>=3?'Terminer les soins →':'Séance suivante →'):(K.sessDone>=nSl()?'Terminer la préparation →':'Séance suivante →')}</button></div>`;
   const fin=txt=>{const el=wrap.querySelector('.kpick');if(el)el.remove();wrap.insertAdjacentHTML('beforeend',`<p class="note" style="margin:10px 0 0">${txt}${r.out==='crit'?' Petite rechute : tu es plus fatigué.':''}</p>`+nextBtn());$('#gymNext').onclick=()=>afterSessionNext();};
   let left=r.n;const done=[];
   const draw=()=>{
@@ -3882,7 +3886,7 @@ async function gymFlow(sess){
   const g=res.rows.reduce((a,r)=>a+r.gain,0);
   const wrap=$('#cMain .gym');
   wrap.insertAdjacentHTML('beforeend',`<p class="note" style="margin:10px 0 0">${g?`+${g} point${g>1?'s':''} de jauge à répartir.`:'Séance sans point.'}${res.crit?' Échec critique : une petite blessure te fatigue davantage.':''}</p>${K.inj&&K.inj.fresh?`<div class="card cnote warn" style="margin-top:10px"><h3>🚑 Blessure</h3><p><b>${esc(K.inj.n)}</b> : arrêt de ${K.inj.months} mois. Tu perdras environ ${injLoss(K.pct[K.inj.sk[0]])} % par mois sur ${K.inj.sk.map(k=>SX[k].n.toLowerCase()).join(', ')}, à récupérer par le repos et la kiné.</p></div>`:''}
-  <div class="startRow"><button class="btn primary big" id="gymNext">${K.sessDone>=3?'Terminer la préparation →':'Séance suivante →'}</button></div>`);
+  <div class="startRow"><button class="btn primary big" id="gymNext">${K.sessDone>=nSl()?'Terminer la préparation →':'Séance suivante →'}</button></div>`);
   $('#gymNext').onclick=()=>afterSessionNext();
  };
  go.onclick=play;
@@ -3896,7 +3900,7 @@ function doDiscipline(ev){
   const list=r.sk.map(k=>`${SX[k].i} ${SX[k].n}`).join(', ');
   cNote=`<div class="card cnote ${r.ok?'':'warn'}"><h3>🏟️ Séance ${ev.n}</h3><p>${t.n} lancers : ${t.perfect} parfait${t.perfect>1?'s':''}, ${t.fail} échec${t.fail>1?'s':''}, ${t.crit} critique${t.crit>1?'s':''} (tolérance : ${r.allowed}).</p>
   <p>${r.ok?`<b>Séance réussie : +1 %</b> en ${list}.${r.bonus?` Et <b>${r.bonus} ${plural(r.bonus,'point')}</b> bonus pour les lancers parfaits.`:''}`:`Séance ratée : pas de progrès cette fois (${list}).`}</p></div>`;
-  if(K.sessDone>=3)K.phase='comp';
+  trainDone();
   persist();enterCareer();
  };
  if(K.opt.quick){runCompetition(C,silentHooks(t,true)).then(done);return;}
