@@ -434,7 +434,7 @@ dialog.rulesD{max-width:860px;max-height:90vh;overflow:auto}
      <div class="dieCtl"><div id="dieMsg" class="dieMsg"></div><div class="dieBtns"><button class="btn primary big" id="actBtn" hidden></button><button class="btn" id="turboBtn" hidden>⏩ Finir la course automatiquement</button><button class="btn" id="passBtn" hidden></button></div></div></div></div>
     <div id="ticker" class="ticker"></div>
    </div>
-   <div class="card"><h3 id="liveTitle">Résultats</h3><div id="live" class="live"></div></div>
+   <div class="card"><h3 id="liveTitle">Résultats</h3><div id="live" class="live"></div><div id="prevHeats" class="live"></div></div>
    <div class="card"><h3>Classement général</h3><div id="general" class="live"></div></div>
   </div>
   <aside class="right card">
@@ -1182,7 +1182,8 @@ function buildCompetition(levelId,cat,humans){
  const level=lvById(levelId);
  const all=humans.map((h,i)=>({...h,id:i,human:true,cat,pct:{...h.pct}}));
  const used=new Set(all.map(p=>p.first+p.last));
- while(all.length<Math.max(level.parts,humans.length))all.push(makeBot(level,cat,all.length,used));
+ const lanes=level.indoor?6:8,target=(level.parts>1&&level.id!=='leg')?Math.ceil(Math.max(level.parts,humans.length)/lanes)*lanes:Math.max(level.parts,humans.length);  /* séries pleines : tous les couloirs sont occupés */
+ while(all.length<target)all.push(makeBot(level,cat,all.length,used));
  all.forEach(initRuntime);
  const li=level.base?LEVELS.findIndex(l=>l.id===level.base):LEVELS.indexOf(level);
  const C={level,li,cat,evs:EV[cat],dayBreak:DB[cat],all,cur:null,abort:false,attempts:3,indoor:isInd(cat)};
@@ -3145,6 +3146,7 @@ function makeBotIO(g,C,p){
   async phase(){}
  };
 }
+function showPrev(g,all){const el=document.getElementById('prevHeats');if(!el)return;const h=g.heatHist||[];const l=all?h:h.slice(0,-1);el.innerHTML=l.map(x=>`<h4 style="margin:14px 0 6px">${x.t}</h4>${x.h}`).join('');}
 function renderHeat(g,C){
  const heat=g.heat;if(!heat||!heat.length||C.cur.ev.mech!=='race')return;
  const ev=C.cur.ev,D=ev.D;
@@ -3249,6 +3251,7 @@ function makeHooks(g){
    guard();const has=heat.some(p=>p.human),ev=C.cur.ev;
    g.spNow=spFor(has);g.heat=heat;g.prog={};heat.forEach(p=>g.prog[p.id]=0);g.turbo=false;Die.tint(null);
    ST.speed=1;ST.setHeat(heat);
+   if(hi===0)g.heatHist=[];showPrev(g,true);
    $('#liveTitle').textContent=`${ev.i} ${ev.n} · série ${hi+1}/${n}`;
    HUD(`Série ${hi+1}/${n} · ${C.cur.cond.s}`);
    $('#rollLog').innerHTML='';$('#tResult').innerHTML='';$('#status').innerHTML='';$('#dieMsg').textContent='';
@@ -3262,6 +3265,7 @@ function makeHooks(g){
    guard();const ev=C.cur.ev,r=C.cur.r;ST.speed=1;
    const rows=[...heat].sort((a,b)=>b.res[r].pts-a.res[r].pts);
    $('#live').innerHTML='<table><tr><th>#</th><th>Cx</th><th>Athlète</th><th>Temps</th><th>Points</th></tr>'+rows.map((p,i)=>`<tr class="${p.human?'me':''}"><td>${i+1}</td><td>${heat.indexOf(p)+1}</td><td>${nameCell(p)}</td><td class="${p.res[r].dq?'nul':''}">${p.res[r].dq?'DQ':fmtPerf(ev,p.res[r].perf)}</td><td>${nf(p.res[r].pts)}</td></tr>`).join('')+'</table>';
+   (g.heatHist=g.heatHist||[]).push({t:`Série ${hi+1}/${n}`,h:$('#live').innerHTML});showPrev(g,false);
    const hum=heat.filter(p=>p.human);
    for(const p of hum){resultPanel(C,p,p.res[r].detail);setWho(p,'Série terminée');if(g.room&&p.seat!==g.room.seat)await sleep(g.fast?150:1200);else await pause(hi===n-1?'Continuer →':'Série suivante →');}
    if(!hum.length)await sleep(g.spNow>0?400:0);
@@ -3269,6 +3273,7 @@ function makeHooks(g){
   async raceReveal(C){
    const{ev,r}=C.cur;
    const sorted=[...C.all].sort((a,b)=>b.res[r].pts-a.res[r].pts).map((p,i)=>({p,rank:i+1}));
+   g.heatHist=[];showPrev(g,true);
    setWho(null,'Résultats de l’épreuve');$('#status').innerHTML='';$('#liveTitle').textContent=`${ev.i} ${ev.n} · résultats`;
    for(let k=sorted.length-1;k>=0;k--){guard();renderLive(C,sorted.slice(k));await sleep(g.fast?8:70);}
   },
