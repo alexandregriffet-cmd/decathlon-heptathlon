@@ -571,7 +571,7 @@ dialog.rulesD{max-width:860px;max-height:90vh;overflow:auto}
  <p><b>Avant chaque compétition : 3 séances.</b></p>
  <ul><li><b>Séances de salle</b> (musculation, cardio, explosivité, technique, mental) : un seul jet. Parfait 2 points, réussi 1, échec 0, critique 0 et +1 fatigue (3 au maximum). Les points remplissent la <b>jauge</b> d’une qualité de la séance : quand elle est pleine (3 à 6 points selon le niveau de la qualité, un de moins avant 20 ans), la qualité gagne +10 %. La morphologie plafonne la progression.</li>
  <li><b>Séance de discipline</b> : l’épreuve se joue seul sur le plateau. Elle est réussie si les échecs restent tolérés (un échec tous les 5 jets, un critique en vaut deux). Ta compétence dans la discipline monte alors de 3 points en dessous de 40 %, 2 jusqu’à 80 %, 1 au-delà (×1,25 avant 20 ans). Deux jets parfaits ou plus doublent le gain et ajoutent un point de jauge.</li>
- <li><b>Repos</b> : la fatigue d’entraînement retombe à zéro. <b>Kiné</b> : récupère les pourcentages perdus après une blessure (d20 : +1 %, +2 % si parfait).</li></ul>
+ <li><b>Repos</b> : la fatigue d’entraînement retombe à zéro. <b>Kiné</b> : récupère les pourcentages perdus après une blessure (d20 : +2 %, +3 % si parfait, +1 % même en cas d’échec).</li></ul>
  <p><b>Après une compétition</b> : dans chaque épreuve, la compétence gagne 4 points si tu es dans les 3 premiers de l’épreuve, 3 jusqu’à la 8e place, 2 sinon, et 1 de plus en cas de record personnel. Le podium rapporte des points à répartir : départementaux 6 / 3 / 1, régionaux et interrégionaux 10 / 5 / 2, France Élite et Europe 14 / 7 / 3, Monde et Jeux 20 / 10 / 5. Si tes adversaires sont nettement plus faibles que toi, ces points sont réduits (×0,75, ×0,5 ou ×0,25).</p>
  <p><b>Blessures</b> : après une compétition ou une séance, surtout si tu es fatigué, tu peux te blesser (épaule, ischio-jambiers, cheville, tendon d’Achille, ligaments…). Elle peut survenir en pleine compétition : tu abandonnes alors les épreuves restantes. L’arrêt dure de 1 mois (entorse, claquage) à 9 mois (ligament croisé). Chaque mois d’arrêt, les qualités touchées perdent environ 5 % de leur valeur ; ces points ne reviennent que par le repos et la kiné.</p>
  <p><b>Les années passent</b> : croissance rapide jusqu’à 19 ans, pleine force de l’âge ensuite, puis usure à partir de 30 ans : −10 % sur 2 qualités physiques (vitesse, détente, puissance, dextérité), 3 qualités à partir de 35 ans. Il faut alors compenser par la tête.</p>
@@ -1553,7 +1553,7 @@ const SESS=[
  {id:'tec',n:'Technique',i:'🎯',sk:['tec','dex'],d:'Gestes et coordination : technique, dextérité.'},
  {id:'men',n:'Préparation mentale',i:'🧠',sk:['men','tac'],d:'Visualisation et gestion du stress : mental, tactique.'},
  {id:'rep',n:'Repos / vacances',i:'🏖️',sk:[],d:'Aucun gain, mais la fatigue d’entraînement retombe à zéro.'},
- {id:'kin',n:'Kiné / rééducation',i:'🩺',sk:[],d:'Rééducation : récupère les % perdus à cause d’une blessure (d20 : +1 %, +2 % si parfait).'},
+ {id:'kin',n:'Kiné / rééducation',i:'🩺',sk:[],d:'Rééducation : récupère les % perdus à cause d’une blessure (d20 : +2 %, +3 % si parfait, +1 % même en cas d’échec).'},
  {id:'dis',n:'Séance de discipline',i:'🏟️',sk:[],d:'Une épreuve complète sur le plateau : si la séance est réussie, la compétence de la discipline gagne du %.'}
 ];
 const SESSX={};SESS.forEach(s=>SESSX[s.id]=s);
@@ -1655,12 +1655,12 @@ function recoverPct(K,n){
 }
 function kineSession(K){
  const T=clampT(capOf(K,['men','tec'])+5),roll=rnd(20),out=mkOut(T,roll);
- const n=out==='perfect'?2:out==='ok'?1:0;
+ const n=out==='perfect'?3:out==='ok'?2:out==='fail'?1:0;   /* 20 : rien */
  const got=[];   /* les % récupérés sont répartis par le joueur, comme les points de jauge des autres séances */
  if(out==='crit')K.tf=Math.min(3,K.tf+1);
  return{T,roll,out,n,got};
 }
-function restSession(K){K.tf=0;return hasRegain(K)&&RNG()<.5?recoverPct(K,1):[];}
+function restSession(K){K.tf=0;return hasRegain(K)?recoverPct(K,1):[];}
 
 /* ---------- séance de discipline : bilan des lancers de la séance ---------- */
 function trainingOutcome(t){
@@ -3808,7 +3808,7 @@ function rehabHTML(){
  const pend=Object.keys(K.regain||{}).filter(k=>K.regain[k]>0).map(k=>`${SX[k].i} ${SX[k].n} ${K.regain[k]} %`).join(', ');
  let body;
  if(!full)body=`<p class="note" style="margin:0 0 8px">Choisis ${K.slots.filter(x=>!x).length} séance${K.slots.filter(x=>!x).length>1?'s':''} de soins. Pendant l’arrêt, seuls le repos et la kiné font remonter tes qualités.</p>
-  <div class="palette">${SESS.filter(s=>s.id==='kin'||s.id==='rep').map(s=>`<button class="pal" data-a="slot" data-t="${s.id}"><b>${s.i} ${s.n}</b><small>${s.id==='rep'?'Récupération : une chance sur deux de regagner 1 %, fatigue à zéro.':s.d}</small>${s.id==='kin'?`<span class="th">d20 ≤ ${clampT(capOf(K,['men','tec'])+5)}</span>`:''}</button>`).join('')}</div>`;
+  <div class="palette">${SESS.filter(s=>s.id==='kin'||s.id==='rep').map(s=>`<button class="pal" data-a="slot" data-t="${s.id}"><b>${s.i} ${s.n}</b><small>${s.id==='rep'?'Récupération : +1 % sûr sur tes qualités blessées, fatigue à zéro.':s.d}</small>${s.id==='kin'?`<span class="th">d20 ≤ ${clampT(capOf(K,['men','tec'])+5)}</span>`:''}</button>`).join('')}</div>`;
  else if(K.sessDone<3){const sl=K.slots[K.sessDone];body=`<div class="startRow"><button class="btn primary big" data-a="run">▶ Séance ${K.sessDone+1}/3 : ${slotLabel(sl)}</button></div>`;}
  return `<div class="card"><h3>🩹 Blessé · ${esc(inj.n)}</h3>
  <p class="note" style="margin:0 0 10px">Arrêt de ${inj.total} mois : il reste <b>${inj.left} mois</b>, tu manques <b>${esc(st.n)}</b> (${st.m}). Cette étape : ${loss||'aucune perte'}. À récupérer : <b>${pend||'rien'}</b>.</p>
