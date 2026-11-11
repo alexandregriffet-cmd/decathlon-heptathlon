@@ -1382,8 +1382,21 @@ function expectedPts(p,ev){
  return ptsFromQ(clamp(.0533*capOf(p,evAllSk(ev),ev)-.06,0,1.1)*CAL.bar,ev);
 }
 
+/* hauteur d'entrée confortable d'un athlète : la barre la plus haute où son seuil sur 20 reste d'au moins 15 (trois essais presque sûrs) */
+function barEntry(p,ev,cat){
+ try{
+  if(!paperOn(ev,p))return null;
+  const pe=paperEng(),lv=pe.levelOf(paperEvPct(p,ev)),cap=PAPER_DATA.CAPMAX[ev.id]-(4-lv),apt=pe.aptOf(paperChars(p),ev.id),ai=Math.max(0,Math.min(5,18-apt));
+  const t=PAPER_DATA.TABLES[sexOf(cat)][ev.id],b=t&&t.blocks.find(x=>x.cap===cap);if(!b)return null;
+  for(const r of b.rows){const q=String(r[1+ai]);if(q.includes('*'))continue;const v=parseInt(q);if(!isNaN(v)&&v>=15)return Math.round(r[0]*100);}
+  return Math.round(b.rows[b.rows.length-1][0]*100);
+ }catch(e){return null;}
+}
 async function runBarEvent(C,H){
  const{ev,r}=C.cur,bars=barList(C.cat,ev,C.li);
+ /* l'échelle descend jusqu'à la hauteur d'entrée du joueur le plus faible : personne ne se retrouve avec une première barre hors de portée */
+ {let lo=null;C.all.filter(p=>p.human).forEach(p=>{const e=barEntry(p,ev,C.cat);if(e!=null&&(lo==null||e<lo))lo=e;});
+  if(lo!=null&&lo<bars[0]){const down=[];let h=bars[0];while(h>lo&&down.length<60){h-=ev.id==='pv'?(h<=460?20:h<=560?10:5):(h<=190?3:2);down.push(h);}bars.unshift(...down.reverse().filter(x=>x>=(ev.id==='pv'?200:80)));}}
  C.bars=bars;
  const st={};
  await call(H,'barStart',C,[...C.all]);
