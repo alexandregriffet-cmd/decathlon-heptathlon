@@ -1130,7 +1130,16 @@ async function runPaperField(C,H){
 /* hauteur et perche : barre commune, tous les athlètes sautent la même hauteur (règles et tables du livre) */
 async function runPaperBar(C,H){
  const{ev,r}=C.cur,order=orderByTotal(C),E=paperEng();
- const bars=barList(C.cat,ev,C.li);C.bars=bars;
+ const bars=barList(C.cat,ev,C.li);
+ /* hauteur d'entrée : la première barre est abaissée jusqu'à une hauteur que l'athlète le plus faible peut raisonnablement franchir (seuil 8 ou plus), pour que personne ne soit éliminé à zéro point avant d'avoir sauté */
+ {const AP=[18,17,16,15,14,13],tb=PAPER_DATA.TABLES[sexOf(C.cat)]&&PAPER_DATA.TABLES[sexOf(C.cat)][ev.id];let lo=null;
+  if(tb)C.all.forEach(p=>{if(p.dnf)return;const pc=paperEvPct(p,ev),cap=E.capOf(ev.id,pc),b=tb.blocks.find(x=>x.cap===cap),ai=AP.indexOf(E.aptOf(paperChars(p),ev.id));if(!b||ai<0)return;
+   const val=x=>{const q=String(x);if(q==='')return -1;if(q.includes('**'))return q.startsWith('20')?99:-1;const v=parseInt(q);return isNaN(v)?-1:v;};
+   let e=null;for(const r of b.rows){if(val(r[1+ai])>=8){e=Math.round(r[0]*100);break;}}
+   if(e==null)e=Math.round(b.rows[b.rows.length-1][0]*100);if(lo==null||e<lo)lo=e;});
+  const floor=ev.id==='pv'?260:100;if(lo!=null)lo=Math.max(lo,floor);
+  if(lo!=null&&lo<bars[0]){const down=[];let h=bars[0];while(h>lo&&down.length<60){h-=ev.id==='pv'?(h<=460?20:h<=560?10:5):(h<=190?3:2);down.push(h);}bars.unshift(...down.reverse().filter(x=>x>=floor));}}
+ C.bars=bars;
  const st={};C.all.forEach(p=>{st[p.id]={best:0,fails:0,out:false,want:0,hist:[]};});C.barSt=st;
  await call(H,'barStart',C,[...C.all]);
  const S=new Map(),curI={bar:0,t:1};
