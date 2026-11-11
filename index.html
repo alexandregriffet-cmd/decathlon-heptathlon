@@ -331,6 +331,7 @@ tr.rec td{background:#ffc83d1f;padding:8px 10px}tr.rec small{color:var(--mute)}
 .hSteps h3{margin:10px 0 4px;font-size:18px}.hSteps p{margin:0;color:#c9d2ee;font-size:14px;line-height:1.45}
 .hBrief{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
 .hBrief p{margin:0;color:#c9d2ee;font-size:14.5px;line-height:1.5}
+.rcBar{display:flex;gap:10px;margin:10px 0}.rcBar select{background:#0e1424;color:#fff;border:1px solid var(--line);border-radius:8px;padding:8px 10px;font:inherit}.rcT i{color:var(--mute);font-size:12px}.mute{color:var(--mute)}
 .hFoot{text-align:center;margin:22px 0 4px}.hFoot p{color:var(--mute);margin:12px 0 0;font-size:14px}
 @media(max-width:1000px){.hModes{grid-template-columns:repeat(2,minmax(0,1fr))}.hSteps{grid-template-columns:repeat(2,minmax(0,1fr))}.hHero h1{font-size:44px}}
 @media(max-width:640px){.hHero{padding:24px 18px 20px}.hHero:before{width:70%;right:-40%;opacity:.55}.hHero:after{background:linear-gradient(90deg,#13204f 50%,#13204f66 100%)}.hHero h1{font-size:36px}.hLead{font-size:15px}.hModes,.hBrief,.hSteps{grid-template-columns:minmax(0,1fr)}.hH{font-size:22px}.hCta .btn{flex:1;text-align:center}}
@@ -359,7 +360,7 @@ dialog.rulesD{max-width:860px;max-height:90vh;overflow:auto}
 <div id="app">
 <header class="top">
  <div class="logo">🏅 <b>DÉCATHLON</b><small>Le jeu de plateau de l'athlétisme</small></div>
- <div class="topR"><i class="artLogo topArt" role="img" aria-label="Artius"></i><button class="btn" id="rulesBtn">📖 Règles</button> <button class="btn" id="homeBtn" hidden>⟲ Accueil</button></div>
+ <div class="topR"><i class="artLogo topArt" role="img" aria-label="Artius"></i><button class="btn" id="rulesBtn">📖 Règles</button> <button class="btn" id="recBtn">📚 Records</button> <button class="btn" id="homeBtn" hidden>⟲ Accueil</button></div>
 </header>
 <main>
 <section id="home">
@@ -575,11 +576,13 @@ dialog.rulesD{max-width:860px;max-height:90vh;overflow:auto}
  <p class="rIntro" style="margin-top:14px">Une version papier du jeu existe : plateaux, fiches athlète, feuilles d’arbitre et livrets de résultats, avec exactement ces règles.</p>
  <p style="margin-top:14px"><button class="btn" onclick="document.getElementById('rules').close()">Fermer</button></p>
 </dialog>
+<dialog id="recDlg" class="rulesD"><form method="dialog" style="float:right"><button class="btn">Fermer</button></form><h2>📚 Livre des records</h2><p class="rIntro">Records du monde de chaque épreuve, meilleure marque réalisée dans un décathlon ou un heptathlon, records continentaux et nationaux. Quand tu en bats un en jeu, il est annoncé à l’écran.</p><p class="mute" style="font-size:13px">Sources : World Athletics et Track &amp; Field News (au 24 juillet 2026), listes Wikipedia des records européens et nord-américains. Le vent n’est pas pris en compte dans le jeu. Les records nationaux couvrent les nations des titulaires des records mondiaux et continentaux.</p><div class="rbody"></div></dialog>
 <dialog id="fiche"><div class="fbody"></div></dialog>
 <div id="banner" class="banner" hidden></div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script src="paper-data.js"></script>
+<script src="records-data.js"></script>
 <script src="paper-engine.js"></script>
 <script>
 var ROOM=null;
@@ -724,6 +727,110 @@ function fmtPerf(ev,P){
  }
  return(ev.u==='cm'?(P/100):P).toFixed(2).replace('.',',')+' m';
 }
+
+/* ---------- records : personnel, national, continental, mondial ---------- */
+const RC=(()=>{
+ const D=(typeof RECORDS!=='undefined'&&RECORDS)||{W:{},WB:{},C:{},TOT:{},NAT:{},contOf:()=>'',CONT_NAME:{}};
+ const KEY='deca_records_v1';let ov={};
+ try{ov=JSON.parse(localStorage.getItem(KEY)||'{}')||{};}catch(e){ov={};}
+ const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(ov));}catch(e){}};
+ const TRK=new Set(['100','200','400','800','1500','60','60h','100h','110h','1000']),CM=new Set(['lj','hj','pv']);
+ const idOf=k=>k.split('|')[1].replace('i:','');
+ const isT=id=>TRK.has(id);
+ const better=(id,a,b)=>isT(id)?a<b:a>b;
+ function fmt(id,m){
+  if(m==null)return '—';
+  if(isT(id)){if(m>=60){const mn=Math.floor(m/60),s=m-mn*60;return mn+':'+s.toFixed(2).padStart(5,'0').replace('.',',');}return m.toFixed(2).replace('.',',')+' s';}
+  return (CM.has(id)?m/100:m).toFixed(2).replace('.',',')+' m';
+ }
+ const dateFr=d=>{if(!d)return '';const t=new Date(d+'T12:00:00');return isNaN(t)?d:t.toLocaleDateString('fr-FR',{day:'numeric',month:'long',year:'numeric'});};
+ const natTot=(nat,cat)=>{let b=null;['W','EUR','NAM'].forEach(t=>{const r=D.TOT[t]&&D.TOT[t][cat];if(r&&r[2]===nat&&(!b||r[0]>b[0]))b=r;});return b;};
+ /* ligne de référence d'un niveau : la meilleure entre la base et ce qui a été battu dans le jeu */
+ function ref(tier,key,sc){
+  let r=null;
+  if(tier==='W')r=D.W[key];else if(tier==='WB')r=D.WB[key];
+  else if(tier==='C')r=D.C[sc]&&D.C[sc][key];else if(tier==='N')r=D.NAT[sc]&&D.NAT[sc][key];
+  const o=ov[tier+':'+sc+':'+key],id=idOf(key);
+  if(o&&(!r||better(id,o.m,r[0])))return [o.m,o.who,o.nat,o.d,'(battu dans le jeu)','jeu'];
+  return r||null;
+ }
+ const LAB={W:'RECORD DU MONDE',WB:'MEILLEURE MARQUE MONDIALE EN MULTIPLE',C:'RECORD CONTINENTAL',N:'RECORD NATIONAL',P:'RECORD PERSONNEL'};
+ const today=()=>new Date().toISOString().slice(0,10);
+ function tiersOf(p,indoor){const cont=D.contOf?D.contOf(p.nat):'';return[['W',''],...(indoor?[]:[['WB','']]),...(cont?[['C',cont]]:[]),...(p.nat?[['N',p.nat]]:[])];}
+ function checkEvent(C,r){
+  const out=[],ev=C.evs[r],indoor=isInd(C.cat);
+  C.all.filter(p=>p.human).forEach(p=>{
+   const x=p.res[r];if(!x||x.dq||x.perf==null||!(x.pts>0))return;
+   const key=sexOf(C.cat)+'|'+(indoor?'i:':'')+ev.id,perf=x.perf,id=ev.id,hits=[];
+   tiersOf(p,indoor).forEach(([t,sc])=>{
+    if(t==='WB'&&!D.WB[key])return;
+    const rf=ref(t,key,sc);
+    if(!rf)return; /* pas de référence connue : on n'annonce rien */
+    if(better(id,perf,rf[0])){hits.push({t,sc,old:rf});ov[t+':'+sc+':'+key]={m:perf,who:fullName(p),nat:p.nat||'',d:today()};}
+   });
+   const K=C.K,pk=(indoor?'i:':'')+ev.id,old=K&&K.pb&&K.pb[pk];
+   if(old&&old.perf!=null&&better(id,perf,old.perf))hits.push({t:'P',sc:'',old:[old.perf,fullName(p),p.nat,'','','perso']});
+   if(hits.length)out.push({p,ev,key,perf,hits});
+  });
+  if(out.length)save();return out;
+ }
+ function checkTotal(C){
+  const out=[],cat=C.cat;
+  C.all.filter(p=>p.human&&!p.dnf).forEach(p=>{
+   const hits=[],tot=p.total;if(!(tot>0))return;
+   const cont=D.contOf?D.contOf(p.nat):'';
+   [['W',''],...(cont?[['C',cont]]:[]),...(p.nat?[['N',p.nat]]:[])].forEach(([t,sc])=>{
+    let rf=t==='W'?D.TOT.W[cat]:t==='C'?(D.TOT[sc]||{})[cat]:natTot(sc,cat);
+    const o=ov['T'+t+':'+sc+':'+cat];if(o&&(!rf||o.m>rf[0]))rf=[o.m,o.who,o.nat,o.d,'(battu dans le jeu)'];
+    if(rf&&tot>rf[0]){hits.push({t,sc,old:rf});ov['T'+t+':'+sc+':'+cat]={m:tot,who:fullName(p),nat:p.nat||'',d:today()};}
+   });
+   const K=C.K;if(K&&K.bestTotal>0&&cat===K.cat&&tot>K.bestTotal)hits.push({t:'P',sc:'',old:[K.bestTotal,fullName(p),p.nat,'','','perso']});
+   if(hits.length)out.push({p,hits,tot});
+  });
+  if(out.length)save();return out;
+ }
+ const scName=(t,sc)=>t==='C'?(D.CONT_NAME[sc]||sc):t==='N'?sc:'';
+ function top(h){return h.find(x=>x.t==='W')||h.find(x=>x.t==='WB')||h.find(x=>x.t==='C')||h.find(x=>x.t==='N')||h[0];}
+ function lines(h,fm){
+  const t=top(h),oldTxt=t.old[1]&&t.t!=='P'?` Ancien : ${fm(t.old[0])} (${esc(t.old[1])}${t.old[3]?', '+dateFr(t.old[3]):''}).`:t.t==='P'?` Ancien : ${fm(t.old[0])}.`:'';
+  const also=h.filter(x=>x!==t).map(x=>LAB[x.t].toLowerCase()+(scName(x.t,x.sc)?' ('+scName(x.t,x.sc)+')':'')).join(', ');
+  return{title:`${t.t==='P'?'🎯':t.t==='N'?'🏳️':t.t==='C'?'🌐':'🌍'} ${LAB[t.t]}${scName(t.t,t.sc)?' · '+esc(scName(t.t,t.sc)).toUpperCase():''}`,txt:oldTxt,also};
+ }
+ function textEvent(e){const fm=m=>fmt(idOf(e.key),m),L=lines(e.hits,fm);return{title:L.title,body:`${esc(fullName(e.p))} : ${e.ev.n} en <b>${fm(e.perf)}</b>.${L.txt}${L.also?' Aussi : '+L.also+'.':''}`};}
+ function textTotal(e,cat){const fm=m=>nf(m)+' points',L=lines(e.hits,fm);return{title:L.title+' · TOTAL '+(cat==='DEC'?'DÉCATHLON':cat==='HEP'?'HEPTATHLON':cat==='HEPI'?'HEPTATHLON EN SALLE':'PENTATHLON EN SALLE'),body:`${esc(fullName(e.p))} : <b>${fm(e.tot)}</b>.${L.txt}${L.also?' Aussi : '+L.also+'.':''}`};}
+ /* page des records */
+ const OUT={M:['100','200','400','800','1500','110h','hj','pv','lj','sp','dt','jt'],F:['100','200','400','800','1500','100h','hj','pv','lj','sp','dt','jt']};
+ const INN={M:['60','60h','1000','hj','pv','lj','sp'],F:['60h','800','hj','lj','sp']};
+ const NM={'100':'100 m','200':'200 m','400':'400 m','800':'800 m','1500':'1 500 m','110h':'110 m haies','100h':'100 m haies','60':'60 m','60h':'60 m haies','1000':'1 000 m',hj:'Hauteur',pv:'Perche',lj:'Longueur',sp:'Poids',dt:'Disque',jt:'Javelot'};
+ function nations(){return Object.keys(D.NAT).sort((a,b)=>a.localeCompare(b,'fr'));}
+ function tableHTML(sex,scope){
+  const world=scope==='W',cont=scope==='EUR'||scope==='NAM',nat=!world&&!cont;
+  const row=(k,id)=>{
+   const r=world?ref('W',k,''):cont?ref('C',k,scope):ref('N',k,scope),b=world?ref('WB',k,''):null;
+   if(!r&&!b)return '';
+   const cell=x=>x?`<td><b>${fmt(id,x[0])}</b></td><td>${esc(x[1]||'')}${x[2]?' <span class="mute">'+esc(x[2])+'</span>':''}</td><td>${dateFr(x[3])}${x[4]?' · '+esc(x[4]):''}${x[5]&&x[5]!=='jeu'?' <i>('+esc(x[5])+')</i>':''}</td>`:'<td>—</td><td></td><td></td>';
+   return `<tr><td>${NM[id]}</td>${cell(r)}${world?cell(b):''}</tr>`;
+  };
+  const rows=OUT[sex].map(id=>row(sex+'|'+id,id)).join(''),rowsI=INN[sex].map(id=>row(sex+'|i:'+id,id)).join('');
+  const hd=`<tr><th>Épreuve</th><th>Record</th><th>Titulaire</th><th>Date</th>${world?'<th>Meilleure en '+(sex==='M'?'décathlon':'heptathlon')+'</th><th>Titulaire</th><th>Date</th>':''}</tr>`;
+  const span=world?7:4;
+  const tc=sex==='M'?'DEC':'HEP',ti=sex==='M'?'HEPI':'PENI';
+  const tr=(c,lab)=>{let r=world?D.TOT.W[c]:cont?(D.TOT[scope]||{})[c]:natTot(scope,c);const o=ov['T'+(world?'W':cont?'C':'N')+':'+(world?'':scope)+':'+c];if(o&&(!r||o.m>r[0]))r=[o.m,o.who,o.nat,o.d,'','jeu'];return r?`<tr><td>${lab}</td><td><b>${nf(r[0])} pts</b></td><td>${esc(r[1])} <span class="mute">${esc(r[2]||'')}</span></td><td>${dateFr(r[3])}${r[4]?' · '+esc(r[4]):''}</td>${world?'<td colspan="3"></td>':''}</tr>`:'';};
+  return `<table class="rt rcT">${hd}${rows||''}<tr><th colspan="${span}">Total</th></tr>${tr(tc,sex==='M'?'Décathlon':'Heptathlon')}<tr><th colspan="${span}">En salle</th></tr>${rowsI}${tr(ti,sex==='M'?'Heptathlon en salle':'Pentathlon en salle')}</table>`;
+ }
+ function open(){
+  const dlg=$('#recDlg');if(!dlg)return;
+  const st=dlg._st=dlg._st||{sex:'M',scope:'W'};
+  const draw=()=>{
+   const sc=[['W','Monde'],['EUR','Europe'],['NAM','Amérique du Nord']];
+   dlg.querySelector('.rbody').innerHTML=`<div class="rcBar"><select id="rcS"><option value="M" ${st.sex==='M'?'selected':''}>Hommes</option><option value="F" ${st.sex==='F'?'selected':''}>Femmes</option></select><select id="rcP">${sc.map(a=>`<option value="${a[0]}" ${st.scope===a[0]?'selected':''}>${a[1]}</option>`).join('')}<optgroup label="Records nationaux">${nations().map(n=>`<option value="${esc(n)}" ${st.scope===n?'selected':''}>${esc(n)}</option>`).join('')}</optgroup></select></div>${tableHTML(st.sex,st.scope)}`;
+   dlg.querySelector('#rcS').onchange=e=>{st.sex=e.target.value;draw();};dlg.querySelector('#rcP').onchange=e=>{st.scope=e.target.value;draw();};
+  };
+  draw();dlg.showModal();
+ }
+ function reset(){ov={};save();}
+ return{checkEvent,checkTotal,textEvent,textTotal,open,reset,fmt};
+})();
 function recPts(cat,ri,upto){let s=0;const r=RECS[cat][ri];for(let i=0;i<upto;i++)s+=ptsOf(EV[cat][i],r.perf[i]);return s;}
 
 /* ---------- capacités et dés ---------- */
@@ -1578,7 +1685,7 @@ function careerHumanPayload(K){
 function buildCareerComp(K,lvId){
  const lvl=lvById(lvId),cat=lvl&&lvl.indoor?IND[K.cat]:K.cat;
  const C=buildCompetition(lvId,cat,[{first:K.first,last:K.last,nat:K.nat,color:K.color,pct:{...K.pct},comp:{...(K.comp||{})},nextMent:K.nextMent||0,h:K.h,w:K.w,age:K.age,sex:sexOf(K.cat)}]);
- C.attempts=K.att;C.all[0].fat=K.tf*2.5;C.hurtRisk=1+K.tf*.4+(K.inj?0:0);
+ C.K=K; C.attempts=K.att;C.all[0].fat=K.tf*2.5;C.hurtRisk=1+K.tf*.4+(K.inj?0:0);
  C.all[0].pr={};['hj','pv'].forEach(id=>{if(K.pb[id]&&K.pb[id].perf!=null)C.all[0].pr[id]=K.pb[id].perf;});
  return C;
 }
@@ -2968,7 +3075,7 @@ $('#cfgAuto').onchange=e=>setup.cfg.auto=e.target.checked;
 $('#cfgFree').onchange=e=>{setup.cfg.free=e.target.checked;renderSetup();};
 $('#cfgFast').onchange=e=>setup.cfg.fast=e.target.checked;
 $('#addHuman').onclick=()=>{setup.players.push(newHuman());renderSetup();};
-$('#rulesBtn').onclick=()=>$('#rules').showModal();
+$('#rulesBtn').onclick=()=>$('#rules').showModal();$('#recBtn').onclick=()=>RC.open();
 $('#homeBtn').onclick=()=>{if(!$('#setup').hidden){show('home');return;}if(typeof ROOM!=='undefined'&&ROOM&&ROOM.playing){if(!confirm('Quitter la partie en ligne ?'))return;roomLeave();return;}if(G)G.abort=true;show('setup');renderSetup();};
 $('#startBtn').onclick=()=>{if(ROOM&&setup.mode!=='career'){roomStart();return;}if(setup.mode==='career'&&typeof createCareer==='function')createCareer();else launch();};
 $('#modeFree').onclick=()=>{setup.mode='free';if(setup.cfg.level==='legends')setup.cfg.level='dep';renderSetup();};
@@ -3355,11 +3462,13 @@ function makeHooks(g){
    ticker(mine);setWho(null,'Épreuve terminée');
    $('#status').innerHTML=`<h4>${ev.i} ${ev.n} terminé</h4><div class="prob">${esc(mine)}</div>`;
    const last=r===C.evs.length-1;
+   if(!g.train){const recs=RC.checkEvent(C,r);for(const e of recs){const t=RC.textEvent(e);ticker('🏆 '+t.title.replace(/<[^>]*>/g,'')+' · '+e.p.first+' '+e.p.last);if(!g.auto)await banner(t.title,t.body,g.fast?1400:4200);}}
    if(g.auto)await sleep(g.fast?300:1500);
    else await waitBtn(g,last?(g.train?'Terminer la séance →':'Voir le classement final →'):`Épreuve suivante : ${C.evs[r+1].n} →`);
   },
   async finish(C){guard();if(g.simmed)endSim(g);if(g.room)roomGameOver(g);
    if(g.train){ST.show(false);if(g.onFinish)g.onFinish(C);return;}
+   if(!g.auto){for(const e of RC.checkTotal(C)){const t=RC.textTotal(e,C.cat);await banner(t.title,t.body,g.fast?1400:4500);}}else RC.checkTotal(C);
    await banner('🏁 Compétition terminée','Place au classement…',g.fast?600:1700);ST.show(false);showFinal(C,g.onFinish?()=>g.onFinish(C):null);}
  };
 }
