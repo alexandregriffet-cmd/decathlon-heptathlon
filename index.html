@@ -731,9 +731,10 @@ function fmtPerf(ev,P){
 /* ---------- records : personnel, national, continental, mondial ---------- */
 const RC=(()=>{
  const D=(typeof RECORDS!=='undefined'&&RECORDS)||{W:{},WB:{},C:{},TOT:{},NAT:{},contOf:()=>'',CONT_NAME:{}};
- const KEY='deca_records_v1';let ov={};
- try{ov=JSON.parse(localStorage.getItem(KEY)||'{}')||{};}catch(e){ov={};}
- const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(ov));}catch(e){}};
+ /* ov = records battus dans la carrière en cours (K.rec). Hors carrière : vide, rien n'est enregistré. L'écran d'accueil ne montre que les vrais records. */
+ let ov={},curK=null;
+ const use=K=>{curK=K||null;ov=K?(K.rec=K.rec||{}):{};};
+ const save=()=>{if(curK&&typeof persist==='function')persist();};
  const TRK=new Set(['100','200','400','800','1500','60','60h','100h','110h','1000']),CM=new Set(['lj','hj','pv']);
  const idOf=k=>k.split('|')[1].replace('i:','');
  const isT=id=>TRK.has(id);
@@ -758,7 +759,7 @@ const RC=(()=>{
  const today=()=>new Date().toISOString().slice(0,10);
  function tiersOf(p,indoor){const cont=D.contOf?D.contOf(p.nat):'';return[['W',''],...(indoor?[]:[['WB','']]),...(cont?[['C',cont]]:[]),...(p.nat?[['N',p.nat]]:[])];}
  function checkEvent(C,r){
-  const out=[],ev=C.evs[r],indoor=isInd(C.cat);
+  use(C.K);const out=[],ev=C.evs[r],indoor=isInd(C.cat);
   C.all.filter(p=>p.human).forEach(p=>{
    const x=p.res[r];if(!x||x.dq||x.perf==null||!(x.pts>0))return;
    const key=sexOf(C.cat)+'|'+(indoor?'i:':'')+ev.id,perf=x.perf,id=ev.id,hits=[];
@@ -775,7 +776,7 @@ const RC=(()=>{
   if(out.length)save();return out;
  }
  function checkTotal(C){
-  const out=[],cat=C.cat;
+  use(C.K);const out=[],cat=C.cat;
   C.all.filter(p=>p.human&&!p.dnf).forEach(p=>{
    const hits=[],tot=p.total;if(!(tot>0))return;
    const cont=D.contOf?D.contOf(p.nat):'';
@@ -817,8 +818,8 @@ const RC=(()=>{
   if(world)return `<h4>🌍 Record du monde de chaque épreuve (toutes compétitions)</h4>${tbl(outRows('W')+tot(tc))}<h4>🏅 Meilleure performance mondiale au sein d’un ${multi}</h4>${tbl(outRows('WB'))}<h4>🏠 En salle</h4>${tbl(inRows+tot(ti))}`;
   return `<h4>${cont?'Records continentaux':'Records nationaux'} (plein air)</h4>${tbl(outRows('X')+tot(tc))}<h4>🏠 En salle</h4>${tbl(inRows+tot(ti))}`;
  }
- function open(){
-  const dlg=$('#recDlg');if(!dlg)return;
+ function open(K){
+  const dlg=$('#recDlg');if(!dlg)return;use(K);dlg.querySelector('h2').textContent=K?'📚 Records de ma carrière':'📚 Livre des records';dlg.querySelector('.rIntro').textContent=K?'Les records du monde, continentaux et nationaux, mis à jour avec ceux que ton athlète a battus pendant sa carrière.':'Records du monde de chaque épreuve, meilleure marque réalisée dans un décathlon ou un heptathlon, records continentaux et nationaux. Quand tu en bats un en jeu, il est annoncé à l’écran.';
   const st=dlg._st=dlg._st||{sex:'M',scope:'W'};
   const draw=()=>{
    const sc=[['W','Monde'],['EUR','Europe'],['NAM','Amérique du Nord']];
@@ -3074,7 +3075,7 @@ $('#cfgAuto').onchange=e=>setup.cfg.auto=e.target.checked;
 $('#cfgFree').onchange=e=>{setup.cfg.free=e.target.checked;renderSetup();};
 $('#cfgFast').onchange=e=>setup.cfg.fast=e.target.checked;
 $('#addHuman').onclick=()=>{setup.players.push(newHuman());renderSetup();};
-$('#rulesBtn').onclick=()=>$('#rules').showModal();$('#recBtn').onclick=()=>RC.open();
+$('#rulesBtn').onclick=()=>$('#rules').showModal();$('#recBtn').onclick=()=>RC.open(null);
 $('#homeBtn').onclick=()=>{if(!$('#setup').hidden){show('home');return;}if(typeof ROOM!=='undefined'&&ROOM&&ROOM.playing){if(!confirm('Quitter la partie en ligne ?'))return;roomLeave();return;}if(G)G.abort=true;show('setup');renderSetup();};
 $('#startBtn').onclick=()=>{if(ROOM&&setup.mode!=='career'){roomStart();return;}if(setup.mode==='career'&&typeof createCareer==='function')createCareer();else launch();};
 $('#modeFree').onclick=()=>{setup.mode='free';if(setup.cfg.level==='legends')setup.cfg.level='dep';renderSetup();};
@@ -3629,13 +3630,13 @@ function renderHead(){
   <div class="who"><span class="dot" style="--c:${K.color};width:34px;height:34px"></span><div><b class="nm">${flagOf(K.nat)} ${esc(K.first)} ${esc(K.last.toUpperCase())}</b><small>${CATN[K.cat]} · Saison ${K.season} (${K.year}) · ${K.age} ans</small></div></div>
   <div class="cStats"><span class="chip">Compétence moyenne ${Math.round(careerAvg(K))} %</span><span class="chip">${medalsTxt(K.medals)}</span><span class="chip">${K.comps} ${plural(K.comps,'compétition')}</span>${K.inj?`<span class="chip m">🩹 Blessé · ${esc(K.inj.n)} · ${K.inj.left} mois</span>`:''}<span class="chip ${K.tf>=2?'m':''}">Fatigue ${K.tf?'●'.repeat(K.tf):'○'}</span><span class="chip ${saveOK?'p':'m'}">${saveOK?'💾 Sauvegardé':'⚠️ Sauvegarde impossible : exporte !'}</span>${ol.chip}</div>
   <div class="cBtns"><label class="chk"><input type="checkbox" id="oAuto" ${o.auto?'checked':''}> Dés auto</label><label class="chk"><input type="checkbox" id="oFast" ${o.fast?'checked':''}> Virtuels rapides</label><label class="chk"><input type="checkbox" id="oQuick" ${o.quick?'checked':''}> Séances de discipline automatiques</label>
-  ${ol.btns}<button class="btn small" id="cExport">Exporter</button><button class="btn small" id="cRetire">Prendre sa retraite</button><button class="btn small" id="cMenu">Menu</button></div></div>`;
+  ${ol.btns}<button class="btn small" id="cRec">📚 Records</button><button class="btn small" id="cExport">Exporter</button><button class="btn small" id="cRetire">Prendre sa retraite</button><button class="btn small" id="cMenu">Menu</button></div></div>`;
  onlineHeadBind();
  $('#cHead').insertAdjacentHTML('beforeend','<div id="cRoom" class="roomBox cRoom"></div>');renderCRoom();
  $('#oAuto').onchange=e=>{K.opt.auto=e.target.checked;persist();};
  $('#oFast').onchange=e=>{K.opt.fast=e.target.checked;persist();};
  $('#oQuick').onchange=e=>{K.opt.quick=e.target.checked;persist();};
- $('#cExport').onclick=()=>exportCareer(K);
+ $('#cExport').onclick=()=>exportCareer(K);$('#cRec').onclick=()=>RC.open(K);
  $('#cMenu').onclick=()=>{setup.mode='career';show('setup');renderSetup();};
  $('#cRetire').onclick=()=>{if(K.phase==='retired')return;if(confirm('Prendre ta retraite sportive ? La carrière sera terminée.')){K.phase='retired';K.pools=[];persist();cNote='';renderCareer();}};
  $('#cRetire').hidden=K.phase==='retired';
