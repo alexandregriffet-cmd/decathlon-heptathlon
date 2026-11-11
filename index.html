@@ -331,7 +331,7 @@ tr.rec td{background:#ffc83d1f;padding:8px 10px}tr.rec small{color:var(--mute)}
 .hSteps h3{margin:10px 0 4px;font-size:18px}.hSteps p{margin:0;color:#c9d2ee;font-size:14px;line-height:1.45}
 .hBrief{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
 .hBrief p{margin:0;color:#c9d2ee;font-size:14.5px;line-height:1.5}
-.rcBar{display:flex;gap:10px;margin:10px 0}.rcBar select{background:#0e1424;color:#fff;border:1px solid var(--line);border-radius:8px;padding:8px 10px;font:inherit}.rcT i{color:var(--mute);font-size:12px}.mute{color:var(--mute)}
+.rcBar{display:flex;gap:10px;margin:10px 0}.rcBar select{background:#0e1424;color:#fff;border:1px solid var(--line);border-radius:8px;padding:8px 10px;font:inherit}.rcW{overflow-x:auto}.rcT td,.rcT th{white-space:nowrap}.rcT i{color:var(--mute);font-size:12px}.mute{color:var(--mute)}
 .hFoot{text-align:center;margin:22px 0 4px}.hFoot p{color:var(--mute);margin:12px 0 0;font-size:14px}
 @media(max-width:1000px){.hModes{grid-template-columns:repeat(2,minmax(0,1fr))}.hSteps{grid-template-columns:repeat(2,minmax(0,1fr))}.hHero h1{font-size:44px}}
 @media(max-width:640px){.hHero{padding:24px 18px 20px}.hHero:before{width:70%;right:-40%;opacity:.55}.hHero:after{background:linear-gradient(90deg,#13204f 50%,#13204f66 100%)}.hHero h1{font-size:36px}.hLead{font-size:15px}.hModes,.hBrief,.hSteps{grid-template-columns:minmax(0,1fr)}.hH{font-size:22px}.hCta .btn{flex:1;text-align:center}}
@@ -804,19 +804,18 @@ const RC=(()=>{
  const NM={'100':'100 m','200':'200 m','400':'400 m','800':'800 m','1500':'1 500 m','110h':'110 m haies','100h':'100 m haies','60':'60 m','60h':'60 m haies','1000':'1 000 m',hj:'Hauteur',pv:'Perche',lj:'Longueur',sp:'Poids',dt:'Disque',jt:'Javelot'};
  function nations(){return Object.keys(D.NAT).sort((a,b)=>a.localeCompare(b,'fr'));}
  function tableHTML(sex,scope){
-  const world=scope==='W',cont=scope==='EUR'||scope==='NAM',nat=!world&&!cont;
-  const row=(k,id)=>{
-   const r=world?ref('W',k,''):cont?ref('C',k,scope):ref('N',k,scope),b=world?ref('WB',k,''):null;
-   if(!r&&!b)return '';
-   const cell=x=>x?`<td><b>${fmt(id,x[0])}</b></td><td>${esc(x[1]||'')}${x[2]?' <span class="mute">'+esc(x[2])+'</span>':''}</td><td>${dateFr(x[3])}${x[4]?' · '+esc(x[4]):''}${x[5]&&x[5]!=='jeu'?' <i>('+esc(x[5])+')</i>':''}</td>`:'<td>—</td><td></td><td></td>';
-   return `<tr><td>${NM[id]}</td>${cell(r)}${world?cell(b):''}</tr>`;
-  };
-  const rows=OUT[sex].map(id=>row(sex+'|'+id,id)).join(''),rowsI=INN[sex].map(id=>row(sex+'|i:'+id,id)).join('');
-  const hd=`<tr><th>Épreuve</th><th>Record</th><th>Titulaire</th><th>Date</th>${world?'<th>Meilleure en '+(sex==='M'?'décathlon':'heptathlon')+'</th><th>Titulaire</th><th>Date</th>':''}</tr>`;
-  const span=world?7:4;
+  const world=scope==='W',cont=scope==='EUR'||scope==='NAM';
+  const multi=sex==='M'?'décathlon':'heptathlon';
+  const rowOf=(id,x,lab)=>x?`<tr><td>${lab}</td><td><b>${fmt(id,x[0])}</b></td><td>${esc(x[1]||'')}${x[2]?' <span class="mute">'+esc(x[2])+'</span>':''}</td><td>${dateFr(x[3])}${x[4]?' · '+esc(x[4]):''}${x[5]&&x[5]!=='jeu'?' <i>('+esc(x[5])+')</i>':''}</td></tr>`:'';
+  const refOf=(k,mode)=>mode==='WB'?ref('WB',k,''):world?ref('W',k,''):cont?ref('C',k,scope):ref('N',k,scope);
+  const tot=(c,mode)=>{let r=world?D.TOT.W[c]:cont?(D.TOT[scope]||{})[c]:natTot(scope,c);const o=ov['T'+(world?'W':cont?'C':'N')+':'+(world?'':scope)+':'+c];if(o&&(!r||o.m>r[0]))r=[o.m,o.who,o.nat,o.d,'','jeu'];return r?`<tr><td>Total ${c==='DEC'?'décathlon':c==='HEP'?'heptathlon':c==='HEPI'?'heptathlon salle':'pentathlon salle'}</td><td><b>${nf(r[0])} pts</b></td><td>${esc(r[1])} <span class="mute">${esc(r[2]||'')}</span></td><td>${dateFr(r[3])}${r[4]?' · '+esc(r[4]):''}</td></tr>`:'';};
+  const head='<tr><th>Épreuve</th><th>Marque</th><th>Titulaire</th><th>Date</th></tr>';
+  const tbl=(rows)=>`<div class="rcW"><table class="rt rcT">${head}${rows}</table></div>`;
+  const outRows=mode=>OUT[sex].map(id=>rowOf(id,refOf(sex+'|'+id,mode),NM[id])).join('');
+  const inRows=INN[sex].map(id=>rowOf(id,refOf(sex+'|i:'+id,'X'),NM[id])).join('');
   const tc=sex==='M'?'DEC':'HEP',ti=sex==='M'?'HEPI':'PENI';
-  const tr=(c,lab)=>{let r=world?D.TOT.W[c]:cont?(D.TOT[scope]||{})[c]:natTot(scope,c);const o=ov['T'+(world?'W':cont?'C':'N')+':'+(world?'':scope)+':'+c];if(o&&(!r||o.m>r[0]))r=[o.m,o.who,o.nat,o.d,'','jeu'];return r?`<tr><td>${lab}</td><td><b>${nf(r[0])} pts</b></td><td>${esc(r[1])} <span class="mute">${esc(r[2]||'')}</span></td><td>${dateFr(r[3])}${r[4]?' · '+esc(r[4]):''}</td>${world?'<td colspan="3"></td>':''}</tr>`:'';};
-  return `<table class="rt rcT">${hd}${rows||''}<tr><th colspan="${span}">Total</th></tr>${tr(tc,sex==='M'?'Décathlon':'Heptathlon')}<tr><th colspan="${span}">En salle</th></tr>${rowsI}${tr(ti,sex==='M'?'Heptathlon en salle':'Pentathlon en salle')}</table>`;
+  if(world)return `<h4>🌍 Record du monde de chaque épreuve (toutes compétitions)</h4>${tbl(outRows('W')+tot(tc))}<h4>🏅 Meilleure performance mondiale au sein d’un ${multi}</h4>${tbl(outRows('WB'))}<h4>🏠 En salle</h4>${tbl(inRows+tot(ti))}`;
+  return `<h4>${cont?'Records continentaux':'Records nationaux'} (plein air)</h4>${tbl(outRows('X')+tot(tc))}<h4>🏠 En salle</h4>${tbl(inRows+tot(ti))}`;
  }
  function open(){
   const dlg=$('#recDlg');if(!dlg)return;
