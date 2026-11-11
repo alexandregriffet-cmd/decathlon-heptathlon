@@ -1637,9 +1637,12 @@ const injChance=(K,hit)=>Math.min(.35,.02+.015*K.tf+Math.max(0,K.age-30)*.005+(h
 /* début d'un mois d'arrêt : chaque qualité touchée perd des %, récupérables par le repos et la kiné */
 function enterRehab(K){
  K.regain=K.regain||{};const lost=[];
- K.inj.fresh=false;
- const cap=Math.min(26,6+3*K.inj.total);K.inj.lost=K.inj.lost||{};
- K.inj.sk.forEach(k=>{const d=Math.min(injLoss(K.pct[k]),cap-(K.inj.lost[k]||0),Math.max(0,K.pct[k]-8));if(d>0){K.pct[k]-=d;K.regain[k]=(K.regain[k]||0)+d;K.inj.lost[k]=(K.inj.lost[k]||0)+d;lost.push({k,d});}});
+ const first=!!K.inj.fresh;K.inj.fresh=false;
+ /* les pertes tombent une seule fois, au début de la blessure (plus la blessure est longue, plus elles sont fortes) ; les mois suivants n'en ajoutent pas */
+ if(first){
+  const mul=K.inj.total>=5?2:K.inj.total>=3?1.5:1,cap=26;K.inj.lost=K.inj.lost||{};
+  K.inj.sk.forEach(k=>{const d=Math.min(Math.round(injLoss(K.pct[k])*mul),cap-(K.inj.lost[k]||0),Math.max(0,K.pct[k]-8));if(d>0){K.pct[k]-=d;K.regain[k]=(K.regain[k]||0)+d;K.inj.lost[k]=(K.inj.lost[k]||0)+d;lost.push({k,d});}});
+ }
  K.inj.lastLoss=lost;K.phase='rehab';K.slots=[null,null,null];K.sessDone=0;
  return lost;
 }
@@ -3892,7 +3895,7 @@ async function gymFlow(sess){
   }
   const g=res.rows.reduce((a,r)=>a+r.gain,0);
   const wrap=$('#cMain .gym');
-  wrap.insertAdjacentHTML('beforeend',`<p class="note" style="margin:10px 0 0">${g?`+${g} point${g>1?'s':''} de jauge à répartir.`:'Séance sans point.'}${res.crit?' Échec critique : une petite blessure te fatigue davantage.':''}</p>${K.inj&&K.inj.fresh?`<div class="card cnote warn" style="margin-top:10px"><h3>🚑 Blessure</h3><p><b>${esc(K.inj.n)}</b> : arrêt de ${K.inj.months} mois. Tu perdras environ ${injLoss(K.pct[K.inj.sk[0]])} % par mois sur ${K.inj.sk.map(k=>SX[k].n.toLowerCase()).join(', ')}, à récupérer par le repos et la kiné.</p></div>`:''}
+  wrap.insertAdjacentHTML('beforeend',`<p class="note" style="margin:10px 0 0">${g?`+${g} point${g>1?'s':''} de jauge à répartir.`:'Séance sans point.'}${res.crit?' Échec critique : une petite blessure te fatigue davantage.':''}</p>${K.inj&&K.inj.fresh?`<div class="card cnote warn" style="margin-top:10px"><h3>🚑 Blessure</h3><p><b>${esc(K.inj.n)}</b> : arrêt de ${K.inj.months} mois. Tu perdras environ ${Math.round(injLoss(K.pct[K.inj.sk[0]])*(K.inj.months>=5?2:K.inj.months>=3?1.5:1))} % une seule fois sur ${K.inj.sk.map(k=>SX[k].n.toLowerCase()).join(', ')}, à récupérer par le repos et la kiné.</p></div>`:''}
   <div class="startRow"><button class="btn primary big" id="gymNext">${K.sessDone>=nSl()?'Terminer la préparation →':'Séance suivante →'}</button></div>`);
   $('#gymNext').onclick=()=>afterSessionNext();
  };
@@ -3944,7 +3947,7 @@ function endComp(C,st){
  const gain=K.pools.reduce((a,x)=>a+x.n,0);
  cNote=`<div class="card cnote ${r.rank<=3?'gold':''}"><h3>${r.rank===1?'🏆 Victoire !':r.rank<=3?'🏅 Sur le podium !':'🏁 Compétition terminée'}</h3>
  <p>${esc(st.n)} : <b>${rankTxt(r.rank,r.of)}</b> avec <b>${nf(r.total)} points</b>${r.pbs.length?` · ${r.pbs.length} ${plural(r.pbs.length,'record personnel','records personnels')} (${r.pbs.map(e=>e.s).join(', ')})`:''}.${gain?` Tu as <b>${gain} points</b> à répartir.`:''}</p>
- <div class="tw"><table>${top}${mine}</table></div></div>${r.hurt?`<div class="card cnote warn"><h3>🚑 Blessure</h3><p>${r.hurt.dnf?`Tu as abandonné après ${esc(r.hurt.where)}. `:r.hurt.where?`Blessure pendant ${esc(r.hurt.where)}. `:''}<b>${esc(r.hurt.n)}</b> : arrêt de ${r.hurt.months} mois. Tu perdras environ ${injLoss(K.pct[r.hurt.sk[0]])} % par mois sur ${r.hurt.sk.map(k=>SX[k].n.toLowerCase()).join(', ')}, à récupérer par le repos et la kiné.</p></div>`:''}`;
+ <div class="tw"><table>${top}${mine}</table></div></div>${r.hurt?`<div class="card cnote warn"><h3>🚑 Blessure</h3><p>${r.hurt.dnf?`Tu as abandonné après ${esc(r.hurt.where)}. `:r.hurt.where?`Blessure pendant ${esc(r.hurt.where)}. `:''}<b>${esc(r.hurt.n)}</b> : arrêt de ${r.hurt.months} mois. Tu perdras environ ${Math.round(injLoss(K.pct[r.hurt.sk[0]])*(r.hurt.months>=5?2:r.hurt.months>=3?1.5:1))} % une seule fois sur ${r.hurt.sk.map(k=>SX[k].n.toLowerCase()).join(', ')}, à récupérer par le repos et la kiné.</p></div>`:''}`;
  persist();enterCareer();
 }
 
