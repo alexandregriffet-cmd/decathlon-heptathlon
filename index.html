@@ -142,6 +142,8 @@ td.nul{color:var(--crit)}
 .status h4{margin:0 0 6px;font:700 17px Oswald;letter-spacing:.02em}
 .sk{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:6px}
 .chip{font:700 12px Nunito;padding:3px 8px;border-radius:99px;background:#ffffff14;border:1px solid var(--line)}
+.fatg{display:inline-flex;gap:2px;vertical-align:middle;margin-left:3px}.fatg i{width:9px;height:9px;border-radius:2px;background:#ffffff22}.fatg i.on{background:#ffcf5c}.fatg i.hi{background:#ff6b4a}
+.fatBox{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:0 0 10px;padding:8px 10px;border-radius:10px;background:#ffffff0d;border:1px solid var(--line);font-size:13px}.fatBox.hi{border-color:#ff8a3d88}
 .chip.p{color:#7df0b1;border-color:#35c27a66}.chip.m{color:#ffab70;border-color:#ff8a3d66}
 .thr{display:flex;align-items:baseline;gap:8px}
 .thr b{font:700 40px Oswald;color:var(--gold)}
@@ -1588,7 +1590,7 @@ function gymSession(K,sess,rollFn){
  markTrained(K,sess.sk);
  const T=gymThreshold(K,sess),roll=rollFn?rollFn():rnd(20),out=mkOut(T,roll);
  const pts=out==='perfect'?2:out==='ok'?1:0,crit=out==='crit';
- if(crit)K.tf=Math.min(3,K.tf+1);
+ K.tf=Math.min(3,K.tf+.5+(crit?1:0));   /* chaque séance fatigue de ½ point, un 20 ajoute 1 point */
  if(pts)K.pools.push({n:pts,sk:sess.sk.slice(),why:`${sess.n}`});
  /* effets en plus */
  K.comp=K.comp||{};const evs=EV[K.cat];let ids=GEN_EVS[sess.id];
@@ -1671,7 +1673,7 @@ function applyDisciplineGain(K,ev,t){
  const o=trainingOutcome(t),sk=trainSk(ev),gains={};markTrained(K,sk);K.comp=K.comp||{};
  const pts=o.ok?(o.bonus>=2?2:1):0,cur=K.comp[ev.id]||0;
  if(pts){const rate=cur<40?3:cur<80?2:1;let g=pts*rate;if(K.age<=19)g=Math.ceil(g*1.25);g=Math.min(g,100-cur);K.comp[ev.id]=cur+g;gains[ev.id]=g;}
- K.tf=Math.min(3,K.tf+(t.crit?1:0));
+ K.tf=Math.min(3,K.tf+.5+(t.crit?1:0));
  if(pts>=2)K.pools.push({n:1,sk:(PAPER_DATA.TRIO[ev.id]||sk).slice(),why:`Séance ${ev.s} : lancers parfaits`});
  return{...o,sk,gains,pts,comp:K.comp[ev.id]||0};
 }
@@ -1741,7 +1743,7 @@ function settleCompetition(K,C,step){
  let hurt=null;
  if(!K.inj&&p.hurt){hurt=p.hurt;K.inj=hurt;}
  else if(!K.inj&&RNG()<injChance(K,false)){hurt=pickInjury(K);K.inj=hurt;}
- K.tf=0;K.nextMent=0;
+ K.tf=Math.max(0,K.tf-1);K.nextMent=0;   /* un mois de récupération entre deux compétitions : −1 point de fatigue */
  return{rank,total:p.total,pbs,pod,of:list.length,hurt,compGain};
 }
 
@@ -3656,7 +3658,7 @@ function renderHead(){
  const o=K.opt,ol=onlineHeadHTML();
  $('#cHead').innerHTML=`<div class="cTop">
   <div class="who"><span class="dot" style="--c:${K.color};width:34px;height:34px"></span><div><b class="nm">${flagOf(K.nat)} ${esc(K.first)} ${esc(K.last.toUpperCase())}</b><small>${CATN[K.cat]} · Saison ${K.season} (${K.year}) · ${K.age} ans</small></div></div>
-  <div class="cStats"><span class="chip">Compétence moyenne ${Math.round(careerAvg(K))} %</span><span class="chip">${medalsTxt(K.medals)}</span><span class="chip">${K.comps} ${plural(K.comps,'compétition')}</span>${K.inj?`<span class="chip m">🩹 Blessé · ${esc(K.inj.n)} · ${K.inj.left} mois</span>`:''}<span class="chip ${K.tf>=2?'m':''}">Fatigue ${K.tf?'●'.repeat(K.tf):'○'}</span><span class="chip ${saveOK?'p':'m'}">${saveOK?'💾 Sauvegardé':'⚠️ Sauvegarde impossible : exporte !'}</span>${ol.chip}</div>
+  <div class="cStats"><span class="chip">Compétence moyenne ${Math.round(careerAvg(K))} %</span><span class="chip">${medalsTxt(K.medals)}</span><span class="chip">${K.comps} ${plural(K.comps,'compétition')}</span>${K.inj?`<span class="chip m">🩹 Blessé · ${esc(K.inj.n)} · ${K.inj.left} mois</span>`:''}<span class="chip ${K.tf>=2?'m':''}" title="Fatigue d’entraînement">Fatigue ${fatG(K.tf)}</span><span class="chip ${saveOK?'p':'m'}">${saveOK?'💾 Sauvegardé':'⚠️ Sauvegarde impossible : exporte !'}</span>${ol.chip}</div>
   <div class="cBtns"><label class="chk"><input type="checkbox" id="oAuto" ${o.auto?'checked':''}> Dés auto</label><label class="chk"><input type="checkbox" id="oFast" ${o.fast?'checked':''}> Virtuels rapides</label><label class="chk"><input type="checkbox" id="oQuick" ${o.quick?'checked':''}> Séances de discipline automatiques</label>
   ${ol.btns}<button class="btn small" id="cRec">📚 Records</button><button class="btn small" id="cExport">Exporter</button><button class="btn small" id="cRetire">Prendre sa retraite</button><button class="btn small" id="cMenu">Menu</button></div></div>`;
  onlineHeadBind();
@@ -3775,6 +3777,11 @@ function addSlot(s){
  K.slots[i]=s;persist();renderCareer();
 }
 const nSl=()=>K.slots.length;
+function fatG(f){let h='<span class="fatg">';for(let i=0;i<6;i++)h+=`<i class="${i<Math.round(f*2)?(f>=2?'hi':'on'):''}"></i>`;return h+'</span>';}
+function fatBox(){
+ const f=Math.floor(K.tf),pts=Math.round(K.tf*10)/10;
+ return `<div class="fatBox ${K.tf>=2?'hi':''}"><b>😮‍💨 Fatigue</b>${fatG(K.tf)}<span>${f>=1?`<b>−${f}</b> au seuil de tes séances, risque de blessure <b>+${(K.tf*1.5).toFixed(1).replace('.',',')} %</b>.`:'Aucun effet pour l’instant.'} Chaque séance fatigue de ½ point (un 20 : +1). 🏖️ Repos : remise à zéro. Entre deux compétitions : −1.</span></div>`;
+}
 function trainDone(){if(K.sessDone<nSl())return;if(K.endPrep){K.endPrep=false;K.phase='bilan';}else K.phase='comp';}
 function trainHTML(){
  const steps=seasonSteps(K.year),st=K.endPrep?{...steps[steps.length-1],n:'la saison suivante',m:'Avril'}:steps[K.step],full=K.slots.every(Boolean);
@@ -3790,7 +3797,7 @@ function trainHTML(){
   body=`<div class="startRow"><button class="btn primary big" data-a="run">▶ Séance ${K.sessDone+1}/${nSl()} : ${slotLabel(sl)}</button></div>`;
  }
  return `<div class="card"><h3>🏋️ ${K.endPrep?'Dernière séance de la saison':'Préparation · '+esc(st.n)}</h3>
-  <p class="note" style="margin:0 0 10px">${K.tf>=2?'Tu es fatigué. ':''}${K.endPrep?'Les compétitions sont terminées : une dernière séance avant le bilan de la saison.':`Niveau visé : ${L.s}, compétence moyenne minimale ${L.min} % — la tienne : <b style="color:${q?'var(--ok)':'var(--bad)'}">${Math.round(careerAvg(K))} %</b>.`}</p>
+  ${fatBox()}<p class="note" style="margin:0 0 10px">${K.endPrep?'Les compétitions sont terminées : une dernière séance avant le bilan de la saison.':`Niveau visé : ${L.s}, compétence moyenne minimale ${L.min} % — la tienne : <b style="color:${q?'var(--ok)':'var(--bad)'}">${Math.round(careerAvg(K))} %</b>.`}</p>
   <div class="slots">${slots}</div>${body}${maintHTML()}${K.sessDone<nSl()?`<p style="margin:10px 0 0"><button class="btn small" data-a="skipPrep">Sauter la préparation →</button></p>`:''}</div>`;
 }
 /* ---------- blessure : mois d'arrêt, soins et rééducation ---------- */
