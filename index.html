@@ -331,7 +331,7 @@ tr.rec td{background:#ffc83d1f;padding:8px 10px}tr.rec small{color:var(--mute)}
 .hSteps h3{margin:10px 0 4px;font-size:18px}.hSteps p{margin:0;color:#c9d2ee;font-size:14px;line-height:1.45}
 .hBrief{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
 .hBrief p{margin:0;color:#c9d2ee;font-size:14.5px;line-height:1.5}
-.rcBar{display:flex;gap:10px;margin:10px 0}.rcBar select{background:#0e1424;color:#fff;border:1px solid var(--line);border-radius:8px;padding:8px 10px;font:inherit}.rcW{overflow-x:auto}.rcT td,.rcT th{white-space:nowrap}.rcT i{color:var(--mute);font-size:12px}.mute{color:var(--mute)}
+.rcBar{display:flex;gap:10px;margin:10px 0}.rcBar select{background:#0e1424;color:#fff;border:1px solid var(--line);border-radius:8px;padding:8px 10px;font:inherit}.rcW{overflow-x:auto}.rcT td,.rcT th{white-space:nowrap}.rcb{display:inline-block;margin-left:5px;padding:1px 5px;border-radius:5px;font:800 10px Nunito;letter-spacing:.3px;vertical-align:middle;background:#34d39933;color:#6ee7b7}.rcbW{background:#fbbf24;color:#3a2a00}.rcbWB{background:#f59e0b55;color:#fcd34d}.rcbC{background:#60a5fa;color:#06203d}.rcbN{background:#ffffff;color:#0a1330}.rcbP{background:#34d399;color:#04301f}.rcT i{color:var(--mute);font-size:12px}.mute{color:var(--mute)}
 .lvGrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:8px}.lvC{background:#0d1634;border:1px solid var(--line);border-radius:12px;padding:9px 10px}.lvH{display:flex;justify-content:space-between;gap:6px;align-items:baseline}.lvH b{font-size:13.5px}.lvN{font:800 11px Nunito;color:var(--gold);white-space:nowrap}.lvBar{position:relative;height:9px;border-radius:6px;background:#1b2750;margin:7px 0 5px;overflow:visible}.lvBar i{position:absolute;left:0;top:0;bottom:0;border-radius:6px;background:linear-gradient(90deg,#34d399,#fbbf24)}.lvBar s{position:absolute;top:-2px;bottom:-2px;width:1px;background:#ffffff55}.lvBar u{position:absolute;top:-4px;bottom:-4px;width:3px;margin-left:-1px;background:#fbbf24;border-radius:2px}.lvM{font-size:12px;color:#cfd8f3}.lvB{font-size:12px;color:#9be7c4;margin-top:2px}.lvN2{font-size:11.5px;color:var(--mute);margin-top:4px}.lvC.l4{border-color:#fbbf24}
 .hFoot{text-align:center;margin:22px 0 4px}.hFoot p{color:var(--mute);margin:12px 0 0;font-size:14px}
 @media(max-width:1000px){.hModes{grid-template-columns:repeat(2,minmax(0,1fr))}.hSteps{grid-template-columns:repeat(2,minmax(0,1fr))}.hHero h1{font-size:44px}}
@@ -772,7 +772,7 @@ const RC=(()=>{
    });
    const K=C.K,pk=(indoor?'i:':'')+ev.id,old=K&&K.pb&&K.pb[pk];
    if(old&&old.perf!=null&&better(id,perf,old.perf))hits.push({t:'P',sc:'',old:[old.perf,fullName(p),p.nat,'','','perso']});
-   if(hits.length)out.push({p,ev,key,perf,hits});
+   if(hits.length){out.push({p,ev,key,perf,hits});(p.recs=p.recs||{})[r]=hits.map(h=>h.t);}
   });
   if(out.length)save();return out;
  }
@@ -791,6 +791,8 @@ const RC=(()=>{
   });
   if(out.length)save();return out;
  }
+ const BADGE={W:['WR','Record du monde'],WB:['WB','Meilleure performance mondiale en décathlon / heptathlon'],C:['CR','Record continental'],N:['NR','Record national'],P:['RP','Record personnel']};
+ function badges(p,r){const a=p.recs&&p.recs[r];return a?' '+['W','WB','C','N','P'].filter(t=>a.includes(t)).map(t=>`<span class="rcb rcb${t}" title="${BADGE[t][1]}">${BADGE[t][0]}</span>`).join(''):'';}
  const scName=(t,sc)=>t==='C'?(D.CONT_NAME[sc]||sc):t==='N'?sc:'';
  function top(h){return h.find(x=>x.t==='W')||h.find(x=>x.t==='WB')||h.find(x=>x.t==='C')||h.find(x=>x.t==='N')||h[0];}
  function lines(h,fm){
@@ -830,7 +832,7 @@ const RC=(()=>{
   draw();dlg.showModal();
  }
  function reset(){ov={};save();}
- return{checkEvent,checkTotal,textEvent,textTotal,open,reset,fmt};
+ return{badges,checkEvent,checkTotal,textEvent,textTotal,open,reset,fmt};
 })();
 function recPts(cat,ri,upto){let s=0;const r=RECS[cat][ri];for(let i=0;i<upto;i++)s+=ptsOf(EV[cat][i],r.perf[i]);return s;}
 
@@ -3509,7 +3511,7 @@ function showFinal(C,cont){
   return `<div class="card" style="margin-top:14px"><h3>${nameCell(p)} · ${rk}e sur ${list.length} · ${nf(p.total)} pts · ${lab(p)}</h3>
   <p style="color:var(--mute);margin:0 0 8px">${d>=0?'🏆 Record du monde battu !':`À ${nf(-d)} pts du record du monde (${rec.name}, ${nf(full)})`}</p>
   <div class="tw"><table><tr><th>#</th><th>Épreuve</th><th>Perf.</th><th>Points</th><th>Rang épreuve</th><th>${rec.name.split(' ').pop()}</th></tr>`+
-  C.evs.map((e,i)=>`<tr><td>${i+1}</td><td>${e.i} ${e.s}</td><td>${p.res[i].dq?'DQ':fmtPerf(e,p.res[i].perf)}</td><td>${nf(p.res[i].pts)}</td><td>${evRank(C,i,p)}e</td><td style="color:var(--mute)">${fmtPerf(e,rec.perf[i])}</td></tr>`).join('')+'</table></div></div>';
+  C.evs.map((e,i)=>`<tr><td>${i+1}</td><td>${e.i} ${e.s}</td><td>${p.res[i].dq?'DQ':fmtPerf(e,p.res[i].perf)}${RC.badges(p,i)}</td><td>${nf(p.res[i].pts)}</td><td>${evRank(C,i,p)}e</td><td style="color:var(--mute)">${fmtPerf(e,rec.perf[i])}</td></tr>`).join('')+'</table></div><p class="mute" style="font-size:12px;margin:6px 0 0"><span class="rcb rcbW">WR</span> record du monde · <span class="rcb rcbWB">WB</span> meilleure marque mondiale en décathlon/heptathlon · <span class="rcb rcbC">CR</span> record continental · <span class="rcb rcbN">NR</span> record national · <span class="rcb rcbP">RP</span> record personnel</p></div>';
  }).join('');
  $('#final').innerHTML=`<div class="hero"><h1>Classement final</h1><p>${esc(C.level.n)} · ${CATN[C.cat]} · ${list.length} participants</p></div><div class="podium">${pod}</div>${det}
  <div class="card" style="margin-top:14px"><h3>Classement complet</h3><div class="tw"><table><tr><th>#</th><th>Athlète</th><th>Points</th></tr>${list.map((p,i)=>`<tr class="${p.human?'me':''}"><td>${medal(i)}</td><td>${nameCell(p)}</td><td><b>${nf(p.total)}</b></td></tr>`).join('')}</table></div></div>
