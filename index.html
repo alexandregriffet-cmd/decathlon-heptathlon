@@ -2379,6 +2379,7 @@ const ST={
   ctx.restore();
   this.chuteFill(ctx,ev);
   /* pelouse intérieure */
+  this.stad(ctx,R1);ctx.fillStyle=this.indoor?'#96d3f0':'#217540';ctx.fill();   /* fond plein : l'intérieur n'est jamais noir, même si le découpage échoue sur un téléphone */
   ctx.save();this.stad(ctx,R1);ctx.clip();stripes(...(this.indoor?['#9bd6f2','#92d1ef']:['#237a43','#1f6e3c']));
   if(this.tier===6&&!this.indoor)this.drawRings(ctx);
   else{this.txt(ctx,'DÉCATHLON',0,-1,this.indoor?6.2:3.6,this.indoor?'rgba(15,45,92,.16)':'rgba(255,255,255,.12)',Math.PI/2,null,true);
@@ -2777,7 +2778,7 @@ const ST={
   this.hideAll();this.heat=heat;this.mode='race';
   const D=this.ev.D,s0=-D;
   heat.forEach((p,k)=>{
-   const co=D>40&&!this.indoor,kk=co?k%2:k,row=co?k>>1:0;
+   const co=D>40,kk=co?k%2:k,row=co?k>>1:0;
    const g=this.pawn(p);g.visible=true;const q=this.pos(kk,s0-.5-row*.3);
    g.userData.v.s=0;g.userData.v.sc=null;g.userData.lane=kk;g.userData.row=row;this.place(p,q.x,q.y,q.a,0);
   });
@@ -3258,7 +3259,7 @@ function renderHeat(g,C){
  const heat=g.heat;if(!heat||!heat.length||C.cur.ev.mech!=='race')return;
  const ev=C.cur.ev,D=ev.D;
  const list=heat.map((p,k)=>({p,k,c:g.prog[p.id]||0})).sort((a,b)=>b.c-a.c);
- $('#live').innerHTML='<table><tr><th>#</th><th>'+(D>40&&!ev.indoor?'N°':'Cx')+'</th><th>Athlète</th><th style="width:42%">Progression</th><th>Case</th></tr>'+list.map((x,i)=>
+ $('#live').innerHTML='<table><tr><th>#</th><th>'+(D>40?'N°':'Cx')+'</th><th>Athlète</th><th style="width:42%">Progression</th><th>Case</th></tr>'+list.map((x,i)=>
   `<tr class="${x.p.human?'me':''}"><td>${i+1}</td><td>${x.k+1}</td><td>${nameCell(x.p)}</td><td><div class="pg" style="--c:${x.p.human?x.p.color:ST.BOTC[x.p.id%8]}"><i style="width:${Math.min(100,x.c/D*100)}%"></i></div></td><td>${Math.min(x.c,D)}/${D}</td></tr>`).join('')+'</table>';
 }
 
@@ -3363,7 +3364,7 @@ function makeHooks(g){
    HUD(`Série ${hi+1}/${n} · ${C.cur.cond.s}`);
    $('#rollLog').innerHTML='';$('#tResult').innerHTML='';$('#status').innerHTML='';$('#dieMsg').textContent='';
    renderHeat(g,C);
-   ticker((ev.D>40&&!ev.indoor?'Départ : ':'Couloirs : ')+heat.map((p,k)=>`${k+1} ${p.flag||''} ${fullName(p)}`).join(' · '));
+   ticker((ev.D>40?'Départ : ':'Couloirs : ')+heat.map((p,k)=>`${k+1} ${p.flag||''} ${fullName(p)}`).join(' · '));
    if(has||n===1)await banner(`Série ${hi+1}/${n}`,heat.some(p=>p.human)?'Départ : chacun lance le d20 à tour de rôle, couloir 1 en premier.':'Les adversaires courent.',g.fast?350:1200);
    setWho(null,`Série ${hi+1}/${n}`);
   },
