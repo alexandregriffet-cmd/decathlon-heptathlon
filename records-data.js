@@ -103,7 +103,7 @@ C:{
   'F|jt':[68.11,'Kara Winger','États-Unis','2022-09-02','Zurich']
  }
 }};
-const EUROPE=['France','Allemagne','Estonie','Royaume-Uni','Espagne','Pologne','Pays-Bas','Belgique','Ukraine','République tchèque','Suède','Finlande','Italie','Norvège','Danemark','Bulgarie','Lituanie','Suisse','URSS','RDA','Tchécoslovaquie','Russie','Slovénie'];
+const EUROPE=['France','Allemagne','Estonie','Royaume-Uni','Espagne','Pologne','Pays-Bas','Belgique','Ukraine','République tchèque','Suède','Finlande','Italie','Norvège','Danemark','Bulgarie','Lituanie','Suisse','URSS','RDA','Tchécoslovaquie','Russie','Slovénie','Israël'];
 const NAMER=['États-Unis','Canada','Grenade','Cuba','Jamaïque','Bahamas'];
 const contOf=n=>EUROPE.indexOf(n)>=0?'EUR':NAMER.indexOf(n)>=0?'NAM':'';
 /* records nationaux : on en déduit le meilleur de chaque nation à partir de toutes les listes ci-dessus (la base est extensible via NAT) */
@@ -111,6 +111,20 @@ const NAT={};
 function addNat(tier,rows){Object.keys(rows).forEach(k=>{const r=rows[k],n=r[2];if(!n)return;const key=(tier==='WB'?'':'')+k;NAT[n]=NAT[n]||{};const trk=/\|(i:)?(100|200|400|800|1500|60|60h|100h|110h|1000)$/.test(k);const cur=NAT[n][k];if(!cur||(trk?r[0]<cur[0]:r[0]>cur[0]))NAT[n][k]=r;});}
 addNat('W',R.W);addNat('EUR',R.C.EUR);addNat('NAM',R.C.NAM);
 /* records nationaux établis hors des listes ci-dessus (ex. record de France des épreuves isolées) : à compléter */
+/* Israël : records nationaux (source : liste Wikipedia des records israéliens en athlétisme ; épreuves du décathlon et de l'heptathlon) */
+const ISR={
+ 'M|100':[10.20,'Aleksandr Porkhomovskiy','Israël','1999-08-21','Séville'],'M|400':[45.04,'Donald Sanford','Israël','2015-07-19','Joukovski'],
+ 'M|1500':[220.64,'Jonathan Carmin','Israël','2024-05-03','Fayetteville'],'M|110h':[13.85,'Michael Illin','Israël','2007-06-10','Bucarest'],
+ 'M|lj':[799,'Yochai Halevi','Israël','2010-05-15','Tel Aviv'],'M|hj':[236,'Konstantin Matusevich','Israël','2000-02-05','Perth'],
+ 'M|pv':[593,'Aleksandr Averbukh','Israël','2003-07-19','Madrid'],'M|sp':[19.09,'Igor Avrunin','Israël','1991-06-22','Athènes'],
+ 'M|dt':[62.24,'Igor Avrunin','Israël','1991-06-01','Tel Aviv'],'M|jt':[81.94,'Vadim Bavikin','Israël','2004-06-08','Saragosse'],
+ 'M|i:60':[6.68,'Aleksandr Porkhomovskiy','Israël','1999-02-21','Samara'],'M|i:1000':[143.87,'Dustin Emrani','Israël','2012-01-13','New York'],
+ 'M|i:60h':[7.86,'Dor Hayon','Israël','2024-01-28','Bratislava'],
+ 'F|100h':[12.80,'Irina Lenskiy','Israël','2002-07-07','Rethymno'],'F|800':[122.59,'Shanie Landen','Israël','2024-06-18','Oslo']
+};
+NAT['Israël']=Object.assign(NAT['Israël']||{},ISR);
+R.NATTOT={'Israël':{DEC:[7343,'Ariel Atias','Israël','2023-05-13','Des Moines'],HEPI:[5680,'Etamar Bhastekar','Israël','2021-01-29','Fayetteville'],
+ HEP:[6031,'Svetlana Gnezdilov','Israël','2003-08-12','Tel Aviv'],PENI:[3993,'Marina Lippis','Israël','1999-02-18','Minsk']}};
 R.NAT=NAT;R.contOf=contOf;
 R.CONT_NAME={EUR:'Europe',NAM:'Amérique du Nord, centrale et Caraïbes'};
 if(typeof module!=='undefined'&&module.exports)module.exports=R;else root.RECORDS=R;

@@ -748,7 +748,7 @@ const RC=(()=>{
   return (CM.has(id)?m/100:m).toFixed(2).replace('.',',')+' m';
  }
  const dateFr=d=>{if(!d)return '';const t=new Date(d+'T12:00:00');return isNaN(t)?d:t.toLocaleDateString('fr-FR',{day:'numeric',month:'long',year:'numeric'});};
- const natTot=(nat,cat)=>{let b=null;['W','EUR','NAM'].forEach(t=>{const r=D.TOT[t]&&D.TOT[t][cat];if(r&&r[2]===nat&&(!b||r[0]>b[0]))b=r;});return b;};
+ const natTot=(nat,cat)=>{let b=null;['W','EUR','NAM'].forEach(t=>{const r=D.TOT[t]&&D.TOT[t][cat];if(r&&r[2]===nat&&(!b||r[0]>b[0]))b=r;});const x=D.NATTOT&&D.NATTOT[nat]&&D.NATTOT[nat][cat];if(x&&(!b||x[0]>b[0]))b=x;return b;};
  /* ligne de référence d'un niveau : la meilleure entre la base et ce qui a été battu dans le jeu */
  function ref(tier,key,sc){
   let r=null;
@@ -1280,7 +1280,7 @@ const FIRST_M=['Kevin','Ashton','Damian','Maurice','Niklas','Pierce','Simon','L�
 const FIRST_F=['Nafi','Katarina','Jackie','Carolina','Anouk','Emma','Laura','Sofia','Léa','Marie','Inès','Clara','Anna','Ivona','Verena','Mélanie','Jade','Elsa','Maëlle','Tessa','Nina','Zoé','Alice','Lola'];
 const LAST=['Moreau','Keller','Okafor','Silva','Tanaka','Novak','Lindqvist','Duval','Haddad','Brown','Rossi','Petrov','Mbaye','Hansen','Kowalski','Dubois','Garnier','Weber','Lopez','Nowak','Fischer','Marchand','Costa','Berger','Lemaire','Girard'];
 const NAT_FR=[['France','🇫🇷']];
-const NAT_INT=[['Allemagne','🇩🇪'],['États-Unis','🇺🇸'],['Canada','🇨🇦'],['Estonie','🇪🇪'],['Grenade','🇬🇩'],['Royaume-Uni','🇬🇧'],['Espagne','🇪🇸'],['Pologne','🇵🇱'],['Pays-Bas','🇳🇱'],['Belgique','🇧🇪'],['Brésil','🇧🇷'],['Japon','🇯🇵'],['Cuba','🇨🇺'],['Ukraine','🇺🇦'],['République tchèque','🇨🇿'],['Suède','🇸🇪'],['Australie','🇦🇺'],['Finlande','🇫🇮']];
+const NAT_INT=[['Israël','🇮🇱'],['Allemagne','🇩🇪'],['États-Unis','🇺🇸'],['Canada','🇨🇦'],['Estonie','🇪🇪'],['Grenade','🇬🇩'],['Royaume-Uni','🇬🇧'],['Espagne','🇪🇸'],['Pologne','🇵🇱'],['Pays-Bas','🇳🇱'],['Belgique','🇧🇪'],['Brésil','🇧🇷'],['Japon','🇯🇵'],['Cuba','🇨🇺'],['Ukraine','🇺🇦'],['République tchèque','🇨🇿'],['Suède','🇸🇪'],['Australie','🇦🇺'],['Finlande','🇫🇮']];
 function gauss(){let s=0;for(let i=0;i<6;i++)s+=RNG();return(s-3)/Math.sqrt(.5);}
 function makeBot(level,cat,id,usedNames){
  const sex=sexOf(cat);
@@ -1939,7 +1939,7 @@ const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',
 const nf=n=>Math.round(n).toLocaleString('fr-FR');
 const fmt1=v=>v.toFixed(1).replace('.',',');
 const sgn=v=>(v>0?'+':v<0?'−':'')+Math.abs(v);
-const NATS=[['France','🇫🇷'],['États-Unis','🇺🇸'],['Canada','🇨🇦'],['Allemagne','🇩🇪'],['Estonie','🇪🇪'],['Royaume-Uni','🇬🇧'],['Espagne','🇪🇸'],['Italie','🇮🇹'],['Belgique','🇧🇪'],['Suisse','🇨🇭'],['Pays-Bas','🇳🇱'],['Pologne','🇵🇱'],['République tchèque','🇨🇿'],['Ukraine','🇺🇦'],['Grenade','🇬🇩'],['Jamaïque','🇯🇲'],['Cuba','🇨🇺'],['Brésil','🇧🇷'],['Japon','🇯🇵'],['Chine','🇨🇳'],['Kenya','🇰🇪'],['Éthiopie','🇪🇹'],['Maroc','🇲🇦'],['Algérie','🇩🇿'],['Tunisie','🇹🇳'],['Sénégal','🇸🇳'],['Côte d\'Ivoire','🇨🇮'],['Cameroun','🇨🇲'],['Nigeria','🇳🇬'],['Afrique du Sud','🇿🇦'],['Australie','🇦🇺'],['Nouvelle-Zélande','🇳🇿'],['Suède','🇸🇪'],['Norvège','🇳🇴'],['Finlande','🇫🇮'],['Danemark','🇩🇰'],['Portugal','🇵🇹'],['Grèce','🇬🇷'],['Turquie','🇹🇷'],['Irlande','🇮🇪'],['Autriche','🇦🇹'],['Hongrie','🇭🇺'],['Roumanie','🇷🇴'],['Bulgarie','🇧🇬'],['Croatie','🇭🇷'],['Serbie','🇷🇸'],['Lituanie','🇱🇹'],['Lettonie','🇱🇻'],['Inde','🇮🇳'],['Corée du Sud','🇰🇷'],['Mexique','🇲🇽'],['Argentine','🇦🇷'],['Colombie','🇨🇴'],['Chili','🇨🇱'],['Bahamas','🇧🇸'],['Trinité-et-Tobago','🇹🇹'],['Madagascar','🇲🇬'],['Haïti','🇭🇹']].sort((a,b)=>a[0].localeCompare(b[0],'fr'));
+const NATS=[['France','🇫🇷'],['Israël','🇮🇱'],['États-Unis','🇺🇸'],['Canada','🇨🇦'],['Allemagne','🇩🇪'],['Estonie','🇪🇪'],['Royaume-Uni','🇬🇧'],['Espagne','🇪🇸'],['Italie','🇮🇹'],['Belgique','🇧🇪'],['Suisse','🇨🇭'],['Pays-Bas','🇳🇱'],['Pologne','🇵🇱'],['République tchèque','🇨🇿'],['Ukraine','🇺🇦'],['Grenade','🇬🇩'],['Jamaïque','🇯🇲'],['Cuba','🇨🇺'],['Brésil','🇧🇷'],['Japon','🇯🇵'],['Chine','🇨🇳'],['Kenya','🇰🇪'],['Éthiopie','🇪🇹'],['Maroc','🇲🇦'],['Algérie','🇩🇿'],['Tunisie','🇹🇳'],['Sénégal','🇸🇳'],['Côte d\'Ivoire','🇨🇮'],['Cameroun','🇨🇲'],['Nigeria','🇳🇬'],['Afrique du Sud','🇿🇦'],['Australie','🇦🇺'],['Nouvelle-Zélande','🇳🇿'],['Suède','🇸🇪'],['Norvège','🇳🇴'],['Finlande','🇫🇮'],['Danemark','🇩🇰'],['Portugal','🇵🇹'],['Grèce','🇬🇷'],['Turquie','🇹🇷'],['Irlande','🇮🇪'],['Autriche','🇦🇹'],['Hongrie','🇭🇺'],['Roumanie','🇷🇴'],['Bulgarie','🇧🇬'],['Croatie','🇭🇷'],['Serbie','🇷🇸'],['Lituanie','🇱🇹'],['Lettonie','🇱🇻'],['Inde','🇮🇳'],['Corée du Sud','🇰🇷'],['Mexique','🇲🇽'],['Argentine','🇦🇷'],['Colombie','🇨🇴'],['Chili','🇨🇱'],['Bahamas','🇧🇸'],['Trinité-et-Tobago','🇹🇹'],['Madagascar','🇲🇬'],['Haïti','🇭🇹']].sort((a,b)=>a[0].localeCompare(b[0],'fr'));
 const flagOf=n=>(NATS.find(x=>x[0]===n)||['','🏳️'])[1];
 const COLORS=['#ef476f','#06b6d4','#f59e0b','#8b5cf6','#22c55e','#ec4899'];
 const fullName=p=>p.first+' '+p.last.toUpperCase();
@@ -2703,6 +2703,7 @@ const ST={
    case 'Norvège':cross('#ba0c2f','#00205b','#ffffff',.36);R('#ffffff',0,.4,1,.2);R('#ffffff',.3,0,.12,1);R('#00205b',0,.44,1,.12);R('#00205b',.33,0,.06,1);break;
    case 'Suède':cross('#006aa7','#fecc00',null,.36);break;
    case 'Finlande':cross('#ffffff','#003580',null,.36);break;
+   case 'Israël':x.fillStyle='#ffffff';x.fillRect(X,Y,W,H);R('#0038b8',0,.12,1,.12);R('#0038b8',0,.76,1,.12);tri('#0038b8',[[.5,.3],[.62,.64],[.38,.64]]);tri('#0038b8',[[.5,.7],[.62,.36],[.38,.36]]);break;
    case 'Japon':x.fillStyle='#ffffff';x.fillRect(X,Y,W,H);circle('#bc002d',.5,.5,.3);break;
    case 'Kazakhstan':x.fillStyle='#00afca';x.fillRect(X,Y,W,H);circle('#fec50c',.5,.5,.22);break;
    case 'République tchèque':R('#ffffff',0,0,1,.5);R('#d7141a',0,.5,1,.5);tri('#11457e',[[0,0],[.5,.5],[0,1]]);break;
