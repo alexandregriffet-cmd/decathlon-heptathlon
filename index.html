@@ -1654,7 +1654,7 @@ function recoverPct(K,n){
 function kineSession(K){
  const T=clampT(capOf(K,['men','tec'])+5),roll=rnd(20),out=mkOut(T,roll);
  const n=out==='perfect'?2:out==='ok'?1:0;
- const got=hasRegain(K)?recoverPct(K,n):[];
+ const got=[];   /* les % récupérés sont répartis par le joueur, comme les points de jauge des autres séances */
  if(out==='crit')K.tf=Math.min(3,K.tf+1);
  return{T,roll,out,n,got};
 }
@@ -3833,7 +3833,6 @@ function afterSessionNext(keep){
 /* séance de kiné : même déroulé que les autres entraînements (seuil, bouton, lancer du d20 animé, résultat) */
 async function kinFlow(){
  const r=kineSession(K);K.sessDone++;persist();
- const gotTxt=r.got.length?`${r.got.map(x=>`${SX[x.k].i} ${SX[x.k].n} <b>+${x.n} %</b>`).join(', ')} récupéré${r.got.reduce((a,x)=>a+x.n,0)>1?'s':''}`:'';
  $('#cMain').innerHTML=`<div class="card gym"><h3>🩺 Kiné · rééducation</h3>
  <p class="note" style="margin:0 0 10px">Rééducation de tes qualités blessées.<br>Seuil du d20 : <b>${r.T}</b> (Technique et Mental). Réussite : <b>1 %</b> récupéré · parfait (dé = seuil) : <b>2 %</b> · échec : 0 · 20 : 0 et +1 fatigue.</p>
  <div class="gymRows"><div class="gr"><span>🎲 Jet de la séance</span><b>seuil ${r.T}</b><div class="cdie" id="cd_kin">?</div><span class="gres" id="gx_kin"></span></div></div>
@@ -3845,9 +3844,18 @@ async function kinFlow(){
   d.textContent=r.roll;d.className='cdie '+r.out;
   $('#gx_kin').innerHTML=`<span class="${r.out}">${OUTT[r.out]}</span> ${r.n?`<b>+${r.n} %</b>`:''}`;
   await sleep(280);
-  $('#cMain .gym').insertAdjacentHTML('beforeend',`<p class="note" style="margin:10px 0 0">${gotTxt?gotTxt+'.':'Pas de progrès cette séance.'}${r.out==='crit'?' Petite rechute : tu es plus fatigué.':''}</p>
-  <div class="startRow"><button class="btn primary big" id="gymNext">${K.phase==='rehab'?(K.sessDone>=3?'Terminer les soins →':'Séance suivante →'):(K.sessDone>=3?'Terminer la préparation →':'Séance suivante →')}</button></div>`);
-  $('#gymNext').onclick=()=>afterSessionNext();
+  const wrap=$('#cMain .gym');
+  const nextBtn=()=>`<div class="startRow"><button class="btn primary big" id="gymNext">${K.phase==='rehab'?(K.sessDone>=3?'Terminer les soins →':'Séance suivante →'):(K.sessDone>=3?'Terminer la préparation →':'Séance suivante →')}</button></div>`;
+  const fin=txt=>{const el=wrap.querySelector('.kpick');if(el)el.remove();wrap.insertAdjacentHTML('beforeend',`<p class="note" style="margin:10px 0 0">${txt}${r.out==='crit'?' Petite rechute : tu es plus fatigué.':''}</p>`+nextBtn());$('#gymNext').onclick=()=>afterSessionNext();};
+  let left=r.n;const done=[];
+  const draw=()=>{
+   const ks=Object.keys(K.regain||{}).filter(k=>K.regain[k]>0);
+   if(left<=0||!ks.length){fin(done.length?done.join(', ')+' récupéré'+(done.length>1?'s':'')+'.':'Pas de progrès cette séance.');return;}
+   let el=wrap.querySelector('.kpick');if(!el){wrap.insertAdjacentHTML('beforeend','<div class="kpick" style="margin-top:10px"></div>');el=wrap.querySelector('.kpick');}
+   el.innerHTML=`<p class="note" style="margin:0 0 8px">Choisis la qualité qui récupère <b>${left} %</b> :</p><div class="palette">${ks.map(k=>`<button class="pal" data-k="${k}"><b>${SX[k].i} ${SX[k].n}</b><small>${Math.round(K.pct[k])} % · encore ${K.regain[k]} % à récupérer</small></button>`).join('')}</div>`;
+   el.querySelectorAll('.pal').forEach(b=>b.onclick=()=>{const k=b.dataset.k;K.regain[k]--;K.pct[k]++;if(!(K.regain[k]>0))delete K.regain[k];left--;done.push(`${SX[k].i} ${SX[k].n} <b>+1 %</b>`);persist();draw();});
+  };
+  draw();
  };
  go.onclick=play;
  if(K.opt.auto)play();
