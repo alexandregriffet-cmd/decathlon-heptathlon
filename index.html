@@ -332,6 +332,7 @@ tr.rec td{background:#ffc83d1f;padding:8px 10px}tr.rec small{color:var(--mute)}
 .hBrief{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
 .hBrief p{margin:0;color:#c9d2ee;font-size:14.5px;line-height:1.5}
 .rcBar{display:flex;gap:10px;margin:10px 0}.rcBar select{background:#0e1424;color:#fff;border:1px solid var(--line);border-radius:8px;padding:8px 10px;font:inherit}.rcW{overflow-x:auto}.rcT td,.rcT th{white-space:nowrap}.rcT i{color:var(--mute);font-size:12px}.mute{color:var(--mute)}
+.lvGrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:8px}.lvC{background:#0d1634;border:1px solid var(--line);border-radius:12px;padding:9px 10px}.lvH{display:flex;justify-content:space-between;gap:6px;align-items:baseline}.lvH b{font-size:13.5px}.lvN{font:800 11px Nunito;color:var(--gold);white-space:nowrap}.lvBar{position:relative;height:9px;border-radius:6px;background:#1b2750;margin:7px 0 5px;overflow:visible}.lvBar i{position:absolute;left:0;top:0;bottom:0;border-radius:6px;background:linear-gradient(90deg,#34d399,#fbbf24)}.lvBar s{position:absolute;top:-2px;bottom:-2px;width:1px;background:#ffffff55}.lvBar u{position:absolute;top:-4px;bottom:-4px;width:3px;margin-left:-1px;background:#fbbf24;border-radius:2px}.lvM{font-size:12px;color:#cfd8f3}.lvB{font-size:12px;color:#9be7c4;margin-top:2px}.lvN2{font-size:11.5px;color:var(--mute);margin-top:4px}.lvC.l4{border-color:#fbbf24}
 .hFoot{text-align:center;margin:22px 0 4px}.hFoot p{color:var(--mute);margin:12px 0 0;font-size:14px}
 @media(max-width:1000px){.hModes{grid-template-columns:repeat(2,minmax(0,1fr))}.hSteps{grid-template-columns:repeat(2,minmax(0,1fr))}.hHero h1{font-size:44px}}
 @media(max-width:640px){.hHero{padding:24px 18px 20px}.hHero:before{width:70%;right:-40%;opacity:.55}.hHero:after{background:linear-gradient(90deg,#13204f 50%,#13204f66 100%)}.hHero h1{font-size:36px}.hLead{font-size:15px}.hModes,.hBrief,.hSteps{grid-template-columns:minmax(0,1fr)}.hH{font-size:22px}.hCta .btn{flex:1;text-align:center}}
@@ -3191,7 +3192,7 @@ function setStatus(C,p,o){
  $('#status').innerHTML=`<h4>${esc(o.label)}${extra}</h4>
  <div class="sk">${o.sk.map(k=>`<span class="chip">${SX[k].i} ${SX[k].n} ${carShow(p,k)}/20</span>`).join('')}</div>
  <div class="sk">${ch.join('')}</div>
- <div class="thr"><b>${T}</b><span>seuil sur 20 (capacité ${o.cap} + bonus et malus, 18 maximum)</span></div>
+ <div class="thr"><b>${T}</b><span>seuil sur 20 (capacité du livre ${o.cap}, fixée par ton niveau dans la discipline, + bonus et malus, 18 maximum)</span></div>
  <div class="prob">Chances : parfait 5 % · réussite ${pc} % · échec ${pf+5} % dont critique 5 %</div>`;
 }
 const OUTCOL={perfect:'#fbbf24',ok:'#34d399',fail:'#fb923c',crit:'#ef4444'};
@@ -3652,9 +3653,24 @@ function renderCal(){
   return `<div class="calRow ${state}"><span class="calM">${st.m}</span><div><b>${st.n}</b>${res}</div></div>`;
  }).join('');
 }
+
+/* niveau de chaque discipline : compétence, niveau 1 à 4, plafond du profil, aptitude, meilleure barre du niveau */
+const LVN=['','Initié','Confirmé','Expert','Élite'];
+function lvCard(K,e){
+ const comp=Math.min(100,K.comp&&K.comp[e.id]||0),PE=paperEng(),lv=PE.levelOf(comp),ceil=profCeil(K,e),cap=PAPER_DATA.CAPMAX[e.id]-(4-lv),apt=PE.aptOf(paperChars(K),e.id);
+  const nxt=lv===4?'':lv===1?60:lv===2?80:100;
+ const mx=ceil>=100?100:ceil>=90?99:79;
+ let note=comp>=mx?(lv===4?'Niveau maximum atteint.':'Plafond de ton profil atteint dans cette discipline.'):nxt>mx?`Plafond de ton profil : ${mx} %, encore ${mx-Math.round(comp)} points possibles.`:`Prochain niveau à ${nxt} %, encore ${Math.max(0,nxt-Math.round(comp))} points de compétence.`;
+ let bar='';
+ if(e.mech==='bar'){const t=PAPER_DATA.TABLES[sexOf(K.cat)]&&PAPER_DATA.TABLES[sexOf(K.cat)][e.id],b=t&&t.blocks.find(x=>x.cap===cap),r=b&&b.rows.find(x=>x.slice(1).some(v=>/^\d+$/.test(String(v))));if(r)bar=`<div class="lvB">Meilleure barre de ton niveau : <b>${r[0].toFixed(2).replace('.',',')} m</b></div>`;}
+ return `<div class="lvC l${lv}"><div class="lvH"><b>${e.i} ${e.n}</b><span class="lvN">Niveau ${lv} · ${LVN[lv]}</span></div>
+ <div class="lvBar"><i style="width:${comp}%"></i><s style="left:60%"></s><s style="left:80%"></s><u style="left:${Math.min(ceil,99.5)}%" title="Plafond de ton profil"></u></div>
+ <div class="lvM"><b>${Math.round(comp)} %</b> de compétence · plafond ${ceil>=100?'100':ceil>=90?'99':'79'} %</div>
+ <div class="lvM">Aptitude <b>${apt}</b>/18 · capacité du livre <b>${cap}</b></div>${bar}<div class="lvN2">${note}</div></div>`;
+}
 function renderSkills(){
  $('#cSkills').innerHTML=`<h3>Qualités</h3>`+STATS.map(s=>`<div class="sk2"><span>${s.i}</span><span>${s.n}${K.regain&&K.regain[s.k]>0?` <small style="color:var(--bad)" title="À récupérer par le repos et la kiné">🩹−${K.regain[s.k]}</small>`:''}</span><div class="bar"><i style="width:${K.pct[s.k]/PCT_MAX*100}%"></i></div><b>${K.pct[s.k]}%</b><span class="gg" title="Jauge d’entraînement">${(()=>{const need=gaugeNeed(K,s.k),g=(K.gauge&&K.gauge[s.k])||0;let h='';for(let i=0;i<need;i++)h+=`<i class="${i<g?'f':''}"></i>`;return h;})()}</span></div>`).join('')+
-  `<div class="caps" style="margin-top:8px">${EV[K.cat].map(e=>`<span class="cp">${e.i} ${e.s} <b>${capOf(K,evSkills(e),e)}/20</b>${(()=>{const d=morphMod(K,e);return d?` <small class="${d>0?'mp':'mm'}">${d>0?'+':''}${d}</small>`:'';})()}</span>`).join('')}</div>`;
+  `<h3 style="margin-top:14px">Niveau par discipline</h3><p class="mute" style="font-size:12.5px;margin:0 0 6px">La <b>compétence</b> (en %, qui monte en s’entraînant et en concourant) fixe le <b>niveau</b> de 1 à 4 : c’est lui qui décide de ce que tu peux réaliser. Le trait doré est le <b>plafond de ton profil</b> dans cette discipline. L’<b>aptitude</b> (tes qualités) ne fait que choisir ta colonne dans les tables.</p><div class="lvGrid">${EV[K.cat].map(e=>lvCard(K,e)).join('')}</div>`;
 }
 function renderHist(){
  const pbs=EV[K.cat].map(e=>{const p=K.pb[e.id];return `<tr><td>${e.i} ${e.s}</td><td>${p?fmtPerf(e,p.perf):'—'}</td><td>${p?nf(p.pts):'—'}</td><td>${p?p.year:''}</td></tr>`;}).join('');
