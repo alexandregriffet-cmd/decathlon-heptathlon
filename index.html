@@ -184,15 +184,19 @@ dialog p,dialog li{color:#dfe5f7;font-size:14px;line-height:1.5;margin:4px 0}
 #botSpeed{background:#ffffff14;color:var(--ink);border:1px solid var(--line);border-radius:8px;padding:3px 6px}
 
 .dieOver{position:absolute;left:0;right:0;bottom:0;display:flex;align-items:flex-end;justify-content:center;gap:14px;padding:6px 12px 10px;pointer-events:none;background:linear-gradient(#0a133000,#0a1330c0 55%)}
-.dieOver .dieBox{width:150px;height:150px;flex:none;pointer-events:none}
-.dieOver #die3d{width:150px;height:150px}
+.dieOver .dieBox{width:104px;height:104px;flex:none;pointer-events:none}
+.dieOver #die3d{width:104px;height:104px}
+.dieInfo{display:flex;flex-direction:column;gap:5px;text-shadow:0 2px 6px #000c}.dieInfo:empty{display:none}
+.dieInfo .dl{font:600 11px system-ui,sans-serif;letter-spacing:.08em;text-transform:uppercase;color:var(--gold)}
+.dieInfo .dc{display:flex;gap:5px;flex-wrap:wrap}.dieInfo .dc span{background:#ffffff24;border-radius:99px;padding:2px 8px;font:700 12px system-ui,sans-serif;color:#fff}
+.dieInfo .dt{display:flex;align-items:baseline;gap:7px}.dieInfo .dt b{font:700 26px Oswald;color:var(--gold)}.dieInfo .dt small{font:500 12px system-ui,sans-serif;color:#d6def5}
 .dieCtl{display:flex;flex-direction:column;align-items:flex-start;gap:8px;min-width:0;padding-bottom:10px}
 .dieOver .dieMsg{text-align:left;min-height:0;text-shadow:0 2px 6px #000c;font-size:14px;color:#fff}
 .dieOver .dieMsg:empty{display:none}
 .dieOver .dieMsg .big{font-size:26px}
 .dieBtns{display:flex;flex-wrap:wrap;gap:8px;pointer-events:auto}
 .dieBtns .btn[hidden]{display:none}
-@media(max-width:560px){.dieOver .dieBox,.dieOver #die3d{width:104px;height:104px}.dieOver .dieMsg .big{font-size:20px}.dieOver{gap:6px}}
+@media(max-width:560px){.dieOver .dieBox,.dieOver #die3d{width:76px;height:76px}.dieOver .dieMsg .big{font-size:20px}.dieInfo .dt b{font-size:22px}.dieOver{gap:6px}}
 
 /* ===== mode carrière ===== */
 .modeTabs{display:flex;gap:10px;margin:0 0 14px;flex-wrap:wrap}
@@ -435,7 +439,7 @@ dialog.rulesD{max-width:860px;max-height:90vh;overflow:auto}
     <div id="stageHead" class="stageHead"></div>
     <div id="scene" class="scene"><canvas id="stadium"></canvas><div class="hud"><span><b id="hudTitle"></b> <small id="hudSub"></small></span><span class="hudBtns"><button class="btn small" id="vOver" title="Vue d'ensemble">🏟️ Ensemble</button><button class="btn small" id="vL" title="Tourner à gauche">⟲</button><button class="btn small" id="vR" title="Tourner à droite">⟳</button><button class="btn small" id="vUp" title="Vue plus haute">⤒</button><button class="btn small" id="vDn" title="Vue plus basse">⤓</button><button class="btn small" id="vZin" title="Zoom +">＋</button><button class="btn small" id="vZout" title="Zoom −">－</button><button class="btn small" id="vReset" title="Recentrer la caméra">🎥 Recentrer</button></span></div>
     <div class="dieOver"><div class="dieBox"><canvas id="die3d" width="200" height="200"></canvas><div class="die2d" id="die2d">20</div></div>
-     <div class="dieCtl"><div id="dieMsg" class="dieMsg"></div><div class="dieBtns"><button class="btn primary big" id="actBtn" hidden></button><button class="btn" id="turboBtn" hidden>⏩ Finir la course automatiquement</button><button class="btn" id="passBtn" hidden></button></div></div></div></div>
+     <div class="dieCtl"><div id="dieInfo" class="dieInfo"></div><div id="dieMsg" class="dieMsg"></div><div class="dieBtns"><button class="btn primary big" id="actBtn" hidden></button><button class="btn" id="turboBtn" hidden>⏩ Finir la course automatiquement</button><button class="btn" id="passBtn" hidden></button></div></div></div></div>
     <div id="ticker" class="ticker"></div>
    </div>
    <div class="card"><h3 id="liveTitle">Résultats</h3><div id="live" class="live"></div><div id="prevHeats" class="live"></div></div>
@@ -3413,6 +3417,7 @@ function setStatus(C,p,o){
  if(o.pen)ch.push(`<span class="chip m">Relance ${o.pen}</span>`);
  const T=o.T,pc=(T-1)*5,pf=(19-T)*5;
  const extra=o.D?` · case ${o.cum}/${o.D}`:'';
+ $('#dieInfo').innerHTML=`<div class="dl">${esc(o.label)}${extra}</div><div class="dc">${o.sk.map(k=>`<span>${SX[k].n} ${carShow(p,k)}/20</span>`).join('')}</div><div class="dt"><b>Seuil ${T}</b><small>dé ≤ ${T} = réussi</small></div>`;
  $('#status').innerHTML=`<h4>${esc(o.label)}${extra}</h4>
  <div class="sk">${o.sk.map(k=>`<span class="chip">${SX[k].i} ${SX[k].n} ${carShow(p,k)}/20</span>`).join('')}</div>
  <div class="sk">${ch.join('')}</div>
@@ -3549,7 +3554,7 @@ function makeHooks(g){
  const pause=async txt=>{if(g.auto)await sleep(g.fast?150:900);else{ST.speed=1;await waitBtn(g,txt);}};
  return{
   aborted:()=>g.abort,
-  async begin(){show('game');ST.show(true);buildEvBar(C);renderGeneral(C);setWho(null,'La compétition va commencer');$('#status').innerHTML='';$('#rollLog').innerHTML='';
+  async begin(){show('game');ST.show(true);buildEvBar(C);renderGeneral(C);setWho(null,'La compétition va commencer');$('#status').innerHTML='';$('#dieInfo').innerHTML='';$('#rollLog').innerHTML='';
    ST.setEvent(C,C.evs[0]);ST.hideAll();$('#stageHead').innerHTML=`<h2>🏟️ ${esc(C.level.n)}</h2><small>${CATN[C.cat]} · ${C.all.length} participants</small>`;$('#live').innerHTML='';},
   async night(){buildEvBar(C);await banner('🌙 Nuit de récupération',`Tu récupères. Tu relances le dé pour ta forme du jour de la seconde journée.`,g.fast?900:2600);},
   async eventStart(){
@@ -3557,7 +3562,7 @@ function makeHooks(g){
    ST.setEvent(C,ev);
    $('#stageHead').innerHTML=`<h2>${ev.i} ${ev.n}</h2><small>${CATN[C.cat]} · Jour ${C.cur.day} · épreuve ${C.cur.r+1}/${C.evs.length} · ${esc(C.level.n)}</small>`;
    $('#rollLog').innerHTML='';$('#tResult').innerHTML='';ticker(C.cur.cond.txt);HUD(C.cur.cond.s);
-   setWho(null,C.cur.cond.txt);$('#status').innerHTML='';
+   setWho(null,C.cur.cond.txt);$('#status').innerHTML='';$('#dieInfo').innerHTML='';
    $('#live').innerHTML='';
    if(ev.mech!=='race')renderLive(C);
    await banner(`${ev.i} ${ev.n}`,C.cur.cond.txt+(ev.mech==='race'?` · séries de ${C.indoor?6:8} couloirs, chacun lance le dé à tour de rôle.`:ev.mech==='bar'?' · 3 essais par hauteur.':` · ${C.attempts} essai${C.attempts>1?'s':''} par athlète, tout le monde passe à chaque tour.`),g.fast?600:1700);
@@ -3587,7 +3592,7 @@ function makeHooks(g){
    if(hi===0)g.heatHist=[];showPrev(g,true);
    $('#liveTitle').textContent=`${ev.i} ${ev.n} · série ${hi+1}/${n}`;
    HUD(`Série ${hi+1}/${n} · ${C.cur.cond.s}`);
-   $('#rollLog').innerHTML='';$('#tResult').innerHTML='';$('#status').innerHTML='';$('#dieMsg').textContent='';
+   $('#rollLog').innerHTML='';$('#tResult').innerHTML='';$('#status').innerHTML='';$('#dieInfo').innerHTML='';$('#dieMsg').textContent='';
    renderHeat(g,C);
    ticker((ev.D>40?'Départ : ':'Couloirs : ')+heat.map((p,k)=>`${k+1} ${p.flag||''} ${fullName(p)}`).join(' · '));
    if(has||n===1)await banner(`Série ${hi+1}/${n}`,heat.some(p=>p.human)?'Départ : chacun lance le d20 à tour de rôle, couloir 1 en premier.':'Les adversaires courent.',g.fast?350:1200);
@@ -3607,7 +3612,7 @@ function makeHooks(g){
    const{ev,r}=C.cur;
    const sorted=[...C.all].sort((a,b)=>b.res[r].pts-a.res[r].pts).map((p,i)=>({p,rank:i+1}));
    g.heatHist=[];showPrev(g,true);
-   setWho(null,'Résultats de l’épreuve');$('#status').innerHTML='';$('#liveTitle').textContent=`${ev.i} ${ev.n} · résultats`;
+   setWho(null,'Résultats de l’épreuve');$('#status').innerHTML='';$('#dieInfo').innerHTML='';$('#liveTitle').textContent=`${ev.i} ${ev.n} · résultats`;
    for(let k=sorted.length-1;k>=0;k--){guard();renderLive(C,sorted.slice(k));await sleep(g.fast?8:70);}
   },
 
@@ -3621,7 +3626,7 @@ function makeHooks(g){
    if(info.kind==='bar'){ST.setBar(info.bar);HUD(`Barre à ${fmtM(info.bar)} · essai ${info.t}/3`);}
    await ST.focus(p);
    setWho(p,info.kind==='field'?`Essai ${info.a}/${C.attempts}`:`${fmtM(info.bar)} · essai ${info.t}/3`);
-   if(p.human){$('#rollLog').innerHTML='';$('#tResult').innerHTML='';$('#dieMsg').textContent='';$('#status').innerHTML='';$('#stageCard').scrollIntoView({block:'nearest',behavior:'smooth'});}
+   if(p.human){$('#rollLog').innerHTML='';$('#tResult').innerHTML='';$('#dieMsg').textContent='';$('#status').innerHTML='';$('#dieInfo').innerHTML='';$('#stageCard').scrollIntoView({block:'nearest',behavior:'smooth'});}
   },
   async turnEnd(C,p,res){
    guard();g.turbo=false;
