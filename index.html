@@ -450,7 +450,7 @@ dialog.rulesD{max-width:860px;max-height:90vh;overflow:auto}
    <div id="who" class="who"></div>
    <label class="chk" style="display:flex;gap:8px;align-items:center;font-size:13px;color:var(--mute);margin:4px 0"><input type="checkbox" id="autoChk"> Lancer les dés automatiquement</label>
    <label class="chk" style="display:flex;gap:8px;align-items:center;font-size:13px;color:var(--mute);margin:4px 0">Adversaires <select id="botSpeed"><option value="0.5">animés</option><option value="0.15" selected>rapides</option><option value="0">instantanés</option></select></label>
-   <div class="simBox"><b>⏩ Aller plus vite</b><div class="simRow"><select id="simN"><option value="1">Simuler cette épreuve</option><option value="2">Simuler 2 épreuves</option><option value="3">Simuler 3 épreuves</option><option value="99">Simuler toutes les épreuves restantes</option></select><button class="btn small" id="simBtn">Simuler</button></div><small>Tes dés sont lancés pour toi, tes choix de barres sont automatiques. Tu t’arrêtes sur le résultat de la dernière épreuve simulée.</small></div>
+   <div class="simBox"><b>⏩ Aller plus vite</b><div class="simRow"><select id="simN"><option value="1">Simuler cette épreuve</option><option value="2">Simuler 2 épreuves</option><option value="3">Simuler 3 épreuves</option><option value="99">Simuler toutes les épreuves restantes</option></select><button class="btn small" id="simBtn">Simuler</button></div><small>Résultat immédiat, sans voir l’épreuve à l’écran : tes dés sont lancés pour toi et tes choix de barres sont automatiques. Pratique pour finir ton décathlon plutôt que de déclarer forfait. Tu t’arrêtes sur le résultat de la dernière épreuve simulée.</small></div>
    <button class="btn small" id="ranksBtn" style="width:100%;margin:6px 0">📊 Classements par épreuve</button>
    <div id="status" class="status"></div>
    <div id="tResult"></div>
@@ -2027,7 +2027,7 @@ function buildLegendsComp(cat,humans){
 
 /* ================= INTERFACE : utilitaires, dé 3D, scènes ================= */
 const $=s=>document.querySelector(s);
-const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+const sleep=ms=>new Promise(r=>setTimeout(r,(typeof G!=='undefined'&&G&&G.simmed)?Math.min(ms,25):ms));   /* simulation instantanée : les pauses d'animation sont écrasées */
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const nf=n=>Math.round(n).toLocaleString('fr-FR');
 const fmt1=v=>v.toFixed(1).replace('.',',');
@@ -3344,11 +3344,12 @@ function startGame(C,o){
  runCompetition(C,makeHooks(g)).catch(err=>{if(!g.abort&&err&&err.message!=='abort')console.error(err);});
 }
 $('#autoChk').onchange=e=>{if(!G)return;if(G.simmed){if(!e.target.checked)endSim(G);else G.userAuto=true;return;}G.auto=e.target.checked;};
-function endSim(g){g.auto=!!g.userAuto;g.fast=!!g.userFast;g.simmed=false;g.simLeft=0;$('#autoChk').checked=g.auto;}
+function endSim(g){g.auto=!!g.userAuto;g.fast=!!g.userFast;g.simmed=false;g.simLeft=0;if(g.userLvl!=null){g.lvl=g.userLvl;g.userLvl=null;}$('#autoChk').checked=g.auto;}
 $('#simBtn').onclick=()=>{
  if(!G||G.abort||G.train)return;
  const n=+$('#simN').value;G.simLeft=n;
- if(!G.simmed){G.simmed=true;G.userAuto=G.auto;G.userFast=G.fast;}
+ if(!G.simmed){G.simmed=true;G.userAuto=G.auto;G.userFast=G.fast;G.userLvl=G.lvl;}
+ G.lvl=0;   /* simulation instantanée : plus rien ne s'anime à l'écran */
  G.auto=true;G.fast=true;$('#autoChk').checked=true;
  if(G.cancel)G.cancel();
  const b=$('#actBtn');if(!b.hidden)b.click();
@@ -3454,7 +3455,7 @@ const stAdvance=(p,cum)=>ST.mode==='race'?ST.raceTo(p,cum):ST.runTo(p,cum);
 function makeIO(g,C,p){
  return{
   async roll(o){
-   ST.speed=1;g.spNow=1;
+   ST.speed=g.simmed?0:1;g.spNow=g.simmed?0:1;
    setStatus(C,p,o);$('#dieMsg').className='dieMsg';$('#dieMsg').textContent='';
    setWho(p,o.label);
    const allowTurbo=(o.kind==='run'&&o.D>=30),R_=g.room,mine=!R_||p.seat===R_.seat;
@@ -3471,14 +3472,14 @@ function makeIO(g,C,p){
    await Die.roll(roll,g.turbo||g.simmed);
    const tb=o.kind==='table',out=tb?'ok':mkOut(o.T,roll);
    if(g.onRoll)g.onRoll(o,out,roll);
-   Die.tint(tb?null:out);showOut(out,roll,o);ST.speed=1;ST.popup(p,tb?`${roll}`:`${roll} · ${OUTT[out].replace(' !','').replace('ÉCHEC CRITIQUE','Échec critique')}`,OUTCOL[out]);
+   Die.tint(tb?null:out);showOut(out,roll,o);ST.speed=g.simmed?0:1;ST.popup(p,tb?`${roll}`:`${roll} · ${OUTT[out].replace(' !','').replace('ÉCHEC CRITIQUE','Échec critique')}`,OUTCOL[out]);
    if(tb)addLog('note',`${o.label} : dé ${roll}`);else if(!g.turbo||out==='crit'||roll===o.T)addLog(out,`${o.label} : dé ${roll} / seuil ${o.T} → ${OUTT[out]}`);
-   await sleep(g.turbo?70:(out==='crit'?900:650));
-   if(o.kind==='stage'&&o.ns){ST.speed=g.turbo?.3:1;await ST.stage(p,o.si,o.ns,out);}
+   await sleep(g.simmed?0:g.turbo?70:(out==='crit'?900:650));
+   if(o.kind==='stage'&&o.ns){ST.speed=g.simmed?0:g.turbo?.3:1;await ST.stage(p,o.si,o.ns,out);}
    return{roll,out};
   },
   async advance(cum,a,out,isStart){
-   ST.speed=g.turbo?.25:1;g.prog[p.id]=cum;
+   ST.speed=g.simmed?0:g.turbo?.25:1;g.prog[p.id]=cum;
    await stAdvance(p,cum);renderHeat(g,C);
    const h=$('#status').querySelector('h4');if(h)h.textContent=`En piste · case ${cum}`;
   },
@@ -3642,7 +3643,7 @@ function makeHooks(g){
   async barStart(C,list){guard();g.spNow=g.lvl;ST.speed=1;ST.queue(list);},
   async roundTitle(C,a){guard();HUD(`Essai ${a}/${C.attempts}`);if(C.all.some(p=>p.human)&&!g.fast)await banner(`Essai ${a}/${C.attempts}`,'Tous les athlètes passent à leur tour.',700);},
   async turnStart(C,p,info){
-   guard();g.turbo=false;Die.tint(null);g.spNow=p.human?1:g.lvl;ST.speed=g.spNow;
+   guard();g.turbo=false;Die.tint(null);g.spNow=(p.human&&!g.simmed)?1:g.lvl;ST.speed=g.spNow;
    g.heat=[];g.prog={};
    if(info.kind==='bar'){ST.setBar(info.bar);HUD(`Barre à ${fmtM(info.bar)} · essai ${info.t}/3`);}
    await ST.focus(p);
@@ -3652,7 +3653,7 @@ function makeHooks(g){
   async turnEnd(C,p,res){
    guard();g.turbo=false;
    const ev=C.cur.ev,r=C.cur.r;
-   ST.speed=p.human?1:g.lvl;
+   ST.speed=(p.human&&!g.simmed)?1:g.lvl;
    await ST.result(p,res,res.bar);
    if(p.human){resultPanel(C,p,res);if(g.auto||(g.room&&p.seat!==g.room.seat))await sleep(g.fast?150:(g.room?1200:900));else{ST.speed=1;await waitBtn(g,'Continuer →');}}
    else{
