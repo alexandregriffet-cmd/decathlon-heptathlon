@@ -3463,7 +3463,7 @@ function makeIO(g,C,p){
    else{
     const kk=R_?roomNext(p,'r'):0;
     if(g.auto||g.turbo)await sleep(g.simmed?40:(g.turbo?50:450));
-    else await waitBtn(g,`🎲 Lancer le d20 · ${o.label}`,allowTurbo);
+    else await waitBtn(g,`Lancer le d20 · ${o.label}`,allowTurbo);
     if(g.abort)throw new Error('abort');
     roll=R_?rndTrue(20):rnd(20);
     if(R_)roomSend('roll',{gid:R_.gid,pid:p.id,k:kk,v:roll});
@@ -4073,7 +4073,7 @@ async function kinFlow(){
  $('#cMain').innerHTML=`<div class="card gym"><h3>🩺 Kiné · rééducation</h3>
  <p class="note" style="margin:0 0 10px">Rééducation de tes qualités blessées.<br>Seuil du d20 : <b>${r.T}</b> (Technique et Mental). Réussite : <b>1 %</b> récupéré · parfait (dé = seuil) : <b>2 %</b> · échec : 0 · 20 : 0 et +1 fatigue.</p>
  <div class="gymRows"><div class="gr"><span>🎲 Jet de la séance</span><b>seuil ${r.T}</b><div class="cdie" id="cd_kin">?</div><span class="gres" id="gx_kin"></span></div></div>
- <div class="startRow"><button class="btn primary big" id="gymGo">🎲 Lancer le d20</button></div></div>`;
+ <div class="startRow"><button class="btn primary big" id="gymGo">Lancer le d20</button></div></div>`;
  const go=$('#gymGo');
  const play=async()=>{
   go.hidden=true;const d=$('#cd_kin');
@@ -4105,7 +4105,7 @@ async function gymFlow(sess){
  $('#cMain').innerHTML=`<div class="card gym"><h3>${sess.i} ${sess.n}</h3>
  <p class="note" style="margin:0 0 10px">${sess.d}<br>Seuil du d20 : <b>${T}</b>. Réussite : <b>1 point</b> · parfait (dé = seuil) : <b>2 points</b> · échec : 0 · 20 : 0 point et +1 fatigue. Les points vont dans la jauge d’une des caractéristiques de la séance, à ton choix.</p>
  <div class="gymRows">${sess.sk.slice(0,1).map(k=>`<div class="gr"><span>🎲 Jet de la séance (${sess.sk.map(q=>SX[q].n).join(', ')})</span><b>seuil ${T}</b><div class="cdie" id="cd_${k}">?</div><span class="gres" id="gx_${k}"></span></div>`).join('')}</div>
- <div class="startRow"><button class="btn primary big" id="gymGo">🎲 Lancer le d20</button></div></div>`;
+ <div class="startRow"><button class="btn primary big" id="gymGo">Lancer le d20</button></div></div>`;
  const go=$('#gymGo');
  const play=async()=>{
   go.hidden=true;
