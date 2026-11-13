@@ -1864,7 +1864,10 @@ function applyAging(K){
 /* ---------- répartition des points gagnés ---------- */
 const poolCost=(K,k)=>1;
 const gaugeNeed=(K,k)=>{const v=carOf(K.pct[k]),n=v<15?3:v<17?4:v<19?5:6;return K.age<=19?Math.max(1,n-1):n;};
-function poolOk(K,pool,k){return(!pool.sk||pool.sk.includes(k))&&!hurtSk(K,k)&&carOf(K.pct[k])<Math.min(20,plafOf(K,k,K.cat))&&pool.n>=1;}
+const poolFree=(K,k)=>!hurtSk(K,k)&&carOf(K.pct[k])<Math.min(20,plafOf(K,k,K.cat));
+/* si toutes les qualités de la séance sont au plafond (ou blessées), les points se reportent sur n'importe quelle autre qualité : rien n'est perdu */
+const poolWide=(K,pool)=>!!pool.sk&&!pool.sk.some(k=>poolFree(K,k));
+function poolOk(K,pool,k){return(!pool.sk||poolWide(K,pool)||pool.sk.includes(k))&&poolFree(K,k)&&pool.n>=1;}
 function poolAdd(K,pool,k){if(!poolOk(K,pool,k))return false;K.gauge=K.gauge||{};pool.n-=1;K.gauge[k]=(K.gauge[k]||0)+1;let up=false;
  if(K.gauge[k]>=gaugeNeed(K,k)){K.gauge[k]=0;K.pct[k]+=10;up=true;}
  pool.got=pool.got||{};pool.got[k]=(pool.got[k]||0)+1;pool.hist=pool.hist||[];pool.hist.push({k,up});return true;}
@@ -3951,10 +3954,10 @@ function poolsHTML(){
  const can=p.n===0||!STATS.some(s=>poolOk(K,p,s.k));
  return `<div class="card pool"><h3>🎁 Points à répartir</h3>
  <div class="ph"><b>${esc(p.why)}</b><span class="chip ${p.n?'m':'p'}">${p.n} ${plural(p.n,'point')} à répartir</span></div>
- <p class="note" style="margin:4px 0 8px">${p.sk?'Choisis parmi les qualités de l’épreuve.':'Répartis librement entre tes qualités.'} Chaque point remplit une case de la <b>jauge d’entraînement</b> de la qualité (cases vertes = ajoutées maintenant). Quand la jauge est pleine, la qualité gagne <b>+10 %</b>. ${more>0?` · ${more} autre${more>1?'s':''} répartition${more>1?'s':''} ensuite`:''}</p>
- ${(()=>{if(!p.n||STATS.some(s=>poolOk(K,p,s.k)))return'';const el=STATS.filter(s=>!p.sk||p.sk.includes(s.k));const why=el.map(s=>`${s.n} (${hurtSk(K,s.k)?'blessée':'plafond de ton profil atteint : '+plafOf(K,s.k,K.cat)+'/20'})`).join(', ');return`<div class="note" style="margin:0 0 8px;padding:8px 10px;border:1px solid var(--gold,#e3b341);border-radius:8px">⚠️ Ce point ne peut pas être attribué : ${why}. Valide pour passer. Pour progresser, choisis une séance qui travaille d’autres qualités.</div>`;})()}
+ <p class="note" style="margin:4px 0 8px">${p.sk?(poolWide(K,p)?'Les qualités de la séance sont au plafond de ton profil : ces points se reportent librement sur tes autres qualités.':'Choisis parmi les qualités de l’épreuve.'):'Répartis librement entre tes qualités.'} Chaque point remplit une case de la <b>jauge d’entraînement</b> de la qualité (cases vertes = ajoutées maintenant). Quand la jauge est pleine, la qualité gagne <b>+10 %</b>. ${more>0?` · ${more} autre${more>1?'s':''} répartition${more>1?'s':''} ensuite`:''}</p>
+ ${(()=>{if(!p.n||STATS.some(s=>poolOk(K,p,s.k)))return'';const el=STATS.filter(s=>!p.sk||poolWide(K,p)||p.sk.includes(s.k));const why=el.map(s=>`${s.n} (${hurtSk(K,s.k)?'blessée':'plafond de ton profil atteint : '+plafOf(K,s.k,K.cat)+'/20'})`).join(', ');return`<div class="note" style="margin:0 0 8px;padding:8px 10px;border:1px solid var(--gold,#e3b341);border-radius:8px">⚠️ Ce point ne peut pas être attribué : ${why}. Valide pour passer. Pour progresser, choisis une séance qui travaille d’autres qualités.</div>`;})()}
  ${STATS.map(s=>{
-  const ok=poolOk(K,p,s.k),el=!p.sk||p.sk.includes(s.k),got=(p.got&&p.got[s.k])||0;
+  const ok=poolOk(K,p,s.k),el=!p.sk||poolWide(K,p)||p.sk.includes(s.k),got=(p.got&&p.got[s.k])||0;
   return `<div class="stat pl ${el?'':'off'}"><span>${s.i}</span><span>${s.n}</span><div class="bar"><i style="width:${K.pct[s.k]/PCT_MAX*100}%"></i></div><b>${K.pct[s.k]}%</b><span class="gg" title="Jauge d’entraînement : quand elle est pleine, la qualité gagne +10 %">${(()=>{const need=gaugeNeed(K,s.k),g=K.gauge&&K.gauge[s.k]||0,nw=Math.min(got,g);let h='';for(let i=0;i<need;i++)h+=`<i class="${i<g-nw?'f':i<g?'n':''}"></i>`;return h;})()}</span>
   <button data-a="psub" data-k="${s.k}" ${got?'':'disabled'}>−</button><button data-a="padd" data-k="${s.k}" ${ok?'':'disabled'}>+</button></div>`;}).join('')}
  <div class="startRow"><button class="btn" data-a="pauto" ${p.n?'':'disabled'}>Répartir automatiquement</button><button class="btn primary big" data-a="pok" ${can?'':'disabled'}>Valider</button></div></div>`;
