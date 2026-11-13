@@ -189,6 +189,7 @@ dialog p,dialog li{color:#dfe5f7;font-size:14px;line-height:1.5;margin:4px 0}
 .dieInfo{display:flex;flex-direction:column;gap:5px;text-shadow:0 2px 6px #000c}.dieInfo:empty{display:none}
 .dieInfo .dl{font:600 11px system-ui,sans-serif;letter-spacing:.08em;text-transform:uppercase;color:var(--gold)}
 .dieInfo .dc{display:flex;gap:5px;flex-wrap:wrap}.dieInfo .dc span{background:#ffffff24;border-radius:99px;padding:2px 8px;font:700 12px system-ui,sans-serif;color:#fff}
+.dieInfo .dw{font:500 12px system-ui,sans-serif;color:#d6def5;line-height:1.3}
 .dieInfo .dt{display:flex;align-items:baseline;gap:7px}.dieInfo .dt b{font:700 26px Oswald;color:var(--gold)}.dieInfo .dt small{font:500 12px system-ui,sans-serif;color:#d6def5}
 .dieCtl{display:flex;flex-direction:column;align-items:flex-start;gap:8px;min-width:0;padding-bottom:10px}
 .dieOver .dieMsg{text-align:left;min-height:0;text-shadow:0 2px 6px #000c;font-size:14px;color:#fff}
@@ -1106,7 +1107,7 @@ function paperCtx(ev,p,io,extra){
   const stage=info.k==='elan'||info.k==='throw'||info.k==='jump';
   const stg=info.k==='elan'?ev.el:(info.k==='throw'||info.k==='jump')?ev.fin:null;
   const tabK=['alea','cond','incident','incident2','rage'].includes(info.k);
-  const o={kind:stage?'stage':info.k==='run'?'run':info.k==='start'?'start':info.k==='form'?'form':tabK?'table':'rage',label:info.label,
+  const o={k:info.k,kind:stage?'stage':info.k==='run'?'run':info.k==='start'?'start':info.k==='form'?'form':tabK?'table':'rage',label:info.label,
    sk:stg?stg.sk:info.k==='mental'?['men']:info.k==='rage'?['men','tac']:(info.k==='run'||info.k==='start')?(ev.skS||ev.sk||['men']):['men'],cap,T:info.seuil==null?20:info.seuil,
    mods:{form:st.forme,fat:st.fat,cond:0,condName:'Conditions',total:0},D:N,cum:info.done||0};
   if(stage){o.si=info.k==='elan'?0:1;o.ns=2;}
@@ -3406,6 +3407,26 @@ function setWho(p,txt){
  $('#who').innerHTML=p?`<span class="dot" style="--c:${p.color};width:26px;height:26px"></span><div>${p.flag||flagOf(p.nat)} ${esc(fullName(p))}<small>${txt||''}</small></div>`:`<div>${txt||''}</div>`;
 }
 function addLog(cls,txt){const d=document.createElement('div');d.className='lg '+cls;d.textContent=txt;const l=$('#rollLog');l.prepend(d);}
+const ROLL_WHY={
+ form:'Forme du jour : donne un bonus ou un malus à tous tes jets de la journée.',
+ alea:'Aléa du jour : une journée normale, ou un événement qui change la journée.',
+ cond:'Conditions du jour (vent, météo, public) : bonus ou malus pour tes jets.',
+ mental:'Ton mental : bonus ou malus sur ton prochain jet.',
+ start:'Réaction au départ : fixe ton avance dans la course. Un 20 peut donner un faux départ.',
+ run:'Course : chaque jet fait avancer ton athlète de plus ou moins de cases selon le résultat.',
+ rage:'Rage de vaincre : place ta performance dans la fourchette de ton niveau.',
+ elan:'Élan : prépare ton essai. Un parfait donne un bonus au jet suivant, un échec critique un malus.',
+ throw:'Saut ou lancer : plus le jet est réussi, meilleure est ta marque. Un échec peut annuler l’essai.',
+ jump:'Saut : réussi, la barre est franchie ; sinon, c’est un échec à cette hauteur.',
+ elanBar:'Élan : prépare ton saut à cette hauteur. Un parfait donne un bonus au saut.',
+ incident:'Incident : après un 20, ce jet vérifie si ton athlète a eu un problème.',
+ incident2:'Relance : décide entre une simple alerte et une blessure.'};
+function rollWhy(o){
+ let k=o.k||(/^Mental/.test(o.label)?'mental':/^Rage/.test(o.label)?'rage':o.kind==='race'?'run':o.kind);
+ if(k==='stage')k=/^Saut ou lancer|^Saut/.test(o.label)?(/^Saut à/.test(o.label)?'jump':'throw'):/^Élan à/.test(o.label)?'elanBar':'elan';
+ if(k==='elan'&&/^Élan à/.test(o.label))k='elanBar';
+ return ROLL_WHY[k]||'';
+}
 function setStatus(C,p,o){
  const m=o.mods,ch=[];
  ch.push(`<span class="chip ${m.form>0?'p':m.form<0?'m':''}">Forme du jour ${m.form?sgn(m.form):'±0'}</span>`);
@@ -3417,7 +3438,7 @@ function setStatus(C,p,o){
  if(o.pen)ch.push(`<span class="chip m">Relance ${o.pen}</span>`);
  const T=o.T,pc=(T-1)*5,pf=(19-T)*5;
  const extra=o.D?` · case ${o.cum}/${o.D}`:'';
- $('#dieInfo').innerHTML=`<div class="dl">${esc(o.label)}${extra}</div><div class="dc">${o.sk.map(k=>`<span>${SX[k].n} ${carShow(p,k)}/20</span>`).join('')}</div><div class="dt"><b>Seuil ${T}</b><small>dé ≤ ${T} = réussi</small></div>`;
+ $('#dieInfo').innerHTML=`<div class="dl">${esc(o.label)}${extra}</div><div class="dc">${o.sk.map(k=>`<span>${SX[k].n} ${carShow(p,k)}/20</span>`).join('')}</div><div class="dt"><b>Seuil ${T}</b><small>dé ≤ ${T} = réussi</small></div>${rollWhy(o)?`<div class="dw">${rollWhy(o)}</div>`:''}`;
  $('#status').innerHTML=`<h4>${esc(o.label)}${extra}</h4>
  <div class="sk">${o.sk.map(k=>`<span class="chip">${SX[k].i} ${SX[k].n} ${carShow(p,k)}/20</span>`).join('')}</div>
  <div class="sk">${ch.join('')}</div>
