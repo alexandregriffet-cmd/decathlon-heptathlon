@@ -1101,7 +1101,7 @@ function paperEvPct(p,ev){if(p.comp)return Math.max(0,Math.min(profCeil(p,ev),p.
 function paperCtx(ev,p,io,extra){
  const E=paperEng(),sex=sexOf(p.cat),N=(PAPER_DATA.GEO[ev.id]||{}).N;
  if(!p.pe){p.pe={CH:paperChars(p),COMP:{},sex,cat:p.cat,dayBreak:DB[p.cat]};E.newState(p.pe);}
- const c=p.pe;c.COMP[ev.id]=paperEvPct(p,ev);if(p.nextMent&&!c.nmDone){c.st.nextMent=(c.st.nextMent||0)+p.nextMent;c.nmDone=true;}
+ const c=p.pe;c.rust=p.rust||0;c.COMP[ev.id]=paperEvPct(p,ev);if(p.nextMent&&!c.nmDone){c.st.nextMent=(c.st.nextMent||0)+p.nextMent;c.nmDone=true;}
  if(p.selfForm)delete c.dayInfo;else c.dayInfo=j=>({forme:(p.form[j]||{mod:0}).mod});
  c.roll=async info=>{const st=c.st,cap=E.capOf(ev.id,c.COMP[ev.id]);
   const stage=info.k==='elan'||info.k==='throw'||info.k==='jump';
@@ -1109,7 +1109,7 @@ function paperCtx(ev,p,io,extra){
   const tabK=['alea','cond','incident','incident2','rage'].includes(info.k);
   const o={k:info.k,kind:stage?'stage':info.k==='run'?'run':info.k==='start'?'start':info.k==='form'?'form':tabK?'table':'rage',label:info.label,
    sk:stg?stg.sk:info.k==='mental'?['men']:info.k==='rage'?['men','tac']:(info.k==='run'||info.k==='start')?(ev.skS||ev.sk||['men']):['men'],cap,T:info.seuil==null?20:info.seuil,
-   mods:{form:st.forme,fat:st.fat,cond:0,condName:'Conditions',total:0},D:N,cum:info.done||0};
+   mods:{form:st.forme,fat:st.fat,rust:p.rust||0,cond:0,condName:'Conditions',total:0},D:N,cum:info.done||0};
   if(stage){o.si=info.k==='elan'?0:1;o.ns=2;}
   if(extra&&extra.before)await extra.before(info);
   const r=await io.roll(o);
@@ -1616,6 +1616,42 @@ const START_YEAR=2027;
 
 /* calendrier d'une saison, d'après le calendrier FFA : départementaux → régionaux → interrégionaux → France Élite → international → meeting */
 function intlLevelId(year){return(year-2028)%4===0?'jo':(year%2===0?'eur':'mon');}
+/* ---------- rythme de compétition et objectifs de saison ---------- */
+const careerSeasonComps=K=>K.sComps!=null?K.sComps:K.hist.filter(h=>h.year===K.year&&!h.skip).length;
+/* manquer de compétition : aucune course depuis le début de la saison alors qu'une échéance a déjà été passée */
+const careerRust=K=>K.step>0&&careerSeasonComps(K)===0;
+function genGoals(K){
+ const steps=seasonSteps(K.year),avg=careerAvg(K),from=K.step||0;
+ const all=steps.map((st,i)=>({st,i,L:lvById(st.lv)})).filter(x=>!x.st.ind&&x.i>=from&&x.L);
+ const qual=all.filter(x=>avg>=x.L.min-1e-9),unq=all.filter(x=>avg<x.L.min-1e-9);
+ const goals=[],used=new Set();
+ const add=(k,x,txt)=>{goals.push({k,i:x.i,n:x.st.n,lv:x.st.lv,txt,res:null});used.add(x.i);};
+ if(qual.length){
+  const reach=qual.filter(x=>x.L.avg<=avg+4),t=reach.length?reach[reach.length-1]:qual[0];
+  add('title',t,'Gagner : '+t.st.n);
+  const pr=qual.filter(x=>!used.has(x.i)&&x.L.avg<=avg+12),pd=pr.length?pr[pr.length-1]:qual.find(x=>!used.has(x.i));
+  if(pd)add('podium',pd,'Monter sur le podium : '+pd.st.n);
+ }
+ if(unq.length)add('level',unq[0],'Monter de niveau : te qualifier ('+unq[0].L.min+' % de compétence moyenne) et participer à '+unq[0].st.n);
+ else{const up=qual.filter(x=>!used.has(x.i));if(up.length){const u=up[up.length-1];add('level',u,'Monter de niveau : participer à '+u.st.n);}}
+ return goals.sort((a,b)=>a.i-b.i);
+}
+function goalsEnsure(){if(!K||K.phase==='retired')return;if(!K.goals||K.goalsYear!==K.year){K.goals=genGoals(K);K.goalsYear=K.year;persist&&persist();}}
+function goalsAfter(i,played,rank){
+ if(!K)return;goalsEnsure();
+ K.goals.forEach(g=>{if(g.i!==i||g.res!=null)return;
+  g.res=g.k==='title'?(played&&rank===1):g.k==='podium'?(played&&rank>=1&&rank<=3):!!played;});
+}
+const goalIcon=g=>g.res===true?'✅':g.res===false?'❌':'🎯';
+function goalsCalHTML(){
+ if(!K.goals||!K.goals.length)return'';
+ return `<h3 style="margin-top:14px">🎯 Objectifs de la saison</h3>`+K.goals.map(g=>`<div class="calRow ${g.res===true?'done':''}"><span class="calM">${goalIcon(g)}</span><div><b>${esc(g.txt)}</b></div></div>`).join('');
+}
+function goalsBilanHTML(){
+ const gs=K.goals||[];if(!gs.length)return'';
+ const ok=gs.filter(g=>g.res===true).length;
+ return `<h4 style="margin:14px 0 6px">🎯 Objectifs de la saison : ${ok}/${gs.length} réalisé${ok>1?'s':''}</h4><div class="tw"><table><tr><th>Objectif</th><th>Résultat</th></tr>${gs.map(g=>`<tr><td>${esc(g.txt)}</td><td>${g.res===true?'✅ Réalisé':g.res===false?'❌ Manqué':'❌ Non atteint'}</td></tr>`).join('')}</table></div>`;
+}
 function seasonSteps(year){
  if(typeof K!=='undefined'&&K&&K.nat)applyNat(K.nat);
  const il=intlLevelId(year),L=LEVELS.find(l=>l.id===il),nm=id=>lvById(id).n;
@@ -1801,12 +1837,12 @@ function silentHooks(tally,isTrain){
 /* athlète de carrière pour une salle en ligne (les écrans reconstruisent tous la même compétition) */
 function careerHumanPayload(K){
  const pr={};['hj','pv'].forEach(id=>{if(K.pb[id]&&K.pb[id].perf!=null)pr[id]=K.pb[id].perf;});
- return{first:K.first,last:K.last,nat:K.nat,color:K.color,pct:{...K.pct},comp:{...(K.comp||{})},nextMent:K.nextMent||0,h:K.h,w:K.w,age:K.age,fatI:K.tf*2.5,hr:1+K.tf*.4,pr};
+ return{first:K.first,last:K.last,nat:K.nat,color:K.color,pct:{...K.pct},comp:{...(K.comp||{})},nextMent:K.nextMent||0,h:K.h,w:K.w,age:K.age,fatI:K.tf*2.5,hr:1+K.tf*.4,pr,ru:careerRust(K)?1:0};
 }
 function buildCareerComp(K,lvId){
  const lvl=lvById(lvId),cat=lvl&&lvl.indoor?IND[K.cat]:K.cat;
  const C=buildCompetition(lvId,cat,[{first:K.first,last:K.last,nat:K.nat,color:K.color,pct:{...K.pct},comp:{...(K.comp||{})},nextMent:K.nextMent||0,h:K.h,w:K.w,age:K.age,sex:sexOf(K.cat)}]);
- C.K=K; C.attempts=K.att;C.all[0].fat=K.tf*2.5;C.hurtRisk=1+K.tf*.4+(K.inj?0:0);
+ C.K=K; C.attempts=K.att;C.all[0].rust=careerRust(K)?1:0;C.all[0].fat=K.tf*2.5;C.hurtRisk=1+K.tf*.4+(K.inj?0:0);
  C.all[0].pr={};['hj','pv'].forEach(id=>{if(K.pb[id]&&K.pb[id].perf!=null)C.all[0].pr[id]=K.pb[id].perf;});
  return C;
 }
@@ -1832,7 +1868,7 @@ function settleCompetition(K,C,step){
  const mAll=x=>STATS.reduce((a,t)=>a+x.pct[t.k],0)/STATS.length,fld=C.all.filter(x=>!x.human),fAvg=fld.length?fld.reduce((a,x)=>a+mAll(x),0)/fld.length:0,gap=mAll(p)-fAvg,wk=gap>=25?.25:gap>=15?.5:gap>=8?.75:1;
  let pod=podPts(step.lv,rank);if(pod&&wk<1)pod=Math.max(1,Math.round(pod*wk));
  if(pod){K.medals[rank-1]++;}
- K.comps++;K.bestTotal=Math.max(K.bestTotal,p.total);
+ K.comps++;K.sComps=careerSeasonComps(K)+1;K.bestTotal=Math.max(K.bestTotal,p.total);
  K.hist.push({year:K.year,age:K.age,name:step.n,lv:step.lv,rank,of:list.length,total:p.total,pbs:pbs.length,tl:lvById(step.lv).s});
  let hurt=null;
  if(!K.inj&&p.hurt){hurt=p.hurt;K.inj=hurt;}
@@ -3468,6 +3504,7 @@ function setStatus(C,p,o){
  if(o.rage)ch.push(`<span class="chip ${o.rage>0?'p':'m'}">Mental ${sgn(o.rage)}</span>`);
  if(o.bonus)ch.push(`<span class="chip ${o.bonus>0?'p':'m'}">Jet précédent ${sgn(o.bonus)}</span>`);
  if(o.barPen)ch.push(`<span class="chip m">Au-dessus de ta barre facile ${sgn(-o.barPen)}</span>`);
+ if(m.rust)ch.push(`<span class="chip m">Manque de compétition −${m.rust}</span>`);
  if(o.fatT)ch.push(`<span class="chip m">Souffle −${o.fatT}</span>`);
  if(o.pen)ch.push(`<span class="chip m">Relance ${o.pen}</span>`);
  const T=o.T,pc=(T-1)*5,pf=(19-T)*5;
@@ -3898,17 +3935,18 @@ function openCareer(c){
 function enterCareer(){inCareerGame=false;ST.show(false);show('career');renderCareer();}
 
 /* ---------- avancement du calendrier ---------- */
-function pushSkip(st,why){K.hist.push({year:K.year,age:K.age,name:st.n,lv:st.lv,tl:lvById(st.lv).s,rank:0,of:0,total:0,pbs:0,skip:why});K.tf=0;}
+function pushSkip(st,why){goalsAfter(K.step,false,0);K.hist.push({year:K.year,age:K.age,name:st.n,lv:st.lv,tl:lvById(st.lv).s,rank:0,of:0,total:0,pbs:0,skip:why});K.tf=0;}
 function advanceStep(){
- K.step++;K.slots=[null,null,null];K.sessDone=0;K.endPrep=false;
+ const bonus=K.bonusSess||0;K.bonusSess=0;
+ K.step++;K.slots=Array(3+bonus).fill(null);K.sessDone=0;K.endPrep=false;
  {const ss=seasonSteps(K.year);
-  if(K.step>=ss.length){if(K.inj)K.phase='bilan';else{K.phase='train';K.endPrep=true;K.slots=[null];}}   /* fin de saison : une dernière séance avant le bilan */
+  if(K.step>=ss.length){if(K.inj)K.phase='bilan';else{K.phase='train';K.endPrep=true;K.slots=Array(1+bonus).fill(null);}}   /* fin de saison : une dernière séance avant le bilan */
   else{K.phase='train';if(K.inj)enterRehab(K);}}
 }
 
 /* ---------- rendu général ---------- */
 function renderCareer(){
- if(!K)return;
+ if(!K)return;goalsEnsure();
  renderHead();renderCal();renderSkills();renderHist();
  $('#cNote').innerHTML=cNote;
  renderMain();
@@ -3939,7 +3977,7 @@ function renderCal(){
   const state=K.phase==='retired'?'':i<K.step?'done':i===K.step&&K.phase!=='bilan'?'cur':'';
   const res=h?(h.skip?`<small>${h.skip==='NQ'?'non qualifié':h.skip}</small>`:`<small>${rankTxt(h.rank,h.of)} · ${nf(h.total)} pts</small>`):`<small>min ${L.min} % · ${q?'<span style="color:var(--ok)">qualifié</span>':'<span style="color:var(--bad)">non qualifié</span>'}</small>`;
   return `<div class="calRow ${state}"><span class="calM">${st.m}</span><div><b>${st.n}</b>${res}</div></div>`;
- }).join('');
+ }).join('')+goalsCalHTML();
 }
 
 /* niveau de chaque discipline : compétence, niveau 1 à 4, plafond du profil, aptitude, meilleure barre du niveau */
@@ -4181,6 +4219,7 @@ function compHTML(){
  return `<div class="card"><h3>🏁 ${esc(st.n)}</h3>
  <p class="note" style="margin:0 0 10px">${st.m} ${K.year+(st.ind?1:0)} · ${L.parts} participants · niveau moyen des adversaires ≈ ${L.avg} %${L.bars>=4?' · barres très hautes':''}</p>
  <div class="cmpBox"><div><small>Minimum de qualification</small><b>${L.min} %</b></div><div><small>Ta compétence moyenne</small><b style="color:${q?'var(--ok)':'var(--bad)'}">${Math.round(avg)} %</b></div><div><small>Fatigue</small><b>${K.tf?'●'.repeat(K.tf):'○'}</b></div></div>
+ ${q&&careerRust(K)?`<p class="note" style="color:var(--bad);margin:0 0 8px">⚠️ <b>Manque de compétition</b> : tu n’as couru aucune compétition cette saison. Tu pars avec <b>−1 sur tous les seuils</b> de l’épreuve.</p>`:''}
  ${q?`<div class="startRow"><button class="btn primary big" data-a="comp" data-m="play">🎮 Jouer sur le plateau</button><button class="btn big" data-a="comp" data-m="sim">⚡ Simuler</button><button class="btn" data-a="comp" data-m="skip">Passer</button></div>`:
  `<p class="note" style="color:var(--bad)">Tu n’as pas la moyenne minimale pour participer. Continue de t’entraîner.</p><div class="startRow"><button class="btn primary big" data-a="comp" data-m="nq">Continuer</button></div>`}</div>`;
 }
@@ -4188,7 +4227,9 @@ function compAction(m){
  const st=seasonSteps(K.year)[K.step];cNote='';
  if(m==='skip'||m==='nq'){
   if(m==='skip'&&!confirm('Passer cette compétition ?'))return;
-  pushSkip(st,m==='nq'?'NQ':'passé');advanceStep();persist();renderCareer();return;
+  pushSkip(st,m==='nq'?'NQ':'passé');
+  if(m==='skip'){K.bonusSess=1;cNote='<div class="card cnote"><h3>🏋️ Impasse assumée</h3><p>Tu fais l’impasse sur <b>'+esc(st.n)+'</b> : tu gagnes <b>une séance d’entraînement supplémentaire</b> avant la prochaine échéance. Attention : une saison sans compétition te fait manquer de rythme (−1 à tous tes seuils à ta prochaine course).</p></div>';}
+  advanceStep();persist();renderCareer();return;
  }
  const C=buildCareerComp(K,st.lv);K.phase='comp-run';persist();
  if(m==='sim'){runCompetition(C,silentHooks(null,false)).then(()=>endComp(C,st));return;}
@@ -4197,7 +4238,7 @@ function compAction(m){
 }
 function endComp(C,st){
  inCareerGame=false;
- const r=settleCompetition(K,C,st);advanceStep();
+ const r=settleCompetition(K,C,st);goalsAfter(K.step,true,r.rank);advanceStep();
  const list=[...C.all].sort((a,b)=>b.total-a.total),p=C.mine||C.all.find(x=>x.human);
  const top=list.slice(0,5).map((x,i)=>`<tr class="${x.human?'me':''}"><td>${medal(i)}</td><td>${nameCell(x)}</td><td><b>${nf(x.total)}</b></td></tr>`).join('');
  const mine=list.indexOf(p)>4?`<tr class="me"><td>${list.indexOf(p)+1}</td><td>${nameCell(p)}</td><td><b>${nf(p.total)}</b></td></tr>`:'';
@@ -4217,10 +4258,12 @@ function bilanHTML(){
  return `<div class="card"><h3>📅 Bilan de la saison ${K.year}</h3>
  <p class="note" style="margin:0 0 10px">${played.length} ${plural(played.length,'compétition')} disputée${played.length>1?'s':''} · meilleur total : <b>${best?nf(best)+' pts':'—'}</b> · ${medalsTxt(med)} cette saison.</p>
  <div class="tw"><table><tr><th>Compétition</th><th>Place</th><th>Points</th></tr>${rows.map(h=>`<tr><td>${esc(h.name)}</td><td>${h.skip?(h.skip==='NQ'?'non qualifié':h.skip):rankTxt(h.rank,h.of)}</td><td>${h.skip?'—':nf(h.total)}</td></tr>`).join('')}</table></div>
+ ${goalsBilanHTML()}
  <p class="note">À ${K.age+1} ans : ${nxt.txt}${nxt.gain?` (+${nxt.gain} points à répartir)`:''}${nxt.loss?` (jusqu’à ${nxt.loss.n} qualités physiques perdent ${nxt.loss.d} %)`:''}</p>
  <div class="startRow"><button class="btn primary big" data-a="season">Saison ${K.season+1} →</button></div></div>`;
 }
 function nextSeason(){
+ K.goalsHist=(K.goalsHist||[]).concat({year:K.year,goals:K.goals||[]});K.goals=null;K.sComps=0;
  const r=applyAging(K);const mt=applyMaintenance(K);if(K.inj)enterRehab(K);
  cNote=`<div class="card cnote"><h3>🎂 Saison ${K.season} · ${K.year} · ${K.age} ans</h3><p>${esc(r.plan.txt)}${r.lost.length?` Tu perds : ${r.lost.map(l=>`${SX[l.k].i} ${SX[l.k].n} −${l.d} %`).join(', ')}.`:''}${r.plan.gain?` Tu as <b>${r.plan.gain} points</b> à répartir.`:''}${mt.lost.length?` Faute de travail cette saison, tu perds : ${mt.lost.map(k=>`${SX[k].i} ${SX[k].n} −10 %`).join(', ')}.`:''}${mt.warn.length?` ⚠️ Pas travaillées cette saison : ${mt.warn.map(k=>`${SX[k].i} ${SX[k].n}`).join(', ')}. Une saison de plus et tu les perds.`:''}</p></div>`;
  persist();renderCareer();
@@ -4509,11 +4552,11 @@ function roomStartGame(d){
  const cr=d.career||null;
  if(!cr)Object.assign(setup.cfg,d.cfg);
  const cfg=cr?d.cfg:setup.cfg,cat=cr?cr.cat:cfg.cat;
- const humans=d.humans.map(a=>({first:a.first,last:a.last,nat:a.nat,flag:flagOf(a.nat),color:a.color,pct:{...a.pct},h:a.h,w:a.w,age:a.age,sex:sexOf(cat),seat:a.seat,fatI:a.fatI||0,hr:a.hr||0,pr:a.pr||{},...(a.real?{real:true,rec:a.rec,cm:a.cm,evT:a.evT,flag:a.flagX||flagOf(a.nat)}:{})}));
+ const humans=d.humans.map(a=>({first:a.first,last:a.last,nat:a.nat,flag:flagOf(a.nat),color:a.color,pct:{...a.pct},h:a.h,w:a.w,age:a.age,sex:sexOf(cat),seat:a.seat,fatI:a.fatI||0,hr:a.hr||0,ru:a.ru||0,pr:a.pr||{},...(a.real?{real:true,rec:a.rec,cm:a.cm,evT:a.evT,flag:a.flagX||flagOf(a.nat)}:{})}));
  seedRNG(d.seed);
  const C=cr?buildCompetition(cr.lv,cat,humans):(cfg.level==='legends'?buildLegendsComp(cat,humans):buildCompetition(cfg.level,cat,humans));
  C.attempts=cfg.attempts;
- if(cr)C.all.forEach(p=>{if(p.human){p.fat=p.fatI||0;p.hurtRisk=p.hr||0;}});
+ if(cr)C.all.forEach(p=>{if(p.human){p.fat=p.fatI||0;p.hurtRisk=p.hr||0;p.rust=p.ru||0;}});
  C.mine=C.all.find(p=>p.human&&p.seat===R.seat)||null;
  const o={auto:!!$('#cfgAuto').checked,fast:!!$('#cfgFast').checked,room:true};
  if(cr&&typeof K!=='undefined'&&K){

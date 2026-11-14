@@ -47,7 +47,7 @@ function create(DATA,helpers){
    const dc=await roll({k:'cond',label:'Conditions',idx});let cm=0,ct='conditions neutres';
    if(dc>=6&&dc<=7&&['100','110h','lj'].includes(id)){cm=1;ct='vent arrière';}else if(dc>=8&&dc<=9&&['100','110h','lj'].includes(id)){cm=-1;ct='vent de face';}else if(dc===10){cm=-1;ct='pluie fine';}else if(dc===11&&['100','400','110h','1500'].includes(id)){cm=-1;ct='chaleur écrasante';}else if(dc===12&&['sp','dt','jt'].includes(id)){cm=-1;ct='rafales';}else if(dc===13||dc===14){cm=CH.men>=14?2:1;ct='le public s’enflamme';}else if(dc===15||dc===16){cm=CH.men>=14?0:-1;ct='stade silencieux';}else if(dc===17){cm=1;ct='soirée idéale';}
    const dm=await roll({k:'mental',label:'Mental',seuil:CH.men,idx}),km=kind(dm,CH.men),mm=KF[km]+st.nextMent;st.nextMent=0;
-   let common=base+st.forme+cm+mm-st.fat;if(ctx.emit)await ctx.emit({k:'note',t:`Conditions : ${ct} (${cm>=0?'+':''}${cm}). Mental ${mm>=0?'+':''}${mm}. Seuil de base ${cl(common)}.`});let had20=false;let first=st.first;st.first=0;const rageB=st.nextRage;st.nextRage=0;
+   let common=base+st.forme+cm+mm-st.fat-(ctx.rust||0);if(ctx.emit)await ctx.emit({k:'note',t:`Conditions : ${ct} (${cm>=0?'+':''}${cm}). Mental ${mm>=0?'+':''}${mm}. Seuil de base ${cl(common)}.`});let had20=false;let first=st.first;st.first=0;const rageB=st.nextRage;st.nextRage=0;
    L.push(`Conditions d20=${dc} : ${ct} (${cm>=0?'+':''}${cm}). Mental d20=${dm} contre ${CH.men} : ${KF[km]>=0?'+':''}${KF[km]}. Seuil de base ${base} + forme ${st.forme>=0?'+':''}${st.forme} + conditions ${cm>=0?'+':''}${cm} + Mental ${mm>=0?'+':''}${mm}${st.fat?' − fatigue '+st.fat:''} = ${cl(common)}.`);
    let native=null,detail=null;
    if(tab.kind==='race'){
@@ -85,7 +85,7 @@ function create(DATA,helpers){
     native=best===null?0:best;detail={type:'field',att,apt,cap,value:native};
     L.push(att.map(t=>t.nul?`essai ${t.n} : élan ${t.d1}/${t.s1}, jet ${t.d2}/${t.s2} : nul`:`essai ${t.n} : élan ${t.d1}/${t.s1}, jet ${t.d2}/${t.s2} → ligne ${t.line}, rage ${t.rageD} → rang ${t.rank} : ${t.value}`).join('\n'));
    } else {
-    const b=tab.blocks.find(x=>x.cap===cap);const rows=[...b.rows].reverse();const mod=st.forme+cm+mm-st.fat;
+    const b=tab.blocks.find(x=>x.cap===cap);const rows=[...b.rows].reverse();const mod=st.forme+cm+mm-st.fat-(ctx.rust||0);
     const parse=x=>{const q=String(x);if(q.includes('**'))return q.startsWith('20')?99:-1;const v=parseInt(q);return isNaN(v)?-1:v;};
     if(ctx.barAsk){   /* barre commune : tous les athlètes sautent la même hauteur, la barre monte pour tout le monde */
      const rs=b.rows.map(r=>({h:r[0],s:parse(r[1+ai])}));          // du plus haut au plus bas
