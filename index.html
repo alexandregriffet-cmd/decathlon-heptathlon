@@ -195,6 +195,7 @@ dialog p,dialog li{color:#dfe5f7;font-size:14px;line-height:1.5;margin:4px 0}
 .dieOver .dieMsg{text-align:left;min-height:0;text-shadow:0 2px 6px #000c;font-size:14px;color:#fff}
 .dieOver .dieMsg:empty{display:none}
 .dieOver .dieMsg .big{font-size:26px}
+.goalOpt{display:grid;grid-template-columns:24px 1fr auto;gap:8px;align-items:center;text-align:left;width:100%;margin:0 0 6px;padding:10px 12px;border-radius:10px;border:1px solid var(--line);background:#ffffff0d;color:var(--ink);font:inherit;cursor:pointer}.goalOpt.on{border-color:var(--gold);background:#ffc83d1f}.goalOpt[disabled]{opacity:.4;cursor:default}.goalOpt small{color:var(--gold);letter-spacing:.1em}
 .dieBtns{display:flex;flex-wrap:wrap;gap:8px;pointer-events:auto}
 .dieBtns .btn[hidden]{display:none}
 @media(max-width:560px){.dieOver .dieBox,.dieOver #die3d{width:76px;height:76px}.dieOver .dieMsg .big{font-size:20px}.dieInfo .dt b{font-size:22px}.dieOver{gap:6px}}
@@ -1620,27 +1621,35 @@ function intlLevelId(year){return(year-2028)%4===0?'jo':(year%2===0?'eur':'mon')
 const careerSeasonComps=K=>K.sComps!=null?K.sComps:K.hist.filter(h=>h.year===K.year&&!h.skip).length;
 /* manquer de compétition : aucune course depuis le début de la saison alors qu'une échéance a déjà été passée */
 const careerRust=K=>K.step>0&&careerSeasonComps(K)===0;
-function genGoals(K){
+/* liste des objectifs possibles de la saison, d'après le calendrier et ton niveau ; le joueur en choisit jusqu'à 5 */
+const GOAL_MAX=5;
+function genCands(K){
  const steps=seasonSteps(K.year),avg=careerAvg(K),from=K.step||0;
  const all=steps.map((st,i)=>({st,i,L:lvById(st.lv)})).filter(x=>!x.st.ind&&x.i>=from&&x.L);
- const qual=all.filter(x=>avg>=x.L.min-1e-9),unq=all.filter(x=>avg<x.L.min-1e-9);
- const goals=[],used=new Set();
- const add=(k,x,txt)=>{goals.push({k,i:x.i,n:x.st.n,lv:x.st.lv,txt,res:null});used.add(x.i);};
- if(qual.length){
-  const reach=qual.filter(x=>x.L.avg<=avg+4),t=reach.length?reach[reach.length-1]:qual[0];
-  add('title',t,'Gagner : '+t.st.n);
-  const pr=qual.filter(x=>!used.has(x.i)&&x.L.avg<=avg+12),pd=pr.length?pr[pr.length-1]:qual.find(x=>!used.has(x.i));
-  if(pd)add('podium',pd,'Monter sur le podium : '+pd.st.n);
- }
- if(unq.length)add('level',unq[0],'Monter de niveau : te qualifier ('+unq[0].L.min+' % de compétence moyenne) et participer à '+unq[0].st.n);
- else{const up=qual.filter(x=>!used.has(x.i));if(up.length){const u=up[up.length-1];add('level',u,'Monter de niveau : participer à '+u.st.n);}}
- return goals.sort((a,b)=>a.i-b.i);
+ const C=[];
+ all.forEach(x=>{
+  if(avg>=x.L.min-1e-9){
+   C.push({id:'title:'+x.i,k:'title',i:x.i,n:x.st.n,txt:'Gagner : '+x.st.n,d:x.L.avg>avg+10?3:2});
+   C.push({id:'podium:'+x.i,k:'podium',i:x.i,n:x.st.n,txt:'Monter sur le podium : '+x.st.n,d:x.L.avg>avg+10?2:1});
+  }else C.push({id:'level:'+x.i,k:'level',i:x.i,n:x.st.n,txt:'Monter de niveau : te qualifier ('+x.L.min+' % de compétence moyenne) et participer à '+x.st.n,d:2});
+ });
+ C.push({id:'pb',k:'pb',n:'',txt:'Battre au moins 3 records personnels dans la saison',d:2});
+ const best=K.bestTotal||0,target=best>0?Math.ceil(best*1.06/100)*100:(K.cat==='HEP'?3500:4500);
+ C.push({id:'score',k:'score',n:'',target,txt:'Réaliser plus de '+nf(target)+' points sur une compétition',d:2});
+ return C;
 }
-function goalsEnsure(){if(!K||K.phase==='retired')return;if(!K.goals||K.goalsYear!==K.year){K.goals=genGoals(K);K.goalsYear=K.year;persist&&persist();}}
-function goalsAfter(i,played,rank){
+function goalsEnsure(){
+ if(!K||K.phase==='retired')return;
+ if(K.goals&&K.goalsYear===K.year)return;
+ K.goals=[];K.goalsYear=K.year;K.sPb=0;K.goalsCand=genCands(K);K.goalsPick=K.goalsCand.length>0;persist&&persist();
+}
+function goalsAfter(i,played,rank,total,pbs){
  if(!K)return;goalsEnsure();
- K.goals.forEach(g=>{if(g.i!==i||g.res!=null)return;
-  g.res=g.k==='title'?(played&&rank===1):g.k==='podium'?(played&&rank>=1&&rank<=3):!!played;});
+ if(played){K.sPb=(K.sPb||0)+(pbs||0);}
+ K.goals.forEach(g=>{if(g.res!=null)return;
+  if(g.i===i&&g.i!=null){g.res=g.k==='title'?(played&&rank===1):g.k==='podium'?(played&&rank>=1&&rank<=3):!!played;}
+  else if(g.k==='pb'&&(K.sPb||0)>=3)g.res=true;
+  else if(g.k==='score'&&played&&total>=g.target)g.res=true;});
 }
 const goalIcon=g=>g.res===true?'✅':g.res===false?'❌':'🎯';
 function goalsCalHTML(){
@@ -1650,7 +1659,7 @@ function goalsCalHTML(){
 function goalsBilanHTML(){
  const gs=K.goals||[];if(!gs.length)return'';
  const ok=gs.filter(g=>g.res===true).length;
- return `<h4 style="margin:14px 0 6px">🎯 Objectifs de la saison : ${ok}/${gs.length} réalisé${ok>1?'s':''}</h4><div class="tw"><table><tr><th>Objectif</th><th>Résultat</th></tr>${gs.map(g=>`<tr><td>${esc(g.txt)}</td><td>${g.res===true?'✅ Réalisé':g.res===false?'❌ Manqué':'❌ Non atteint'}</td></tr>`).join('')}</table></div>`;
+ return `<h4 style="margin:14px 0 6px">🎯 Objectifs de la saison : ${ok}/${gs.length} réalisé${ok>1?'s':''}</h4><p class="note" style="margin:0 0 6px">${ok?`<b>+${ok} point${ok>1?'s':''} à répartir</b> au début de la saison suivante.`:'Aucun point à répartir cette fois.'}</p><div class="tw"><table><tr><th>Objectif</th><th>Résultat</th></tr>${gs.map(g=>`<tr><td>${esc(g.txt)}</td><td>${g.res===true?'✅ Réalisé':g.res===false?'❌ Manqué':'❌ Non atteint'}</td></tr>`).join('')}</table></div>`;
 }
 function seasonSteps(year){
  if(typeof K!=='undefined'&&K&&K.nat)applyNat(K.nat);
@@ -4019,6 +4028,7 @@ const played=K.hist.filter(h=>!h.skip&&h.total>0&&!isI(h)),bestH=played.reduce((
 function renderMain(){
  const m=$('#cMain');
  if(K.pools.length)return void(m.innerHTML=poolsHTML());
+ if(K.goalsPick&&K.phase!=='retired'&&K.phase!=='comp-run')return void(m.innerHTML=goalsPickHTML());
  if(K.phase==='retired')return void(m.innerHTML=retiredHTML());
  if(K.phase==='bilan')return void(m.innerHTML=bilanHTML());
  if(K.phase==='rehab')return void(m.innerHTML=rehabHTML());
@@ -4031,6 +4041,8 @@ $('#cMain').addEventListener('click',e=>{
  if(a==='padd')poolAddUI(b.dataset.k,1);
  else if(a==='psub')poolAddUI(b.dataset.k,-1);
  else if(a==='pauto'){poolAuto(K,K.pools[0]);persist();renderCareer();}
+ else if(a==='gtoggle')goalToggle(b.dataset.id);
+ else if(a==='gok')goalsValidate();
  else if(a==='pok'){K.pools.shift();persist();cNote='';renderCareer();}
  else if(a==='slot')addSlot({t:b.dataset.t});
  else if(a==='slotDis')addSlot({t:'dis',ev:$('#cDisEv').value});
@@ -4042,6 +4054,24 @@ $('#cMain').addEventListener('click',e=>{
  else if(a==='skipPrep'){K.sessDone=nSl();trainDone();persist();renderCareer();}
  else if(a==='season')nextSeason();
 });
+
+/* ---------- choix des objectifs de la saison ---------- */
+let goalSel=new Set();
+function goalToggle(id){
+ if(goalSel.has(id))goalSel.delete(id);else if(goalSel.size<GOAL_MAX)goalSel.add(id);
+ renderMain();
+}
+function goalsValidate(){
+ K.goals=(K.goalsCand||[]).filter(c=>goalSel.has(c.id)).map(c=>({k:c.k,i:c.i,n:c.n,txt:c.txt,target:c.target,res:null}));
+ K.goalsPick=false;K.goalsCand=null;goalSel=new Set();persist();cNote='';renderCareer();
+}
+function goalsPickHTML(){
+ const cand=K.goalsCand||[],st=['','★','★★','★★★'];
+ return `<div class="card pool"><h3>🎯 Objectifs de la saison ${K.year}</h3>
+ <p class="note" style="margin:4px 0 8px">Choisis jusqu’à <b>${GOAL_MAX} objectifs</b> parmi ceux que le calendrier et ton niveau permettent. Chaque objectif réalisé en fin de saison te donne <b>1 point à répartir</b> où tu veux. Plus l’étoile est haute, plus c’est difficile.</p>
+ ${cand.map(c=>{const on=goalSel.has(c.id),full=!on&&goalSel.size>=GOAL_MAX;return `<button class="goalOpt ${on?'on':''}" data-a="gtoggle" data-id="${c.id}" ${full?'disabled':''}><span>${on?'☑':'☐'}</span><b>${esc(c.txt)}</b><small>${st[c.d]}</small></button>`;}).join('')}
+ <div class="startRow"><b>${goalSel.size}/${GOAL_MAX} choisi${goalSel.size>1?'s':''}</b><button class="btn primary big" data-a="gok">${goalSel.size?'Valider mes objectifs':'Continuer sans objectif'}</button></div></div>`;
+}
 
 /* ---------- points à répartir ---------- */
 function poolAddUI(k,d){
@@ -4238,7 +4268,7 @@ function compAction(m){
 }
 function endComp(C,st){
  inCareerGame=false;
- const r=settleCompetition(K,C,st);goalsAfter(K.step,true,r.rank);advanceStep();
+ const r=settleCompetition(K,C,st);goalsAfter(K.step,true,r.rank,r.total,r.pbs.length);advanceStep();
  const list=[...C.all].sort((a,b)=>b.total-a.total),p=C.mine||C.all.find(x=>x.human);
  const top=list.slice(0,5).map((x,i)=>`<tr class="${x.human?'me':''}"><td>${medal(i)}</td><td>${nameCell(x)}</td><td><b>${nf(x.total)}</b></td></tr>`).join('');
  const mine=list.indexOf(p)>4?`<tr class="me"><td>${list.indexOf(p)+1}</td><td>${nameCell(p)}</td><td><b>${nf(p.total)}</b></td></tr>`:'';
@@ -4263,8 +4293,8 @@ function bilanHTML(){
  <div class="startRow"><button class="btn primary big" data-a="season">Saison ${K.season+1} →</button></div></div>`;
 }
 function nextSeason(){
- K.goalsHist=(K.goalsHist||[]).concat({year:K.year,goals:K.goals||[]});K.goals=null;K.sComps=0;
- const r=applyAging(K);const mt=applyMaintenance(K);if(K.inj)enterRehab(K);
+ const okG=(K.goals||[]).filter(g=>g.res===true).length;K.goalsHist=(K.goalsHist||[]).concat({year:K.year,goals:K.goals||[]});K.goals=null;K.sComps=0;
+ const r=applyAging(K);if(okG)K.pools.push({n:okG,sk:null,why:`Objectifs de la saison réalisés (${okG})`});const mt=applyMaintenance(K);if(K.inj)enterRehab(K);
  cNote=`<div class="card cnote"><h3>🎂 Saison ${K.season} · ${K.year} · ${K.age} ans</h3><p>${esc(r.plan.txt)}${r.lost.length?` Tu perds : ${r.lost.map(l=>`${SX[l.k].i} ${SX[l.k].n} −${l.d} %`).join(', ')}.`:''}${r.plan.gain?` Tu as <b>${r.plan.gain} points</b> à répartir.`:''}${mt.lost.length?` Faute de travail cette saison, tu perds : ${mt.lost.map(k=>`${SX[k].i} ${SX[k].n} −10 %`).join(', ')}.`:''}${mt.warn.length?` ⚠️ Pas travaillées cette saison : ${mt.warn.map(k=>`${SX[k].i} ${SX[k].n}`).join(', ')}. Une saison de plus et tu les perds.`:''}</p></div>`;
  persist();renderCareer();
 }
