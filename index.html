@@ -1552,19 +1552,21 @@ async function runBarEvent(C,H){
 
 const paperAll=C=>!C.noForm&&C.evs.every(ev=>C.all.every(p=>paperOn(ev,p)));
 const PCOND={s:'Conditions tirées au dé',txt:'Forme du jour, aléa et conditions se tirent au dé pendant l’épreuve.',mod:0};
-async function runCompetition(C,H){
+async function runCompetition(C,H,o){
+ o=o||{};if(C.allAll){C.all=C.allAll;C.allAll=null;}   /* reprise : on rend les athlètes écartés en cours d'épreuve */
  C.attempts=C.attempts||3;let removed=[],all0=null;
  const PA=paperAll(C);C.all.forEach(p=>{p.selfForm=PA;});
- await H.begin(C);
- if(!C.noForm&&!PA)await doForm(C,H,1);
- for(let r=0;r<C.evs.length;r++){
+ if(!o.resume){await H.begin(C);
+ if(!C.noForm&&!PA)await doForm(C,H,1);}
+ const to=o.to==null?C.evs.length:o.to;
+ for(let r=o.from||0;r<to;r++){
   if(H.aborted())return;
-  if(r===C.dayBreak){C.all.forEach(p=>{p.fat*=.4;});await H.night(C);if(!PA)await doForm(C,H,2);}
+  if(r===C.dayBreak&&!(o.skipNight&&r===(o.from||0))){C.all.forEach(p=>{p.fat*=.4;});await H.night(C);if(!PA)await doForm(C,H,2);}
   const ev=C.evs[r];
   C.cur={r,ev,cond:PA?PCOND:drawCond(ev),day:r<C.dayBreak?1:2};
   C.all.forEach(p=>{p.att[r]=[];});
   await H.eventStart(C);
-  removed=C.all.filter(p=>p.dnf);if(removed.length){all0=[...C.all];C.all=C.all.filter(p=>!p.dnf);}
+  removed=C.all.filter(p=>p.dnf);if(removed.length){all0=[...C.all];C.allAll=all0;C.all=C.all.filter(p=>!p.dnf);}
   const PP=C.all.every(p=>paperOn(ev,p));
   if(ev.mech==='race')await runRaceEvent(C,H);
   else if(ev.mech==='bar')await(PP?runPaperBar:runBarEvent)(C,H);
@@ -1572,7 +1574,7 @@ async function runCompetition(C,H){
   if(H.aborted())return;
   C.all.forEach(p=>{p.fat+=ev.f*(p.age>=34?1.25:1);});
   /* blessure en pleine compétition (mode carrière) : le joueur abandonne les épreuves suivantes */
-  if(removed.length){C.all=all0;removed.forEach(p=>{setRes(p,r,null,0,false);});removed=[];}
+  if(removed.length){C.all=all0;C.allAll=null;removed.forEach(p=>{setRes(p,r,null,0,false);});removed=[];}
   /* blessure sur un 20 naturel (règle du livre) : abandon de la compétition */
   if(PP&&typeof pickInjury==='function'){
    for(const p of C.all){
@@ -1605,7 +1607,7 @@ async function runCompetition(C,H){
   }
   await H.eventEnd(C);
  }
- await H.finish(C);
+ if(!o.noFinish&&to>=C.evs.length)await H.finish(C);
 }
 
 /* ================= MODE CARRIÈRE : logique (sans DOM) ================= */
@@ -3341,19 +3343,50 @@ function startGame(C,o){
  if(ST&&ST.setVenue)ST.setVenue(!!C.indoor,C.level);
  if(ST&&ST.resetPawns)ST.resetPawns();
  const g=G;
- runCompetition(C,makeHooks(g)).catch(err=>{if(!g.abort&&err&&err.message!=='abort')console.error(err);});
+ g.H=makeHooks(g);
+ g.loopP=runCompetition(C,g.H).catch(err=>{if(!g.abort&&err&&err.message!=='abort')console.error(err);});
 }
 $('#autoChk').onchange=e=>{if(!G)return;if(G.simmed){if(!e.target.checked)endSim(G);else G.userAuto=true;return;}G.auto=e.target.checked;};
 function endSim(g){g.auto=!!g.userAuto;g.fast=!!g.userFast;g.simmed=false;g.simLeft=0;if(g.userLvl!=null){g.lvl=g.userLvl;g.userLvl=null;}$('#autoChk').checked=g.auto;}
 $('#simBtn').onclick=()=>{
- if(!G||G.abort||G.train)return;
+ if(!G||G.abort)return;
+ if(G.room||G.train)return simSlow();
+ simInstant(+$('#simN').value);
+};
+/* simulation lente (salles en ligne et séances) : les dés sont lancés à l'écran, très vite */
+function simSlow(){
  const n=+$('#simN').value;G.simLeft=n;
  if(!G.simmed){G.simmed=true;G.userAuto=G.auto;G.userFast=G.fast;G.userLvl=G.lvl;}
- G.lvl=0;   /* simulation instantanée : plus rien ne s'anime à l'écran */
- G.auto=true;G.fast=true;$('#autoChk').checked=true;
+ G.lvl=0;G.auto=true;G.fast=true;$('#autoChk').checked=true;
  if(G.cancel)G.cancel();
  const b=$('#actBtn');if(!b.hidden)b.click();
-};
+}
+/* simulation instantanée : on arrête la partie animée, on calcule les épreuves sans rien afficher, puis on reprend à l'écran */
+async function simInstant(n){
+ const old=G;if(old.simBusy)return;old.simBusy=true;
+ const C=old.C;
+ old.abort=true;if(old.cancel)old.cancel();   /* l'ancienne boucle s'arrête d'elle-même et ne reprendra jamais */
+ ['actBtn','passBtn','turboBtn'].forEach(i=>{const b=$('#'+i);if(b){b.hidden=true;b.onclick=null;}});
+ const g=Object.assign({},old,{abort:false,simBusy:true,simmed:false,cancel:null,turbo:false,heat:[],prog:{},auto:!!old.userAuto&&old.simmed?old.userAuto:old.auto});
+ G=g;
+ await sleep(120);   /* laisse finir ce que l'ancienne boucle exécutait */
+ const r0=C.cur?C.cur.r:0;
+ const complete=!!C.cur&&C.all.every(p=>p.dnf||p.res[r0]);
+ const from=C.cur?(complete?r0+1:r0):0,to=Math.min(C.evs.length,from+n);
+ try{
+  if(from<C.evs.length){
+   $('#status').innerHTML='<h4>⏩ Simulation en cours…</h4>';
+   await new Promise(r=>setTimeout(r,30));   /* laisse le navigateur afficher le message */
+   await runCompetition(C,silentHooks(null,false),{from,to,resume:true,noFinish:true,skipNight:C.cur&&!complete});
+  }
+  g.H=makeHooks(g);
+  if(to>=C.evs.length){g.loopP=g.H.finish(C).catch(err=>{if(!g.abort&&err&&err.message!=='abort')console.error(err);});}
+  else{
+   g.loopP=(async()=>{await g.H.eventEnd(C);await runCompetition(C,g.H,{from:to,resume:true});})().catch(err=>{if(!g.abort&&err&&err.message!=='abort')console.error(err);});
+  }
+ }catch(err){console.error(err);}
+ g.simBusy=false;
+}
 /* ---------- classements par épreuve ---------- */
 function ranksInto(el,C,sel){
  const evDone=i=>C.all.some(p=>p.res[i])&&C.all.filter(p=>!p.dnf).every(p=>p.res[i]);
